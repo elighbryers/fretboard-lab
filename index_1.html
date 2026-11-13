@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fretboard Lab</title>
+<style>
+:root{--bg:#14110f;--panel:#1f1a17;--panel2:#2a231f;--line:#3a322c;--text:#f3ece4;--muted:#a89a8c;--accent:#e8a33d;--root:#e5533d;--note:#3d8fe5;--good:#3fb66b;--bad:#e5533d;--wood:#3b2a1e;--fret:#c9c2b8;--string:#d8cfc4}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text)}
+header,main{max-width:1100px;margin:0 auto;padding:0 16px}
+header{padding-top:20px}
+h1{margin:0;font-size:24px}
+header p{margin:4px 0 0;color:var(--muted)}
+.tabs{display:flex;gap:8px;margin:16px 0 12px}
+.tabs button{flex:0 0 auto}
+.tabs button.on{background:var(--accent);color:#1a1410;border-color:var(--accent);font-weight:600}
+.controls{display:flex;flex-wrap:wrap;gap:12px;background:var(--panel);padding:12px;border-radius:12px;align-items:flex-end}
+label{display:flex;flex-direction:column;font-size:12px;color:var(--muted);gap:4px}
+select,button{font:inherit;font-size:15px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--text);cursor:pointer}
+button.primary{background:var(--accent);color:#1a1410;border-color:var(--accent);font-weight:600}
+.board-wrap{overflow-x:auto;margin-top:12px;border-radius:12px;background:var(--panel);padding:12px}
+svg{display:block;min-width:760px;width:100%;height:auto}
+.hit{cursor:pointer}
+.info{margin:12px 0 0;font-size:16px}
+.info small{display:block;color:var(--muted);font-size:14px;margin-top:4px}
+.quizbar{display:flex;flex-wrap:wrap;gap:16px;align-items:center;background:var(--panel);padding:12px;border-radius:12px}
+.target{font-size:22px;font-weight:700}
+.target span{color:var(--accent)}
+.score{color:var(--muted)}
+.msg{min-height:22px;margin-top:10px;font-weight:600}
+.hidden{display:none}
+footer{color:var(--muted);font-size:13px;padding:24px 16px 40px;max-width:1100px;margin:0 auto}
+</style>
+</head>
+<body>
+<header>
+  <h1>Fretboard Lab</h1>
+  <p>See scales and chords on the neck. Tap any note to hear it.</p>
+</header>
+<main>
+  <div class="tabs">
+    <button id="tab-explore" class="on">Explore</button>
+    <button id="tab-quiz">Note quiz</button>
+  </div>
+
+  <section id="explore">
+    <div class="controls">
+      <label>Key<select id="root"></select></label>
+      <label>Show<select id="kind"><option value="scale">Scale</option><option value="chord">Chord</option></select></label>
+      <label>Type<select id="type"></select></label>
+      <label>Labels<select id="labels"><option value="notes">Note names</option><option value="intervals">Intervals</option><option value="none">Dots only</option></select></label>
+      <button id="play" class="primary">▶ Play it</button>
+    </div>
+  </section>
+
+  <section id="quiz" class="hidden">
+    <div class="quizbar">
+      <div class="target">Find: <span id="q-note">–</span></div>
+      <label>Strings<select id="q-strings"><option value="low">Low E and A only</option><option value="all">All six</option></select></label>
+      <div class="score" id="q-score">Score 0 · Streak 0</div>
+      <button id="q-skip">Skip</button>
+    </div>
+  </section>
+
+  <div class="board-wrap"><svg id="board" viewBox="0 0 1000 280" role="img" aria-label="Guitar fretboard"></svg></div>
+  <div class="info" id="info"></div>
+  <div class="msg" id="msg"></div>
+</main>
+<footer>Standard tuning · 15 frets · Red = root note</footer>
+
+<script>
+const NOTES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const KEY_NAMES=['C','C# / Db','D','D# / Eb','E','F','F# / Gb','G','G# / Ab','A','A# / Bb','B'];
+const INTERVALS=['1','b2','2','b3','3','4','b5','5','b6','6','b7','7'];
+const TUNING=[64,59,55,50,45,40]; // high e on top, like tab
+const STRING_NAMES=['e','B','G','D','A','E'];
+const FRETS=15;
+const SCALES={
+  'Major':[0,2,4,5,7,9,11],
+  'Natural minor':[0,2,3,5,7,8,10],
+  'Major pentatonic':[0,2,4,7,9],
+  'Minor pentatonic':[0,3,5,7,10],
+  'Blues':[0,3,5,6,7,10],
+  'Dorian':[0,2,3,5,7,9,10],
+  'Mixolydian':[0,2,4,5,7,9,10]
+};
+const CHORDS={
+  'Major':[0,4,7],
+  'Minor':[0,3,7],
+  'Dominant 7':[0,4,7,10],
+  'Major 7':[0,4,7,11],
+  'Minor 7':[0,3,7,10],
+  'Diminished':[0,3,6],
+  'Power (5)':[0,7]
+};
+const state={tab:'explore',root:9,kind:'scale',type:'Minor pentatonic',labels:'notes',flash:[],
+  quiz:{target:null,score:0,streak:0,strings:'low'}};
+
+/* ---------- geometry ---------- */
+const NUT=64,END=980,TOP=36,GAP=40;
+const SPAN=1-Math.pow(2,-FRETS/12);
+const fx=n=>NUT+(END-NUT)*(1-Math.pow(2,-n/12))/SPAN;
+const cx=n=>n===0?NUT-30:(fx(n-1)+fx(n))/2;
+const sy=s=>TOP+s*GAP;
+
+/* ---------- audio: plucked-string synth, no downloads ---------- */
+let ctx;const cache={};
+function audio(){if(!ctx)ctx=new(window.AudioContext||window.webkitAudioContext)();if(ctx.state==='suspended')ctx.resume();return ctx}
+function pluck(midi){
+  if(cache[midi])return cache[midi];
+  const c=audio(),sr=c.sampleRate,f=440*Math.pow(2,(midi-69)/12);
+  const len=Math.floor(sr*2.2),buf=c.createBuffer(1,len,sr),d=buf.getChannelData(0);
+  const N=Math.max(2,Math.round(sr/f)),ring=new Float32Array(N);
+  for(let i=0;i<N;i++)ring[i]=Math.random()*2-1;
+  let i0=0;
+  for(let i=0;i<len;i++){const n=(i0+1)%N,v=ring[i0];ring[i0]=0.497*(v+ring[n]);d[i]=v;i0=n}
+  return cache[midi]=buf;
+}
+function play(midi,when=0){
+  const c=audio(),src=c.createBufferSource(),g=c.createGain();
+  src.buffer=pluck(midi);g.gain.value=0.45;
+  src.connect(g).connect(c.destination);src.start(c.currentTime+when);
+}
+
+/* ---------- drawing ---------- */
+function activeSet(){return (state.kind==='scale'?SCALES:CHORDS)[state.type]}
+function draw(){
+  const midY=TOP+2.5*GAP;
+  let s=`<rect x="${NUT}" y="${TOP-16}" width="${END-NUT}" height="${5*GAP+32}" rx="4" fill="var(--wood)"/>`;
+  [3,5,7,9,15].forEach(n=>s+=`<circle cx="${cx(n)}" cy="${midY}" r="7" fill="#5a4636"/>`);
+  s+=`<circle cx="${cx(12)}" cy="${TOP+1.5*GAP}" r="7" fill="#5a4636"/><circle cx="${cx(12)}" cy="${TOP+3.5*GAP}" r="7" fill="#5a4636"/>`;
+  for(let n=1;n<=FRETS;n++)s+=`<line x1="${fx(n)}" x2="${fx(n)}" y1="${TOP-16}" y2="${sy(5)+16}" stroke="var(--fret)" stroke-width="2"/>`;
+  s+=`<rect x="${NUT-5}" y="${TOP-16}" width="7" height="${5*GAP+32}" fill="#efe6d8"/>`;
+  for(let i=0;i<6;i++){
+    s+=`<line x1="${NUT-40}" x2="${END}" y1="${sy(i)}" y2="${sy(i)}" stroke="var(--string)" stroke-width="${1+i*0.45}" opacity="0.85"/>`;
+    s+=`<text x="2" y="${sy(i)+5}" font-size="14" fill="var(--muted)">${STRING_NAMES[i]}</text>`;
+  }
+  for(let n=0;n<=FRETS;n++)s+=`<text x="${cx(n)}" y="${sy(5)+42}" text-anchor="middle" font-size="13" fill="var(--muted)">${n}</text>`;
+
+  const set=state.tab==='explore'?activeSet():[];
+  for(let i=0;i<6;i++)for(let n=0;n<=FRETS;n++){
+    const midi=TUNING[i]+n,pc=midi%12,rel=(pc-state.root+12)%12;
+    if(state.tab==='explore'&&set.includes(rel)){
+      const root=rel===0;
+      s+=`<circle cx="${cx(n)}" cy="${sy(i)}" r="15" fill="${root?'var(--root)':'var(--note)'}" stroke="#0008" stroke-width="1"/>`;
+      const lbl=state.labels==='notes'?NOTES[pc]:state.labels==='intervals'?INTERVALS[rel]:'';
+      if(lbl)s+=`<text x="${cx(n)}" y="${sy(i)+5}" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" pointer-events="none">${lbl}</text>`;
+    }
+  }
+  state.flash.forEach(f=>{
+    s+=`<circle cx="${cx(f.n)}" cy="${sy(f.s)}" r="16" fill="${f.ok?'var(--good)':'var(--bad)'}"/>`;
+    s+=`<text x="${cx(f.n)}" y="${sy(f.s)+5}" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" pointer-events="none">${NOTES[(TUNING[f.s]+f.n)%12]}</text>`;
+  });
+  for(let i=0;i<6;i++)for(let n=0;n<=FRETS;n++)
+    s+=`<circle class="hit" data-s="${i}" data-n="${n}" cx="${cx(n)}" cy="${sy(i)}" r="18" fill="transparent"/>`;
+  board.innerHTML=s;
+  drawInfo();
+}
+function drawInfo(){
+  const info=document.getElementById('info');
+  if(state.tab!=='explore'){info.innerHTML='<small>Tap the neck to find the note. Say its name out loud as you go.</small>';return}
+  const set=activeSet(),names=set.map(r=>NOTES[(state.root+r)%12]).join('  ');
+  info.innerHTML=`<b>${NOTES[state.root]} ${state.type.toLowerCase()}</b>: ${names}<small>Formula: ${set.map(r=>INTERVALS[r]).join('  ')}</small>`;
+}
+
+/* ---------- controls ---------- */
+const $=id=>document.getElementById(id);
+const board=$('board');
+KEY_NAMES.forEach((k,i)=>$('root').add(new Option(k,i)));
+$('root').value=state.root;
+function fillTypes(){
+  const t=$('type');t.innerHTML='';
+  Object.keys(state.kind==='scale'?SCALES:CHORDS).forEach(k=>t.add(new Option(k,k)));
+  if(!(state.type in (state.kind==='scale'?SCALES:CHORDS)))state.type=t.options[0].value;
+  t.value=state.type;
+}
+fillTypes();
+$('root').onchange=e=>{state.root=+e.target.value;draw()};
+$('kind').onchange=e=>{state.kind=e.target.value;fillTypes();draw()};
+$('type').onchange=e=>{state.type=e.target.value;draw()};
+$('labels').onchange=e=>{state.labels=e.target.value;draw()};
+$('play').onclick=()=>{
+  const set=activeSet(),base=40+((state.root-4+12)%12);
+  if(state.kind==='scale'){[...set,12].forEach((r,i)=>play(base+r,i*0.32))}
+  else{set.forEach((r,i)=>play(base+r,i*0.04));set.forEach((r,i)=>play(base+r,1.2+i*0.35))}
+};
+
+function setTab(t){
+  state.tab=t;state.flash=[];
+  $('tab-explore').classList.toggle('on',t==='explore');$('tab-quiz').classList.toggle('on',t==='quiz');
+  $('explore').classList.toggle('hidden',t!=='explore');$('quiz').classList.toggle('hidden',t!=='quiz');
+  $('msg').textContent='';
+  if(t==='quiz')newTarget();
+  draw();
+}
+$('tab-explore').onclick=()=>setTab('explore');
+$('tab-quiz').onclick=()=>setTab('quiz');
+
+/* ---------- note quiz ---------- */
+const q=state.quiz;
+function newTarget(){
+  let t;do{t=Math.floor(Math.random()*12)}while(t===q.target);
+  q.target=t;$('q-note').textContent=NOTES[t];
+}
+function scoreText(){$('q-score').textContent=`Score ${q.score} · Streak ${q.streak}`}
+$('q-strings').onchange=e=>{q.strings=e.target.value};
+$('q-skip').onclick=()=>{q.streak=0;scoreText();state.flash=[];$('msg').textContent='';newTarget();draw()};
+
+board.addEventListener('click',e=>{
+  const h=e.target.closest('.hit');if(!h)return;
+  const s=+h.dataset.s,n=+h.dataset.n,midi=TUNING[s]+n;
+  play(midi);
+  if(state.tab!=='quiz')return;
+  if(q.strings==='low'&&s<4){$('msg').style.color='var(--muted)';$('msg').textContent='Stick to the low E and A strings for now.';return}
+  const ok=midi%12===q.target;
+  state.flash=[{s,n,ok}];
+  if(ok){q.score++;q.streak++;$('msg').style.color='var(--good)';$('msg').textContent=`Yes, that's ${NOTES[q.target]} (string ${6-s}, fret ${n}).`;
+    scoreText();draw();setTimeout(()=>{state.flash=[];newTarget();draw()},700)}
+  else{q.streak=0;$('msg').style.color='var(--bad)';$('msg').textContent=`That's ${NOTES[midi%12]}. Try again.`;scoreText();draw()}
+});
+
+draw();
+</script>
+</body>
+</html>
