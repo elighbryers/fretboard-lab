@@ -1,0 +1,182 @@
+:root {
+  --bg: #14110f; --panel: #1f1a17; --panel2: #2a231f; --line: #3a322c;
+  --text: #f3ece4; --muted: #a89a8c; --accent: #e8a33d;
+  --good: #3fb66b; --bad: #e5533d;
+  /* fretboard: plain, no wood texture */
+  --board: #241e1a; --fret: #8f877e; --string: #d8cfc4; --inlay: #3d342d; --nut: #efe6d8;
+  /* the one degree color code (roles are assigned in js/fretboard.js) */
+  --deg-root: #e5533d; --deg-third: #e8b93d; --deg-fifth: #3d8fe5; --deg-other: #5f6670;
+  --tabbar-h: 64px;
+}
+* { box-sizing: border-box }
+[hidden] { display: none !important }
+body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text) }
+header, main { max-width: 1100px; margin: 0 auto; padding: 0 16px }
+header { padding-top: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px }
+header .title { flex: 1 1 auto }
+h1 { margin: 0; font-size: 24px }
+header p { margin: 4px 0 0; color: var(--muted) }
+h2 { font-size: 20px; margin: 20px 0 10px }
+h3 { font-size: 16px; margin: 18px 0 8px }
+.muted { color: var(--muted) }
+a { color: var(--accent) }
+
+/* ---------- tabs: top on desktop, bottom bar on phones ---------- */
+.tabs { display: flex; gap: 8px; margin: 16px 0 4px }
+.tabs a { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--panel2); color: var(--text); text-decoration: none; font-size: 15px; white-space: nowrap }
+.tabs a svg { width: 18px; height: 18px }
+.tabs a em { font-style: normal; font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 0 6px }
+.tabs a[aria-current] { background: var(--accent); color: #1a1410; border-color: var(--accent); font-weight: 600 }
+.tabs a[aria-current] em { color: #1a1410; border-color: #1a141066 }
+@media (max-width: 700px) {
+  body { padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom)) }
+  .tabs { position: fixed; z-index: 10; left: 0; right: 0; bottom: 0; margin: 0; gap: 0; height: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+    padding: 0 4px env(safe-area-inset-bottom); background: var(--panel); border-top: 1px solid var(--line) }
+  .tabs a { flex: 1 1 0; flex-direction: column; justify-content: center; gap: 2px; padding: 6px 2px; border: 0; border-radius: 0;
+    background: none; color: var(--muted); font-size: 11px; position: relative; min-width: 0 }
+  .tabs a span { overflow: hidden; text-overflow: ellipsis; max-width: 100% }
+  .tabs a svg { width: 22px; height: 22px }
+  .tabs a em { position: absolute; top: 4px; right: 4px; font-size: 9px; padding: 0 4px }
+  .tabs a[aria-current] { background: none; color: var(--accent) }
+  .tabs a[aria-current] em { color: var(--muted); border-color: var(--line) }
+  #views { padding-top: 12px }
+  #views > section > h2:first-child { margin-top: 4px }
+}
+
+/* ---------- controls ---------- */
+.controls { display: flex; flex-wrap: wrap; gap: 12px; background: var(--panel); padding: 12px; border-radius: 12px; align-items: flex-end }
+label { display: flex; flex-direction: column; font-size: 12px; color: var(--muted); gap: 4px }
+select, button, input[type=number] { font: inherit; font-size: 15px; min-height: 44px; padding: 8px 12px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--panel2); color: var(--text); cursor: pointer }
+input[type=number] { width: 90px; cursor: text }
+input[type=range] { accent-color: var(--accent); min-height: 44px; flex: 1 1 140px }
+button.primary { background: var(--accent); color: #1a1410; border-color: var(--accent); font-weight: 600 }
+button.quiet { background: none; color: var(--muted); margin-top: 24px }
+.row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end }
+.pill { display: inline-block; font-size: 12px; font-weight: 600; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 2px 10px; vertical-align: middle }
+
+/* ---------- fretboard ---------- */
+.board-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 12px; border-radius: 12px; background: var(--panel); padding: 12px }
+.board-wrap svg { display: block; width: 100%; height: auto; user-select: none; -webkit-user-select: none }
+.board-wrap svg.wide { min-width: 760px }
+@media (max-width: 700px) { .board-wrap svg.wide { min-width: 960px } }
+.fb-board { fill: var(--board) }
+.fb-inlay { fill: var(--inlay) }
+.fb-fret { stroke: var(--fret); stroke-width: 2 }
+.fb-nut { fill: var(--nut) }
+.fb-string { stroke: var(--string); opacity: .85 }
+.fb-text { fill: var(--muted) }
+.fb-dim { fill: var(--panel); opacity: .72; pointer-events: none }
+.fb-heat { opacity: .6; pointer-events: none }
+.fb-dot, .fb-mark { pointer-events: none }
+.fb-dot circle { stroke: #0008; stroke-width: 1 }
+.fb-dot text, .fb-mark text { fill: #fff; font-weight: 700 }
+.role-root circle, .sw.role-root { fill: var(--deg-root); background: var(--deg-root) }
+.role-third circle, .sw.role-third { fill: var(--deg-third); background: var(--deg-third) }
+.role-third text { fill: #1a1410 }
+.role-fifth circle, .sw.role-fifth { fill: var(--deg-fifth); background: var(--deg-fifth) }
+.role-other circle, .sw.role-other { fill: var(--deg-other); background: var(--deg-other) }
+.role-plain circle { fill: none; stroke: none }
+.fb-dot.dim { opacity: .25 }
+.fb-dot.lit circle { stroke: #fff; stroke-width: 4 }
+.fb-dot.lit { filter: drop-shadow(0 0 6px #fffa) }
+/* answer feedback: thick white ring so "wrong" never reads as "root" */
+.fb-mark circle { stroke: #fff; stroke-width: 3 }
+.fb-mark.good circle { fill: var(--good) }
+.fb-mark.bad circle { fill: var(--bad) }
+.hit { fill: transparent }
+svg.tappable .hit { cursor: pointer }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 13px; color: var(--muted) }
+.legend span { display: flex; align-items: center; gap: 6px }
+.sw { display: inline-block; width: 12px; height: 12px; border-radius: 50% }
+
+.info { margin: 12px 0 0; font-size: 16px }
+.info small { display: block; color: var(--muted); font-size: 14px; margin-top: 4px }
+
+/* ---------- practice ---------- */
+.quizbar { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; background: var(--panel); padding: 12px; border-radius: 12px }
+.target { font-size: 22px; font-weight: 700 }
+.target span { color: var(--accent) }
+.score { color: var(--muted) }
+.msg { min-height: 22px; margin-top: 10px; font-weight: 600 }
+.tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px }
+.tool { background: var(--panel); border-radius: 12px; padding: 12px }
+.tool h3 { margin: 0 0 10px }
+.tool small { display: block; margin-top: 8px }
+.beats { display: flex; gap: 8px; margin-top: 12px }
+.beats i { width: 16px; height: 16px; border-radius: 50%; background: var(--panel2); border: 1px solid var(--line) }
+.beats i.on { background: var(--text) }
+.beats i.on.accent { background: var(--accent) }
+
+/* ---------- learn: path map ---------- */
+.continue { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 16px; padding: 16px; border-radius: 12px;
+  background: var(--accent); color: #1a1410; text-decoration: none }
+.continue .muted { color: #1a1410b0; flex: 1 0 100%; font-size: 13px; font-weight: 600 }
+.continue b { flex: 1 1 auto; font-size: 17px }
+.continue .go { font-size: 20px }
+.path { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px }
+.level { background: var(--panel); border-radius: 12px; padding: 14px }
+.level-head { display: flex; gap: 14px }
+.level .num { flex: 0 0 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; background: var(--accent); color: #1a1410 }
+.level.locked .num { background: var(--panel2); color: var(--muted) }
+.level h3 { margin: 4px 0 4px }
+.level p { margin: 0 0 8px; color: var(--muted) }
+.level .row { align-items: center }
+.nodes { list-style: none; padding: 8px 0 0; margin: 0; display: grid; gap: 6px }
+.node a, .node > div { display: flex; align-items: center; gap: 12px; padding: 6px 8px; border-radius: 12px; color: var(--text); text-decoration: none; min-height: 56px }
+.node a:hover { background: var(--panel2) }
+.node:nth-child(4n+2) { margin-left: 28px } .node:nth-child(4n+3) { margin-left: 56px } .node:nth-child(4n) { margin-left: 28px }
+.node .dot { flex: 0 0 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; background: var(--panel2); border: 2px solid var(--line) }
+.node .txt { display: flex; flex-direction: column }
+.node small { color: var(--muted) }
+.node.done .dot { background: var(--good); border-color: var(--good); color: #fff }
+.node.current .dot { background: var(--accent); border-color: var(--accent); color: #1a1410; box-shadow: 0 0 0 4px #e8a33d40 }
+.node.locked { opacity: .55 }
+.node.challenge .dot { border-color: var(--accent) }
+
+/* ---------- learn: lesson player ---------- */
+.lesson { max-width: 820px; margin: 16px auto 0 }
+.lesson-top { display: flex; align-items: center; gap: 12px }
+.lesson-top .bar { flex: 1; height: 10px; border-radius: 99px; background: var(--panel2); overflow: hidden }
+.lesson-top .bar i { display: block; height: 100%; background: var(--accent); transition: width .25s }
+.lesson-top span { color: var(--muted); font-size: 14px; min-width: 32px; text-align: right }
+button.icon { min-width: 44px; padding: 8px }
+.card { background: var(--panel); border-radius: 12px; padding: 16px; margin-top: 12px }
+.card h2 { margin: 2px 0 12px; font-size: 18px; color: var(--muted); font-weight: 600 }
+.step-name { font-size: 24px; font-weight: 700; color: var(--accent) }
+.step-body p { font-size: 17px; line-height: 1.45; margin: 0 0 12px }
+.step-body .prompt { font-size: 20px; font-weight: 700 }
+.step-body .prompt .muted { font-size: 14px; font-weight: 400; margin-left: 6px }
+.points { padding-left: 20px; margin: 0 0 4px; line-height: 1.45 }
+.points li { margin-bottom: 8px }
+button.big { font-size: 17px; padding: 12px 22px; margin: 4px 8px 4px 0 }
+button:disabled { opacity: .45; cursor: default }
+.lesson-nav { display: flex; justify-content: space-between; gap: 12px; margin: 14px 0 8px; padding: 8px 0;
+  position: sticky; bottom: 0; background: var(--bg) }
+@media (max-width: 700px) { .lesson-nav { bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom)) } }
+.lesson-nav button { min-width: 110px }
+.tempo { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; max-width: 520px }
+.tempo button { font-size: 22px; line-height: 1; width: 44px }
+.tempo input { flex: 1 1 auto; min-width: 0 }
+.tempo output { min-width: 80px; color: var(--muted) }
+.tempo output b { color: var(--text); font-size: 22px }
+.choices { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0 }
+.choices button { min-width: 72px; font-size: 18px; font-weight: 600 }
+.choices button.good { background: var(--good); border-color: var(--good); color: #fff; opacity: 1 }
+.choices button.bad { background: var(--bad); border-color: var(--bad); color: #fff; opacity: 1 }
+.result { border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid var(--line) }
+.result b { font-size: 22px }
+.result.good b { color: var(--good) } .result.bad b { color: var(--bad) }
+.result p { margin: 4px 0 0 }
+
+/* ---------- progress ---------- */
+.link { font-weight: 600; text-decoration: none; padding: 8px 0 }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px }
+.stats div { background: var(--panel); border-radius: 12px; padding: 12px }
+.stats b { display: block; font-size: 24px }
+.stats span { color: var(--muted); font-size: 13px }
+.log { padding-left: 18px; color: var(--text) }
+.log li { margin: 4px 0 }
+
+footer { color: var(--muted); font-size: 13px; padding: 24px 16px 40px; max-width: 1100px; margin: 0 auto }
