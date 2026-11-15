@@ -75,3 +75,14 @@ export function calendarGrid(weeks, { width, label, month }) {
   });
   return svg(w, h, out, label);
 }
+
+// A small trend line (no axes): values oldest first. The last point gets a dot.
+export function spark(values, { width = 120, height = 32, label }) {
+  if (!values.length) return '';
+  const lo = Math.min(...values), hi = Math.max(...values), span = hi - lo || 1, pad = 4;
+  const x = i => values.length === 1 ? width - pad : pad + i * (width - 2 * pad) / (values.length - 1);
+  const y = v => height - pad - (v - lo) / span * (height - 2 * pad);
+  const d = values.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('');
+  const last = values.length - 1;
+  return svg(width, height, `${values.length > 1 ? `<path class="ch-line thin" d="${d}"/>` : ''}<circle class="ch-dot" cx="${x(last)}" cy="${y(values[last])}" r="3.5"/>`, label);
+}

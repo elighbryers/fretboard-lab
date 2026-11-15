@@ -2,6 +2,8 @@
 //   chordOf('G', 'vi') -> { root: 4, chord: 'minor', name: 'Em', roman: 'vi' }
 // Upper case = major, lower case = minor, '°' = diminished; a suffix 7 /
 // maj7 picks the 7th chord (V7 = dominant 7, ii7 = m7, Imaj7, vii°7 = m7b5).
+// Outside the key: 'bVII' (a major chord a whole step below I: F in G) and
+// secondary dominants 'V/vi', 'V7/V' (the V of another chord: B7 is V7/vi in G).
 import { parseNote, spell, lookup } from './theory.js';
 
 const NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
@@ -9,6 +11,17 @@ const MAJOR = '1 2 3 4 5 6 7';
 const SUFFIX = { major: '', minor: 'm', dim: '°', '7': '7', maj7: 'maj7', m7: 'm7', m7b5: 'm7b5' };
 
 export function chordOf(key, roman) {
+  const sec = /^(V7?)\/(.+)$/.exec(roman);
+  if (sec) {
+    const target = chordOf(key, sec[2]), rootName = spell(target.root, MAJOR).notes[4];
+    const chord = sec[1] === 'V7' ? '7' : 'major';
+    return { root: parseNote(rootName), chord, name: rootName + SUFFIX[chord], roman, rootName };
+  }
+  if (/^b[IV]+$/.test(roman)) {
+    const degree = NUMERALS.indexOf(roman.slice(1)), keyPc = parseNote(key);
+    const natural = spell(keyPc, MAJOR).notes[degree], rootName = spell(keyPc, '1 b' + (degree + 1)).notes[1];
+    return { root: parseNote(rootName), chord: 'major', name: rootName, roman, rootName, natural };
+  }
   const m = /^(VII|VI|IV|V|III|II|I|vii|vi|iv|v|iii|ii|i)(°)?(maj7|7)?$/.exec(roman);
   if (!m) throw new Error('bad numeral ' + roman);
   const degree = NUMERALS.indexOf(m[1].toUpperCase()), minor = m[1] === m[1].toLowerCase();

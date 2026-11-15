@@ -4,6 +4,7 @@ import { P, inKey, noteDot, tap, choice, task, degreeItem } from './kit.js';
 
 const G = inKey('G', 'scale', 'major'), A = inKey('A', 'scale', 'major'), C = inKey('C', 'scale', 'major'), D = inKey('D', 'scale', 'major');
 const Em = inKey('E', 'scale', 'minor'), Gp = inKey('G', 'scale', 'major-pentatonic');
+const Emp = inKey('E', 'scale', 'minor-pentatonic'), Amp = inKey('A', 'scale', 'minor-pentatonic');
 
 // One-octave major shapes: root on the low E string (fret r) or the A string.
 const shape6 = r => [[6, r], [6, r + 2], [5, r - 1], [5, r], [5, r + 2], [4, r - 1], [4, r + 1], [4, r + 2]];
@@ -15,6 +16,12 @@ const G_ONE = [3, 5, 7, 8, 10, 12, 14, 15].map(f => [6, f]);
 const EM_OPEN = [[6, 0], [6, 2], [6, 3], [5, 0], [5, 2], [5, 3], [4, 0], [4, 2]];
 const GP_BOX = [[6, 3], [6, 5], [5, 2], [5, 5], [4, 2], [4, 5], [3, 2], [3, 4], [2, 3], [2, 5], [1, 3], [1, 5]];
 const root = (k, s, f) => [k.dot(s, f, 'note')];
+// E minor pentatonic in the open position (the same notes as G major pentatonic),
+// minor pentatonic box 1 (root under the first finger on the low E string: A at fret 5),
+// and an original first blues lick in box 1: G E D C A.
+const EMP_OPEN = [[6, 0], [6, 3], [5, 0], [5, 2], [4, 0], [4, 2], [3, 0], [3, 2], [2, 0], [2, 3], [1, 0], [1, 3]];
+const AMP_BOX1 = [[6, 5], [6, 8], [5, 5], [5, 7], [4, 5], [4, 7], [3, 5], [3, 7], [2, 5], [2, 8], [1, 5], [1, 8]];
+const LICK = [[2, 8], [2, 5], [3, 7], [3, 5], [4, 7]];
 
 export default {
   id: 'level-2',
@@ -160,40 +167,6 @@ export default {
       }
     },
     {
-      id: 'l2-5',
-      title: 'Keys and the circle of fifths',
-      review: ['fact:d-major-sharps', 'fact:g-major-sharp'],
-      steps: {
-        hear: { text: 'C major, then G major, then D major. Each one has one more sharp.', sound: { seq: [...ps(shape5(3)), null, ...ps(shape6(3)), null, ...ps(shape5(5))], bpm: 130 } },
-        learn: {
-          cards: [
-            { text: 'A key is the set of notes a song uses. G major has one sharp, F#.', board: { view: [0, 6], dots: G.dots(shape6(3), 'note') } },
-            { text: 'Count five notes up from G and you reach D. D major has two sharps, F# and C#.', board: { view: [2, 9], dots: D.dots(shape5(5), 'note') } },
-            { text: 'Each step up a 5th adds a sharp: C, G, D, A. This ring of keys is called the circle of fifths.', board: { view: [0, 12], dots: [C.dot(5, 3, 'note'), G.dot(4, 5, 'note'), D.dot(3, 7, 'note'), A.dot(2, 10, 'note')] } }
-          ]
-        },
-        see: { text: 'Up the circle of fifths, one string at a time: C, G, D, A.', view: [0, 12], sequence: [noteDot(5, 3), noteDot(4, 5), noteDot(3, 7), noteDot(2, 10)], bpm: 60, link: { key: 'D', scale: 'major', labels: 'notes' } },
-        try: {
-          view: [0, 10],
-          tasks: [
-            task('Tap the 5th above C: one string up, two frets up.', P(4, 5), { dots: [noteDot(5, 3, { role: 'root' })], item: 'interval:P5' }),
-            task('Tap the sharp note of G major on the D string.', P(4, 4), { item: degreeItem(G, '7') }),
-            task('Tap the 5th above G.', P(3, 7), { dots: [noteDot(4, 5, { role: 'root' })], item: 'interval:P5' })
-          ]
-        },
-        play: { text: 'Play the roots up the circle and say each key with its sharps: C (none), G (F#), D (F#, C#), A (F#, C#, G#).', view: [0, 12], bpm: 50, follow: [P(5, 3), P(4, 5), P(3, 7), P(2, 10)] },
-        check: {
-          pass: 3, view: [0, 10],
-          questions: [
-            choice('How many sharps does D major have?', ['1', '2', '3'], '2', 'fact:d-major-sharps'),
-            choice('Which note is sharp in G major?', ['F#', 'C#', 'G#'], 'F#', 'fact:g-major-sharp'),
-            tap('Tap the 5th above A.', P(4, 2), { dots: [noteDot(5, 0, { role: 'root' })], item: 'interval:P5' }),
-            tap('From Lesson 4: tap the root of A major on the low E string.', P(6, 5))
-          ]
-        }
-      }
-    },
-    {
       id: 'l2-6',
       title: 'The relative minor',
       review: ['R', 'b3', '5'].map(l => degreeItem(Em, l)),
@@ -262,7 +235,44 @@ export default {
             choice('Which degrees does the major pentatonic leave out?', ['4 and 7', '2 and 6', '3 and 5'], '4 and 7', 'fact:pentatonic-leaves'),
             tap('Tap the 3rd of G major pentatonic.', Gp.spots('3', { from: 2, to: 5 }), { item: degreeItem(Gp, '3'), dots: root(G, 6, 3) }),
             tap('Tap the 5th of G major pentatonic.', Gp.spots('5', { from: 2, to: 5 }), { item: degreeItem(Gp, '5'), dots: root(G, 6, 3) }),
-            tap('From Lesson 6: tap the root of G major\'s relative minor on the low E string.', [P(6, 0), P(6, 12)], { view: [0, 12], dots: root(G, 6, 3) })
+            tap('From Lesson 5: tap the root of G major\'s relative minor on the low E string.', [P(6, 0), P(6, 12)], { view: [0, 12], dots: root(G, 6, 3) })
+          ]
+        }
+      }
+    },
+    {
+      id: 'l2-minpent',
+      title: 'The minor pentatonic, box 1',
+      review: ['R', 'b3', '4', '5', 'b7'].map(l => degreeItem(Amp, l)),
+      steps: {
+        hear: { text: 'The minor pentatonic, then a first blues lick made from it.', sound: { seq: [...ps(AMP_BOX1), null, ...ps(LICK)], bpm: 110 } },
+        learn: {
+          cards: [
+            { text: 'Play G major pentatonic from its relative minor, E, and you have E minor pentatonic: the same five notes.', board: { view: [0, 5], dots: Emp.dots(EMP_OPEN) } },
+            { text: 'Its degrees are 1 b3 4 5 b7. Box 1 puts the root under your first finger on the low E string: at fret 5 it is A minor pentatonic.', board: { view: [3, 10], dots: Amp.dots(AMP_BOX1) } },
+            { text: 'Your first blues lick: G, E, D, C, then home to A.', board: { view: [3, 10], dots: Amp.dots(LICK) } }
+          ]
+        },
+        see: { text: 'Box 1 up and down, then the lick.', view: [3, 10], sequence: [...Amp.dots(upDown(AMP_BOX1)), null, ...Amp.dots(LICK)], dots: Amp.dots(AMP_BOX1), bpm: 120, link: { key: 'A', scale: 'minor-pentatonic', labels: 'intervals', pos: '5-8' } },
+        try: {
+          view: [4, 9],
+          tasks: [
+            task('In box 1, tap the b3.', Amp.spots('b3', { from: 4, to: 9 }), { item: degreeItem(Amp, 'b3'), explain: 'Yes! C, the b3 of A minor pentatonic.' }),
+            task('Tap a root.', Amp.spots('R', { from: 4, to: 9 }), { item: degreeItem(Amp, 'R'), explain: 'Yes! A.' }),
+            task('Tap the b7.', Amp.spots('b7', { from: 4, to: 9 }), { item: degreeItem(Amp, 'b7'), explain: 'Yes! G, the b7.' })
+          ]
+        },
+        play: {
+          text: 'Play the lick a few times, then improvise for 60 seconds over the A drone with box 1. Short phrases, and end on an A.',
+          view: [3, 10], bpm: 80, drone: 'A', seconds: 60, dots: Amp.dots(AMP_BOX1)
+        },
+        check: {
+          pass: 3, view: [4, 9],
+          questions: [
+            tap('In box 1, tap the 4th.', Amp.spots('4', { from: 4, to: 9 }), { item: degreeItem(Amp, '4') }),
+            tap('In box 1, tap the 5th.', Amp.spots('5', { from: 4, to: 9 }), { item: degreeItem(Amp, '5') }),
+            choice('E minor pentatonic has the same notes as...', ['G major pentatonic', 'E major pentatonic', 'A major pentatonic'], 'G major pentatonic', 'fact:relative-pentatonic'),
+            tap('From Lesson 5: tap the b3 of E minor.', Em.spots('b3', { from: 0, to: 4 }), { item: degreeItem(Em, 'b3'), view: [0, 5] })
           ]
         }
       }

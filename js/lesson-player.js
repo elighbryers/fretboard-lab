@@ -5,7 +5,8 @@ import { TUNINGS, NOTES, midiAt, pcOf, preferredName, parseNote } from './theory
 import { Fretboard } from './fretboard.js';
 import { context, metronome, droneStart, droneStop, backing } from './audio.js';
 import { volumeHTML, esc, clock } from './ui.js';
-import { recordAnswer, completeLesson, unlockLesson, addLog, getLesson, setLessonBpm } from './storage.js';
+import { recordAnswer, completeLesson, unlockLesson, addLog, getLesson, setLessonBpm, getTempo, recordClean, startBelow } from './storage.js';
+import { SpeedTrainer, trainerSetupHTML, trainerStatusHTML } from './speed.js';
 import { fretboardLink } from './router.js';
 import { playSound, parseChord } from './sound.js';
 import { chordOf } from './progressions.js';
@@ -234,7 +235,10 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
     play(body, d) {
       const id = d.bpmKey ? `${lesson.id}:${d.bpmKey}` : lesson.id;
       const clamp = v => Math.min(PLAY_BPM.max, Math.max(PLAY_BPM.min, Math.round(+v) || PLAY_BPM.default));
-      let bpm = clamp((d.bpmKey ? null : getLesson(lesson.id).playBpm) ?? d.bpm ?? PLAY_BPM.default);
+      // Each Play step is an exercise with its own best clean tempo; start a little below it.
+      const exId = `lesson:${lesson.id}${d.bpmKey ? ':' + d.bpmKey : ''}`, exTitle = `${lesson.title}${d.name ? ' · ' + d.name : ''}`;
+      const best = getTempo(exId);
+      let bpm = clamp(best ? startBelow(best.best) : (d.bpmKey ? null : getLesson(lesson.id).playBpm) ?? d.bpm ?? PLAY_BPM.default);
       let key = d.backing?.key || d.drone || null;
       const keys = d.backing?.keys || d.keys;
       body.innerHTML = `<p>${d.text}</p>
@@ -248,6 +252,10 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
         ${volumeHTML('metroVol', 'Click volume')}${d.drone ? volumeHTML('droneVol', 'Drone volume') : ''}
         <div class="row"><button class="primary" id="st-metro">▶ ${d.backing ? 'Start backing track' : d.drone ? 'Start drone and click' : 'Start metronome'}</button>
           <span class="countdown" id="st-count"></span></div>
+        <div class="row"><button id="st-clean" title="Played that cleanly? Save this tempo.">✓ Clean run</button>
+          <button id="st-trainer" aria-expanded="false">Speed trainer</button></div>
+        <div class="trainer" id="st-tr" hidden></div>
+        <p class="msg muted" id="st-tmsg">${best ? `Your best clean tempo here is ${best.best} bpm, so this starts a little below it.` : ''}</p>
         <p class="now-chord" id="st-chord"></p>
         <div class="st-board"></div>
         <p class="muted">Tap Done when you've played along.</p>`;
@@ -259,11 +267,15 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
       const saved = { bpm: metronome.bpm, beats: metronome.beatsPerBar, subdiv: metronome.subdiv, group: metronome.group, running: metronome.running };
       let count = 0, timer = null, left = d.seconds || 0;
       const chords = () => d.backing ? backingChords(d.backing, key) : null;
+      // One pass = once through the exercise (or its backing progression, or 4 bars).
+      const passBeats = () => follow.length ? follow.length * per : d.backing ? chords().length * (d.beatsPerBar || 4) : 4 * (d.beatsPerBar || 4);
+      let trainer = null, missed = false;
       const off = metronome.listen((beat, t, bar) => {
+        if (trainer && count > 0 && count % passBeats() === 0) onPass();
         if (follow.length && count % per === 0) fb.highlight(follow[(count / per) % follow.length]);
         if (d.backing && beat === 0) {
           const list2 = chords(), c = list2[bar % list2.length];
-          $b('#st-chord').innerHTML = `Now: <b>${esc(c.name || '')}</b>${d.backing.progression ? ` <span class="muted">(${esc(c.roman)})</span>` : ''}`;
+          $b('#st-chord').innerHTML = `Now: <b>${esc(c.name || '')}</b>${d.backing.progression ? ` <span class="muted">(${esc(c.roman.replace(/b(?=[IV])/g, '♭'))})</span>` : ''}`;
         }
         count++;
       });
@@ -275,6 +287,43 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
         $b('#st-faster').disabled = bpm >= PLAY_BPM.max;
         if (metronome.running) metronome.setBpm(bpm);
         if (!d.bpmKey) setLessonBpm(lesson.id, bpm);
+      };
+      const tmsg = text => { $b('#st-tmsg').textContent = text; };
+      $b('#st-clean').onclick = () => { const r = recordClean(exId, bpm, exTitle); tmsg(`Saved: ${bpm} bpm clean. Your best here is ${r.best} bpm.`); };
+      function trainerPanel() {
+        const tr = $b('#st-tr');
+        if (!trainer) {
+          tr.innerHTML = trainerSetupHTML({ unit: 'bpm', start: Math.max(PLAY_BPM.min, bpm - (bpm % 2)), end: Math.min(PLAY_BPM.max, bpm + 20 - (bpm % 2)), steps: [2, 4, 6, 10], step: 4, min: PLAY_BPM.min, max: PLAY_BPM.max });
+          tr.querySelector('[data-tr="go"]').onclick = () => {
+            const v = k => +tr.querySelector(`[data-tr="${k}"]`).value;
+            trainer = new SpeedTrainer({ start: v('start'), end: v('end'), step: v('step') });
+            missed = false;
+            setBpm(trainer.tempo);
+            startAll();
+            trainerPanel();
+          };
+          return;
+        }
+        tr.innerHTML = `<div class="trainer-run"><div class="tr-status">${trainerStatusHTML(trainer, 'bpm')}</div>
+          <button class="big tr-missed" id="st-missed" aria-pressed="${missed}">✗ Missed it</button>
+          <button class="quiet-inline" id="st-tr-stop">Stop trainer</button></div>`;
+        tr.querySelector('#st-missed').onclick = () => { missed = true; tr.querySelector('#st-missed').setAttribute('aria-pressed', 'true'); };
+        tr.querySelector('#st-tr-stop').onclick = () => { trainer = null; trainerPanel(); };
+      }
+      function onPass() {
+        const clean = !missed;
+        missed = false;
+        if (clean) recordClean(exId, bpm, exTitle);
+        const r = trainer.pass(clean);
+        if (r.change === 'goal') { tmsg(`Goal reached: ${r.tempo} bpm clean, 3 times in a row.`); trainer = null; }
+        else if (r.tempo !== bpm) { setBpm(r.tempo); tmsg(r.change === 'up' ? `Up to ${r.tempo} bpm.` : `Back to ${r.tempo} bpm. No rush.`); }
+        trainerPanel();
+      }
+      $b('#st-trainer').onclick = () => {
+        const tr = $b('#st-tr'), open = tr.hidden;
+        tr.hidden = !open;
+        $b('#st-trainer').setAttribute('aria-expanded', open);
+        if (open) trainerPanel();
       };
       $b('#st-bpm').oninput = e => setBpm(e.target.value);
       $b('#st-slower').onclick = () => setBpm(bpm - 1);

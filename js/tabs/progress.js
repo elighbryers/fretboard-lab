@@ -2,11 +2,11 @@
 // All numbers come from js/stats.js; charts are plain SVG from js/charts.js.
 import { NOTES, midiAt, pcOf, TUNINGS } from '../theory.js';
 import { Fretboard } from '../fretboard.js';
-import { exportData, readExport, importData, resetAll, seeMilestones, today, getSettings, setSetting, getDays } from '../storage.js';
+import { exportData, readExport, importData, resetAll, seeMilestones, today, getSettings, setSetting, getDays, allTempos } from '../storage.js';
 import { storagePersisted, isStandalone } from '../pwa.js';
 import { glance, dailyMinutes, weeklyAccuracy, calendar, weakest, noteStats, confusedPairs, drillStats, tabStats,
   checkMilestones, fmtMin, fmtDay } from '../stats.js';
-import { bars, line, calendarGrid } from '../charts.js';
+import { bars, line, calendarGrid, spark } from '../charts.js';
 import { hashFor } from '../router.js';
 import { esc } from '../ui.js';
 
@@ -48,6 +48,7 @@ export default {
       </section>
       <section class="p-card"><h3>Drills</h3><div id="p-drills"></div></section>
       <section class="p-card"><h3>Play-along tabs</h3><div id="p-tabs"></div></section>
+      <section class="p-card"><h3>Clean tempo</h3><p class="muted sub">The fastest you've played each exercise cleanly. Next time it starts a little below this.</p><div id="p-tempos"></div></section>
       <section class="p-card"><h3>Milestones</h3><div class="badges" id="p-badges"></div></section>
       <section class="p-card"><h3>Your data</h3>
         <p class="muted sub">Progress is saved in this browser only. Export it to keep a copy or move it to another device.</p>
@@ -147,10 +148,11 @@ export default {
   tiles() {
     const g = glance();
     $('#p-tiles').innerHTML = [
-      ['Day streak', g.streak.current ? `${g.streak.current}${g.streak.practicedToday ? ' ✓' : ''}` : '0', g.streak.current && !g.streak.practicedToday ? 'Practice today to keep it' : ''],
-      ['Longest streak', plural(g.streak.best, 'day')],
+      // Practice days this week is the headline; the streak forgives one rest day a week.
+      ['This week', `${g.streak.weekDays} of 7 days`, g.streak.practicedToday ? 'Practised today ✓' : ''],
+      ['Streak', plural(g.streak.current, 'day'), `Best ${g.streak.best}${g.streak.current ? ` · ${g.streak.restUsedThisWeek ? 'rest day used this week' : '1 rest day this week'}` : ''}`],
       ['Today', fmtMin(g.today)],
-      ['This week', fmtMin(g.week)],
+      ['Minutes this week', fmtMin(g.week)],
       ['All time', fmtMin(g.all)],
       ['Learn path', g.path.text]
     ].map(([k, v, hint]) => `<div class="tile"><span>${k}</span><b>${esc(v)}</b>${hint ? `<small>${hint}</small>` : ''}</div>`).join('');
@@ -231,6 +233,15 @@ export default {
       ? `<table class="stat-table"><thead><tr><th>Tab</th><th>Times</th><th>Top tempo</th></tr></thead><tbody>${tabs.map(t =>
           `<tr><td><a href="#practice?tool=playalong&tab=${t.id}">${esc(t.title)}</a></td><td>${t.times || '–'}</td><td>${t.pct ? `${t.bpm} bpm <small class="muted">(${t.pct}%)</small>` : '–'}</td></tr>`).join('')}</tbody></table>`
       : '<p class="empty">No play-alongs yet. <a href="#practice?tool=playalong">Pick a tab</a> and play along for 20 seconds or more.</p>';
+
+    const tempos = Object.entries(allTempos()).sort((a, b) => (b[1].history.at(-1)?.day || '').localeCompare(a[1].history.at(-1)?.day || ''));
+    $('#p-tempos').innerHTML = tempos.length
+      ? `<ul class="tempo-list">${tempos.map(([id, t]) => {
+          const vals = t.history.map(h => h.bpm), first = vals[0], gain = vals.length > 1 ? vals.at(-1) - first : 0;
+          return `<li><span class="tl-name"><b>${esc(t.title || id)}</b><small>${t.history.length} day${t.history.length === 1 ? '' : 's'}${gain > 0 ? ` · up ${gain} bpm` : ''}</small></span>
+            ${spark(vals, { label: `Clean tempo for ${t.title}: ${vals.join(', ')} bpm` })}<span class="tl-best">${t.best}<small> bpm</small></span></li>`;
+        }).join('')}</ul>`
+      : '<p class="empty">Tap <b>✓ Clean run</b> in a Play step or a play-along to start tracking your clean tempo.</p>';
   },
 
   async askImport(file) {

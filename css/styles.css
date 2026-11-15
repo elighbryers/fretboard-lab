@@ -513,3 +513,33 @@ label.key-pick { flex-direction: row; align-items: center; gap: 8px; font-size: 
 .export-status .ok { color: var(--good) }
 /* the standalone (Home Screen) app draws under the status bar */
 header { padding-top: calc(20px + env(safe-area-inset-top)) }
+
+/* ---------- speed trainer and clean tempo ---------- */
+.trainer { background: var(--panel2); border-radius: 12px; padding: 12px; margin: 10px 0 }
+.trainer-setup { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end }
+.trainer-run { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px }
+.tr-status { display: flex; align-items: center; gap: 10px; flex: 1 1 200px }
+.tr-now { font-size: 22px; font-weight: 700; color: var(--blue) }
+.tr-dots { display: inline-flex; gap: 5px }
+.tr-dots i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--good) }
+.tr-dots i.on { background: var(--good) }
+.tr-missed[aria-pressed="true"] { background: var(--bad); border-color: var(--bad); color: var(--on-bad) }
+.tempo-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px }
+.tempo-list li { display: flex; align-items: center; gap: 12px; background: var(--panel2); border-radius: 10px; padding: 10px 12px }
+.tl-name { flex: 1 1 auto; min-width: 0 }
+.tl-name b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.tl-name small { color: var(--muted) }
+.tl-best { font-size: 22px; font-weight: 700; color: var(--blue); white-space: nowrap }
+.tl-best small { font-size: 12px; color: var(--muted); font-weight: 400 }
+.ch-line.thin { stroke-width: 2 }
+
+/* ---------- practice plan ---------- */
+.plan-card { margin-top: 16px; padding: 14px 16px; border-radius: 12px; background: var(--panel); border: 1px solid var(--pink) }
+.plan-card > b { font-size: 17px }
+.plan-card p { margin: 4px 0 10px }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px }
+.chips button[aria-pressed="true"] { background: var(--blue); color: var(--on-soft); border-color: var(--blue); font-weight: 600 }
+.plan-line { color: var(--muted); margin: 0 0 6px }
+.plan-line b { color: var(--text) }
+.link-btn { background: none; border: 0; color: var(--link); padding: 0 4px; min-height: 0; font-size: inherit; text-decoration: underline; cursor: pointer }
+

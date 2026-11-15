@@ -11,6 +11,7 @@
 //   streak:   { current, best, lastDay },  // kept for older data; best is a floor
 //   confusions: { 'a-b': count }   // intervals mixed up, by semitones from the root (sorted), e.g. '3-4' = m3/M3
 //   milestones: { [badgeId]: { at, seen } }
+//   tempos:   { [exerciseId]: { best, title, history: [{ day, bpm }] } }  // highest clean bpm, per day
 //   placement: 0 | level number the placement quiz opened (levels below it are open too)
 //   review:   { day, queue: [itemId], index, results: [{ id, ok, from, to }], done, bonus, key, seconds } | null  // today's session
 //   settings: { labels, sound, metroVol, droneVol, tabVol, tabClickVol,
@@ -25,7 +26,7 @@
 import { schedule, isDue } from './review.js';
 
 const KEY = 'fretboard-lab';
-export const VERSION = 1;
+export const VERSION = 2;
 
 const blank = () => ({
   version: VERSION,
@@ -38,6 +39,7 @@ const blank = () => ({
   milestones: {},
   review: null,
   placement: 0,
+  tempos: {},
   settings: {
     labels: 'notes', sound: true, metroVol: 0.7, droneVol: 0.5, tabVol: 0.8, tabClickVol: 0.6,
     metronome: { bpm: 80, sig: '4/4', subdiv: 1, accent: true }
@@ -48,7 +50,13 @@ const blank = () => ({
 
 // Each entry upgrades data from version N to N+1. Add one when the shape changes.
 const MIGRATIONS = {
-  // 1: data => { ...; data.version = 2; return data; }
+  // Version 2 moved lessons: the circle-of-fifths lesson (l2-5) became Level 5's
+  // "Keys, the capo and transposing" (l5-keys). Its progress moves with it.
+  1: d => {
+    if (d.lessons?.['l2-5']) { d.lessons['l5-keys'] = { ...d.lessons['l2-5'] }; delete d.lessons['l2-5']; }
+    d.version = 2;
+    return d;
+  }
 };
 
 function load() {
@@ -144,6 +152,24 @@ export const allItems = () => JSON.parse(JSON.stringify(data.items));
 export const dueItems = (prefix = '', day = today()) =>
   Object.keys(data.items).filter(id => id.startsWith(prefix) && isDue(data.items[id], day));
 
+/* ---------- clean tempo: the highest bpm an exercise was played cleanly ---------- */
+export const getTempo = id => (data.tempos[id] ? JSON.parse(JSON.stringify(data.tempos[id])) : null);
+export const allTempos = () => JSON.parse(JSON.stringify(data.tempos));
+export function recordClean(id, bpm, title) {
+  bpm = Math.round(bpm);
+  const t = data.tempos[id] || { best: 0, title, history: [] }, d = today();
+  t.title = title || t.title;
+  t.best = Math.max(t.best, bpm);
+  const h = t.history.find(x => x.day === d);
+  if (h) h.bpm = Math.max(h.bpm, bpm); else t.history.push({ day: d, bpm });
+  data.tempos[id] = t;
+  touchStreak();
+  save();
+  return { ...t };
+}
+// Where to start next time: a little below the best clean tempo.
+export const startBelow = best => Math.max(30, Math.round(best * 0.9));
+
 /* ---------- placement quiz ---------- */
 export const getPlacement = () => data.placement || 0;
 export function setPlacement(level) { data.placement = Math.max(getPlacement(), level); save(); }
@@ -199,13 +225,34 @@ function touchStreak(day = today()) {
 
 // Current streak: consecutive practice days ending today (or yesterday, so a
 // streak stays alive until a whole day is missed).
-export function getStreak() {
-  const set = new Set(data.days), t = today();
+// A kinder streak: one missed day per week (Monday to Sunday) counts as a rest day
+// and doesn't break it. Today never counts as missed until it's over.
+const mondayOf = day => shiftDay(day, -((new Date(day + 'T12:00').getDay() + 6) % 7));
+export function getStreak(t = today()) {
+  const set = new Set(data.days), first = data.days[0];
+  // current: walk back from today (or yesterday) through practiced days and one rest day per week
   let day = set.has(t) ? t : shiftDay(t, -1), current = 0;
-  while (set.has(day)) { current++; day = shiftDay(day, -1); }
-  let best = 0, run = 0, prev = null;
-  for (const d of data.days) { run = prev && dayDiff(prev, d) === 1 ? run + 1 : 1; best = Math.max(best, run); prev = d; }
-  return { current, best: Math.max(best, data.streak.best || 0), practicedToday: set.has(t) };
+  const rested = new Set();
+  while (first && day >= first) {
+    if (set.has(day)) current++;
+    // a single missed day between practice days, once per week, is a rest day
+    else if (!rested.has(mondayOf(day)) && set.has(shiftDay(day, -1))) rested.add(mondayOf(day));
+    else break;
+    day = shiftDay(day, -1);
+  }
+  // best: the same rule over the whole history
+  let best = 0, run = 0;
+  const restedAll = new Set();
+  for (let d = first; first && d <= t; d = shiftDay(d, 1)) {
+    if (set.has(d)) { run++; best = Math.max(best, run); }
+    else if (d !== t && !restedAll.has(mondayOf(d)) && set.has(shiftDay(d, 1))) restedAll.add(mondayOf(d));
+    else if (d !== t) { run = 0; }
+  }
+  const mon = mondayOf(t);
+  let weekDays = 0;
+  for (let d = mon; d <= t; d = shiftDay(d, 1)) if (set.has(d)) weekDays++;
+  return { current, best: Math.max(best, current, data.streak.best || 0), practicedToday: set.has(t), weekDays,
+    restUsedThisWeek: rested.has(mon) };
 }
 
 /* ---------- mix-ups and milestones ---------- */
@@ -274,6 +321,13 @@ function merge(a, b) {
   out.days = [...new Set([...out.days, ...b.days])].sort();
   out.streak.best = Math.max(out.streak.best || 0, b.streak.best || 0);
   out.placement = Math.max(out.placement || 0, b.placement || 0);
+  for (const [id, t] of Object.entries(b.tempos || {})) {
+    const m = out.tempos[id];
+    if (!m) { out.tempos[id] = t; continue; }
+    const days = new Map(m.history.map(h => [h.day, h.bpm]));
+    t.history.forEach(h => days.set(h.day, Math.max(days.get(h.day) || 0, h.bpm)));
+    out.tempos[id] = { ...m, best: Math.max(m.best, t.best), history: [...days].map(([day, bpm]) => ({ day, bpm })).sort((x, y) => x.day.localeCompare(y.day)) };
+  }
   for (const [k, n] of Object.entries(b.confusions)) out.confusions[k] = Math.max(out.confusions[k] || 0, n);
   for (const [k, m] of Object.entries(b.milestones)) {
     const o = out.milestones[k];

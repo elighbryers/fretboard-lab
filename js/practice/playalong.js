@@ -5,7 +5,8 @@ import { PLAYALONG, findTab, barBeats, timeline } from '../playalong/index.js';
 import { Fretboard } from '../fretboard.js';
 import { pluckAt, click, context, now } from '../audio.js';
 import { TUNINGS, midiAt, preferredName, pcOf } from '../theory.js';
-import { getSettings, getPracticePrefs, updatePracticePrefs, addLog } from '../storage.js';
+import { getSettings, getPracticePrefs, updatePracticePrefs, addLog, getTempo, recordClean, startBelow } from '../storage.js';
+import { SpeedTrainer, trainerSetupHTML, trainerStatusHTML } from '../speed.js';
 import { volumeHTML, esc } from '../ui.js';
 
 const tuning = TUNINGS.standard;
@@ -36,6 +37,10 @@ function player(el, tab) {
   const total = tl.length ? tl[tl.length - 1].start + tl[tl.length - 1].beats : 0, bars = Math.round(total / bb);
   const prefs = getPracticePrefs(), toggles = { countIn: true, hear: true, click: true, ...(prefs.tabToggles || {}) };
   let pct = prefs.tabTempo[tab.id] || 100;
+  // Restart a little below the best clean tempo (stored in bpm).
+  const exId = `tab:${tab.id}`, best = getTempo(exId);
+  const snap = v => Math.min(150, Math.max(50, Math.round(v / 5) * 5));
+  if (best) pct = snap(startBelow(best.best) / tab.bpm * 100);
   const maxFret = Math.max(5, ...notes.map(n => n.fret)) + 1;
 
   // Ticks: every note start and every beat (for the click), in order.
@@ -76,6 +81,11 @@ function player(el, tab) {
         <label class="grow tempo-l"><span>Tempo <b id="pa-pct"></b> · <span id="pa-bpm"></span> bpm</span>
           <input type="range" id="pa-tempo" min="50" max="150" step="5" value="${pct}"></label>
       </div>
+      <div class="row toggles">
+        <button id="pa-clean" title="Played that cleanly? Save this tempo.">✓ Clean run</button>
+        <button id="pa-trainer" aria-expanded="false">Speed trainer</button>
+      </div>
+      <div class="trainer" id="pa-tr" hidden></div>
       <div class="row toggles">
         <button id="pa-loop">Loop a section</button>
         <label class="check"><input type="checkbox" id="pa-countin"> Count-in</label>
@@ -156,6 +166,10 @@ function player(el, tab) {
   function frame() {
     if (!playing) return;
     const t = now();
+    if (trainer) {
+      const passes = segs.filter(sg => sg.t <= t).length;
+      if (passes > seenPasses) { const first = seenPasses === 0; seenPasses = passes; if (!first) onPass(); if (!playing) return; }
+    }
     if (t >= endAt) { pause(0); $('#pa-status').textContent = 'Done! Play again, or loop a tricky bar.'; draw(0); return; }
     draw(posAt(t), t < segs[0].t);
     raf = requestAnimationFrame(frame);
@@ -185,17 +199,73 @@ function player(el, tab) {
     $('#pa-loop').textContent = loopMode === 'pickA' ? 'Tap the start bar…' : loopMode === 'pickB' ? 'Now tap the end bar…' :
       loop ? `Looping bars ${loop[0] / bb + 1}–${loop[1] / bb} · Clear` : 'Loop a section';
     $('#pa-loop').setAttribute('aria-pressed', !!loop || loopMode !== 'off');
-    if (!playing) { draw(startPos); if (!/Done/.test($('#pa-status').textContent)) $('#pa-status').textContent = loopMode !== 'off' ? 'Tap a bar on the tab.' : 'Tap a bar to start there.'; }
+    if (!playing) { draw(startPos); if (!/^(Done|Saved|Starting|Goal)/.test($('#pa-status').textContent)) $('#pa-status').textContent = loopMode !== 'off' ? 'Tap a bar on the tab.' : 'Tap a bar to start there.'; }
   }
+
+  /* ---------- clean runs and the speed trainer ---------- */
+  let trainer = null, seenPasses = 0, missed = false;
+  const curBpm = () => Math.round(tab.bpm * pct / 100);
+  const bestNote = () => { const b = getTempo(exId); return b ? `best clean ${b.best} bpm` : ''; };
+  const setPct = v => { pct = v; $('#pa-tempo').value = pct; updatePracticePrefs({ tabTempo: { ...getPracticePrefs().tabTempo, [tab.id]: pct } }); };
+  $('#pa-clean').onclick = () => {
+    const b = recordClean(exId, curBpm(), tab.title);
+    $('#pa-status').textContent = `Saved: ${curBpm()} bpm clean. Your best is ${b.best} bpm.`;
+  };
+  function trainerPanel() {
+    const tr = $('#pa-tr');
+    if (!trainer) {
+      tr.innerHTML = trainerSetupHTML({ unit: '%', start: Math.min(pct, 100), end: 100, steps: [5, 10], step: 5, min: 50, max: 150 });
+      tr.querySelector('[data-tr="go"]').onclick = () => {
+        const v = k => +tr.querySelector(`[data-tr="${k}"]`).value;
+        trainer = new SpeedTrainer({ start: v('start'), end: v('end'), step: v('step') });
+        if (!loop) loop = [0, total];
+        setPct(trainer.tempo);
+        if (playing) pause(loop[0]);
+        startPos = loop[0]; seenPasses = 0; missed = false;
+        play(true);
+        trainerPanel();
+      };
+      return;
+    }
+    tr.innerHTML = `<div class="trainer-run"><div class="tr-status">${trainerStatusHTML(trainer, '%', bestNote())}</div>
+      <button class="big tr-missed" id="pa-missed" aria-pressed="${missed}">✗ Missed it</button>
+      <button class="quiet-inline" id="pa-tr-stop">Stop trainer</button></div>`;
+    tr.querySelector('#pa-missed').onclick = () => { missed = true; tr.querySelector('#pa-missed').setAttribute('aria-pressed', 'true'); };
+    tr.querySelector('#pa-tr-stop').onclick = () => { trainer = null; trainerPanel(); };
+  }
+  // One time through the loop: clean unless "Missed it" was tapped.
+  function onPass() {
+    const clean = !missed, bpm = curBpm();
+    missed = false;
+    if (clean) recordClean(exId, bpm, tab.title);
+    const r = trainer.pass(clean);
+    if (r.change === 'goal') {
+      $('#pa-status').textContent = `Goal reached: ${r.tempo}% clean, 3 times in a row.`;
+      trainer = null;
+    } else if (r.tempo !== pct) {
+      setPct(r.tempo);
+      pause(loop[0]);
+      seenPasses = 0;
+      play(true);  // a count-in before each new tempo
+    }
+    trainerPanel();
+  }
+  $('#pa-trainer').onclick = () => {
+    const tr = $('#pa-tr'), open = tr.hidden;
+    tr.hidden = !open;
+    $('#pa-trainer').setAttribute('aria-expanded', open);
+    if (open) trainerPanel();
+  };
 
   $('#pa-play').onclick = () => (playing ? pause() : play());
   $('#pa-tempo').oninput = e => {
     pct = +e.target.value;
+    if (trainer) { trainer = null; trainerPanel(); }
     updatePracticePrefs({ tabTempo: { ...getPracticePrefs().tabTempo, [tab.id]: pct } });
     if (playing) { pause(); play(false); } else paint();
   };
   $('#pa-loop').onclick = () => {
-    if (loop || loopMode !== 'off') { loop = null; loopMode = 'off'; }
+    if (loop || loopMode !== 'off') { loop = null; loopMode = 'off'; if (trainer) { trainer = null; trainerPanel(); } }
     else loopMode = 'pickA';
     paint();
   };
@@ -212,6 +282,7 @@ function player(el, tab) {
     }
     if (playing) { pause(bar * bb); play(false); } else { startPos = bar * bb; $('#pa-status').textContent = ''; paint(); }
   };
+  if (best) $('#pa-status').textContent = `Starting at ${pct}%, a little below your best clean tempo (${best.best} bpm).`;
   const onResize = () => draw(posAt(now()));
   window.addEventListener('resize', onResize);
   paint();

@@ -232,7 +232,7 @@ export default {
           <div class="big-emoji" aria-hidden="true">🎸</div>
           <h3>${res.early ? 'Stopped. Every minute counts.' : 'Nice, come back tomorrow'}</h3>
           <p>${esc(res.name)} · ${res.minutes} min logged</p>
-          <p class="today">Today: <b>${minutesOn()} min</b>${s.current ? ` · ${s.current}-day streak` : ''}</p>
+          <p class="today">This week: <b>${s.weekDays} of 7 days</b> · Today: <b>${minutesOn()} min</b></p>
           <button class="primary big" id="tm-back">Back to routines</button>
         </div>`;
       $('#tm-back').onclick = () => { runner.reset(); };

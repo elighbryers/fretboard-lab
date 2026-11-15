@@ -6,6 +6,8 @@ import drillsTool from '../practice/drills.js';
 import playalongTool from '../practice/playalong.js';
 import logTool from '../practice/log.js';
 import { minutesOn, getStreak } from '../storage.js';
+import { planLine, wirePlanLine } from '../plan.js';
+import { go } from '../router.js';
 
 // Tool: { id, title, blurb, icon, mount(el, params) -> cleanup }
 const TOOLS = [metronomeTool, timerTool, drillsTool, playalongTool, logTool];
@@ -14,12 +16,14 @@ let el, cleanup = null;
 function home() {
   const streak = getStreak();
   el.innerHTML = `
-    <p class="today">Today: <b>${minutesOn()} min</b>${streak.current ? ` · ${streak.current}-day streak` : ''}</p>
+    <p class="today">This week: <b>${streak.weekDays} of 7 days</b> · Today: <b>${minutesOn()} min</b></p>
+    ${planLine()}
     <div class="cards">${TOOLS.map(t => `
       <a class="card-link" href="#practice?tool=${t.id}">
         <span class="card-ico" aria-hidden="true">${t.icon}</span>
         <span><b>${t.title}</b><small>${t.blurb}</small></span>
       </a>`).join('')}</div>`;
+  wirePlanLine(el, () => go('learn'));
 }
 
 export default {

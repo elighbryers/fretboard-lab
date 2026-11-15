@@ -20,6 +20,8 @@ const OPEN_NAMES = [6, 5, 4, 3, 2, 1].map(string => noteDot(string, 0));
 const NATURAL = { 6: [0, 1, 3, 5, 7, 8, 10, 12], 5: [0, 2, 3, 5, 7, 8, 10, 12], 4: [0, 2, 3, 5, 7, 9, 10, 12] };
 const naturals = string => NATURAL[string].map(f => noteDot(string, f));
 const at = (name, string, from = 0) => P(string, fretOf(name, string, from));
+// Every natural note in frets 0-3, low E to high e: the open position.
+const OPEN_POS = [[6, 0], [6, 1], [6, 3], [5, 0], [5, 2], [5, 3], [4, 0], [4, 2], [4, 3], [3, 0], [3, 2], [2, 0], [2, 1], [2, 3], [1, 0], [1, 1], [1, 3]].map(([s, f]) => noteDot(s, f));
 
 export default {
   id: 'level-1',
@@ -148,7 +150,7 @@ export default {
           cards: [
             { text: 'These are the letter notes on the low E string. Learn them first: they help you find everything else.', board: { view: [0, 12], dots: naturals(6), focus: { strings: [6] } } },
             { text: 'And on the A string, starting from A.', board: { view: [0, 12], dots: naturals(5), focus: { strings: [5] } } },
-            { text: 'At fret 12 the open note comes back, one octave higher.', board: { view: [0, 12], dots: [noteDot(6, 0, { role: 'root' }), noteDot(6, 12, { role: 'root' }), noteDot(5, 0, { role: 'third' }), noteDot(5, 12, { role: 'third' })] } }
+            { text: 'Landmarks help: fret 5 is A on the low E string and D on the A string, fret 7 is B and E, and fret 12 is the open note again.', board: { view: [0, 12], dots: [noteDot(6, 5, { role: 'root' }), noteDot(6, 7, { role: 'third' }), noteDot(6, 12, { role: 'fifth' }), noteDot(5, 5, { role: 'root' }), noteDot(5, 7, { role: 'third' }), noteDot(5, 12, { role: 'fifth' })] } }
           ]
         },
         see: {
@@ -259,38 +261,35 @@ export default {
     },
     {
       id: 'l1-7',
-      title: 'Landmarks: frets 5, 7 and 12',
+      title: 'Notes in the open position',
       steps: {
-        hear: { text: 'The open low E, then the E at fret 12: the same note, an octave apart.', sound: { seq: [P(6, 0), P(6, 12)], bpm: 60 } },
+        hear: { text: 'Every natural note from the open low E up to fret 3 of the high e: the open position.', sound: { seq: OPEN_POS, bpm: 110 } },
         learn: {
           cards: [
-            { text: 'Fret 12 has the same names as the open strings, one octave up. The double dot marks it.', board: { view: [0, 12], dots: [6, 5, 4, 3, 2, 1].map(s => noteDot(s, 12)) } },
-            { text: 'Fret 5 on the low E string is A, and on the A string it is D.', board: { view: [0, 12], dots: [noteDot(6, 5, { role: 'root' }), noteDot(5, 5, { role: 'root' })] } },
-            { text: 'Fret 7 on the low E string is B, and on the A string it is E.', board: { view: [0, 12], dots: [noteDot(6, 7, { role: 'third' }), noteDot(5, 7, { role: 'third' })] } }
+            { text: 'The open position is frets 0 to 3. Most first chords and melodies live here.', board: { view: [0, 5], dots: OPEN_POS } },
+            { text: 'Each string has two or three natural notes here. Learn them string by string, low to high.', board: { view: [0, 5], dots: OPEN_POS.filter(d => d.string >= 5), focus: { strings: [6, 5] } } },
+            { text: 'The same letters come back higher up. Here are all the E notes in the open position.', board: { view: [0, 5], dots: [noteDot(6, 0, { role: 'root' }), noteDot(4, 2, { role: 'root' }), noteDot(1, 0, { role: 'root' })] } }
           ]
         },
-        see: {
-          text: 'The landmarks on the two low strings: 5, 7 and 12.',
-          view: [0, 12], sequence: [P(6, 5), P(6, 7), P(6, 12), P(5, 5), P(5, 7), P(5, 12)].map(p => noteDot(p.string, p.fret)), bpm: 70
-        },
+        see: { text: 'Up through the open position, one string at a time. Say each name as it lights.', view: [0, 5], sequence: OPEN_POS, bpm: 90, link: { key: 'C', scale: 'major', labels: 'notes', pos: '0-3' } },
         try: {
-          view: [0, 12],
+          view: [0, 5],
           tasks: [
-            task('Tap A on the low E string, using a landmark.', P(6, 5)),
-            task('Tap E on the A string, using a landmark.', P(5, 7)),
-            task('Tap D at fret 12.', P(4, 12))
+            task('Tap C on the B string.', at('C', 2)),
+            task('Tap F on the D string.', at('F', 4)),
+            task('Tap A on the G string.', at('A', 3))
           ]
         },
         play: {
-          text: 'Jump between landmarks on the low E string: A at 5, B at 7, E at 12. Say each name.',
-          view: [0, 12], bpm: 60, follow: [P(6, 5), P(6, 7), P(6, 12), P(6, 7)]
+          text: 'Play every natural note in the open position, low E to high e, and say each name. Then play them back down.',
+          view: [0, 5], bpm: 60, follow: [...OPEN_POS, ...OPEN_POS.slice(0, -1).reverse()].map(d => P(d.string, d.fret))
         },
         check: {
-          pass: 3, view: [0, 12],
+          pass: 3, view: [0, 5],
           questions: [
-            tap('Tap D on the A string.', at('D', 5)),
-            tap('Tap B on the low E string.', at('B', 6)),
-            tap('Tap G at fret 12.', P(3, 12)),
+            tap('Tap G on the high e string.', at('G', 1)),
+            tap('Tap D on the B string.', at('D', 2)),
+            tap('Tap B on the A string.', at('B', 5)),
             tap('From Lesson 6: tap F# on the low E string.', at('F#', 6))
           ]
         }

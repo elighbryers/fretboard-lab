@@ -46,7 +46,7 @@ export default {
         <div class="stats">
           <div><b>${minutesOn()}</b><span>min today</span></div>
           <div><b>${thisWeek}</b><span>min this week</span></div>
-          <div><b>${s.current}</b><span>day streak</span></div>
+          <div><b>${s.weekDays} of 7</b><span>days this week</span></div>
         </div>
         ${adding ? `<div class="add-box">${form()}</div>` : '<button class="primary big" id="lg-add">+ Add entry</button>'}
         ${log.length ? '' : '<p class="muted">Nothing yet. Timer routines, drills and play-alongs are logged here automatically.</p>'}
