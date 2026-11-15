@@ -10,8 +10,11 @@ import eShuffle from './e-blues-shuffle.js';
 import ode from './ode-to-joy.js';
 import greensleeves from './greensleeves.js';
 import grace from './amazing-grace.js';
+import gPentLick from './g-major-pentatonic-lick.js';
+import popTriads from './pop-triads-g.js';
+import callResponse from './call-and-response-a.js';
 
-export const PLAYALONG = [chromatic, gMajor, aMinor, ode, grace, greensleeves, eShuffle];
+export const PLAYALONG = [chromatic, gMajor, gPentLick, aMinor, callResponse, popTriads, ode, grace, greensleeves, eShuffle];
 export const findTab = id => PLAYALONG.find(t => t.id === id) || null;
 
 // Beats (quarter notes) in one bar: 4/4 -> 4, 3/4 -> 3, 6/8 -> 3.

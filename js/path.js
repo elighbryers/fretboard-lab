@@ -26,8 +26,11 @@ export function nodeOpen(li, i) {
 }
 
 // The first open node that isn't done yet: { levelIndex, index, node } or null.
+// After the placement quiz, the placed level comes first.
 export function nextUp() {
-  for (let li = 0; li < LEVELS.length; li++) {
+  const p = Math.min(getPlacement(), LEVELS.length) - 1, order = LEVELS.map((_, i) => i);
+  if (p > 0) order.unshift(...order.splice(p));
+  for (const li of order) {
     if (!levelOpen(li)) continue;
     const nodes = nodesOf(LEVELS[li].level);
     const i = nodes.findIndex((n, k) => nodeOpen(li, k) && !done(n.id));

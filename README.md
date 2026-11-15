@@ -24,13 +24,18 @@ css/styles.css        all styles, including the --deg-* degree colors
 js/app.js             builds the tab bar, routes #hash -> tab, sound on/off
 js/router.js          hash helpers: parseHash, go, replaceParams, fretboardLink
 js/theory.js          scale/chord catalog (degree formulas), spelling, tunings, helpers
-js/audio.js           plucked string, drone, metronome (one AudioContext)
+js/audio.js           plucked string, strummed chords, drone, metronome, backing track (one AudioContext)
+js/sound.js           one way to describe a short sound (notes, chords, drone) for lessons, review, placement
+js/progressions.js    Roman numerals -> chords in a key (I-V-vi-IV, ii-V-I, the 12-bar blues)
 js/fretboard.js       the shared Fretboard component + the degree color rule
 js/storage.js         saved progress in localStorage (versioned)
-js/lesson-player.js   plays one lesson: Hear, Learn, See, Try, Play, Check
+js/lesson-player.js   plays one lesson: Hear, Learn, See, Try, Play, Check (challenges: any order, plus a timed step)
 js/lessons/index.js   the six levels, in the research order
-js/lessons/level1.js  Level 1 lessons as data
-js/tabs/learn.js      Learn (home): path map, and the player at #learn?lesson=<id>
+js/lessons/kit.js     helpers for writing lessons: every label and answer is worked out from theory.js
+js/lessons/level1-6.js  each level's 7 lessons, its challenge and 3 placement questions, as data
+js/path.js            which levels and lessons are open; what's next
+js/placement.js       the placement quiz (#learn?placement=1)
+js/tabs/learn.js      Learn (home): review card, path map, and the player at #learn?lesson=<id>
 js/tabs/fretboard.js  free-play fretboard: picker, More options, saved setups
 js/tabs/practice.js   Practice home: five cards, routes #practice?tool=<id>
 js/practice/metronome.js   tempo, time signature, subdivisions, tap tempo
@@ -59,9 +64,14 @@ query params, for example `#fretboard?key=G&scale=major`.
 
 **Lessons are content, not code.** Each lesson is an object in
 `js/lessons/levelN.js`. The shape of every step is documented at the top of
-`level1.js`. Positions use guitar numbering (string 6 = low E, fret 0 = open). A
-lesson without `steps` shows as "coming soon". Lessons unlock in order: passing
-Check it (3 of 4 by default) unlocks the next one.
+`level1.js`. Positions use guitar numbering (string 6 = low E, fret 0 = open).
+Write labels and answers with `js/lessons/kit.js` (`inKey('G', 'scale', 'major').dot(6, 3)`,
+`.spots('3')`, `above(root, 4)`): a dot that isn't in its key throws when the file loads,
+so text and neck can't disagree. Lessons unlock in order: passing Check it (3 of 4)
+unlocks the next one, and passing a Level Challenge opens the next level. The
+placement quiz asks 3 questions per level and opens the first level you miss
+(2 of 3 needed to move on). Each lesson's `review` ids, plus its tasks and
+questions, feed the Daily review.
 
 **Routes:** `#learn` (home), `#learn?lesson=l1-1`, `#fretboard`, `#practice`, `#progress`, `#ear`, `#learn?review=1` (today's review), `#practice?tool=drills&drill=review&items=note:G%23@s5,interval-ear:m3` (weak-spot review, 10 rounds).
 `#fretboard` accepts `key` (G, F#, Bb…), `scale` or `chord` (ids in the

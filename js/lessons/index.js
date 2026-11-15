@@ -1,11 +1,11 @@
 // The path: six levels in the order from docs/research-findings.md section 5.
-// A level with `level` data has lessons; the rest show as "coming soon".
+// Every level has lesson data; levels open in order (see js/path.js).
 import level1 from './level1.js';
 import level2 from './level2.js';
 import level3 from './level3.js';
 import level4 from './level4.js';
 import level5 from './level5.js';
-import { fretboardLink } from '../router.js';
+import level6 from './level6.js';
 import { NOTES, TUNINGS, midiAt, pcOf } from '../theory.js';
 
 export const LEVELS = [
@@ -14,8 +14,7 @@ export const LEVELS = [
   { title: 'Intervals', blurb: 'Hear and find distances from the root: 3rds, 5ths, octaves and more.', level: level3 },
   { title: 'Chords and CAGED', blurb: 'Triads from 1-3-5, the chords in a key, and the five CAGED shapes.', level: level4 },
   { title: 'Progressions', blurb: 'Roman numerals, I–IV–V, the pop progression, ii–V–I, and hearing them.', level: level5 },
-  { title: 'Improvising', blurb: 'Pentatonic positions, landing on chord tones, phrasing and the blues.',
-    peek: { label: 'A minor pentatonic', link: fretboardLink({ key: 'A', scale: 'minor-pentatonic' }) } }
+  { title: 'Improvising', blurb: 'Pentatonic positions, landing on chord tones, phrasing and the blues.', level: level6 }
 ];
 
 // Lessons in unlock order for a level, with the challenge last.

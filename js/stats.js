@@ -3,6 +3,7 @@
 import { allItems, getLog, getStreak, getLesson, getConfusions, getMilestones, earnMilestones, getDays, today, shiftDay } from './storage.js';
 import { LEVELS, nodesOf } from './lessons/index.js';
 import { PLAYALONG } from './playalong/index.js';
+import { nextUp } from './path.js';
 
 const DRILL_NAMES = { notes: 'Note finder', hear: 'Hear it, find it', intervals: 'Interval trainer' };
 const IV_NAMES = ['root', 'minor 2nd', 'major 2nd', 'minor 3rd', 'major 3rd', 'perfect 4th', 'tritone',
@@ -40,14 +41,12 @@ const minutesBy = log => log.reduce((m, e) => (m[e.date] = (m[e.date] || 0) + e.
 
 /* ---------- at a glance ---------- */
 export function learnPath() {
-  const withLessons = LEVELS.map((l, i) => ({ ...l, n: i + 1 })).filter(l => l.level);
-  for (const l of withLessons) {
-    const lessons = l.level.lessons, done = lessons.filter(x => getLesson(x.id).completed).length;
-    if (done < lessons.length) return { level: l.n, text: `Level ${l.n} · ${done} of ${lessons.length}` };
-    if (!getLesson(l.level.challenge.id).completed) return { level: l.n, text: `Level ${l.n} · challenge next` };
-  }
-  const n = withLessons.length + 1;
-  return { level: n, text: n <= LEVELS.length ? `Level ${n} · coming soon` : 'All levels done' };
+  const up = nextUp();
+  if (!up) return { level: LEVELS.length, text: 'All levels done' };
+  const L = LEVELS[up.levelIndex].level, n = up.levelIndex + 1;
+  if (up.node.challenge) return { level: n, text: `Level ${n} · challenge next` };
+  const done = L.lessons.filter(x => getLesson(x.id).completed).length;
+  return { level: n, text: `Level ${n} · ${done} of ${L.lessons.length}` };
 }
 
 export function glance() {
