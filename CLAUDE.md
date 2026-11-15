@@ -1,1 +1,1 @@
-Before building any feature, read docs/research-findings.md and follow its recommendations for lesson order, practice methods, and app features.
+Before building any feature, read docs/research-master-plan.md and the research file that matches the feature (research-guitar-v2.md, research-bass.md, research-piano.md, research-drums.md, research-app-features.md). docs/research-findings.md is the original guitar research.
