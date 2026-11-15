@@ -1,8 +1,9 @@
-// Practice tab: five cards (Metronome, Timer, Drills, Play-along, Log). Each
+// Practice tab: six cards (Metronome, Timer, Drills, Rhythm, Play-along, Log). Each
 // tool lives in js/practice/ and opens at #practice?tool=<id>.
 import metronomeTool from '../practice/metronome.js';
 import timerTool from '../practice/timer.js';
 import drillsTool from '../practice/drills.js';
+import rhythmTool from '../practice/rhythm.js';
 import playalongTool from '../practice/playalong.js';
 import logTool from '../practice/log.js';
 import { minutesOn, getStreak } from '../storage.js';
@@ -10,7 +11,7 @@ import { planLine, wirePlanLine } from '../plan.js';
 import { go } from '../router.js';
 
 // Tool: { id, title, blurb, icon, mount(el, params) -> cleanup }
-const TOOLS = [metronomeTool, timerTool, drillsTool, playalongTool, logTool];
+const TOOLS = [metronomeTool, timerTool, drillsTool, rhythmTool, playalongTool, logTool];
 let el, cleanup = null;
 
 function home() {

@@ -543,3 +543,32 @@ header { padding-top: calc(20px + env(safe-area-inset-top)) }
 .plan-line b { color: var(--text) }
 .link-btn { background: none; border: 0; color: var(--link); padding: 0 4px; min-height: 0; font-size: inherit; text-decoration: underline; cursor: pointer }
 
+/* ---------- timing: tap pad, calibration, rhythm line ---------- */
+.tap-pad { display: block; width: 100%; min-height: 120px; margin: 12px 0; border-radius: 16px; font-size: 20px; font-weight: 700;
+  background: var(--lavender-tint); border: 2px dashed var(--lavender); color: var(--text); touch-action: manipulation; user-select: none; -webkit-user-select: none }
+.tap-pad.flash { animation: padflash .12s ease-out }
+@keyframes padflash { from { background: var(--lavender); color: var(--on-soft) } }
+.calib { background: var(--panel2); border-radius: 12px; padding: 12px 14px; margin: 10px 0 }
+.calib-dots { display: flex; gap: 8px; margin: 8px 0 }
+.calib-dots i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--blue) }
+.calib-dots i.listen { border-style: dashed; border-color: var(--muted) }
+.calib-dots i.on { background: var(--blue) }
+.calib-line { color: var(--muted); font-size: 14px; margin: 0 0 6px }
+.calib-line b, .msg b { color: var(--text) }
+.warn { color: var(--pink) }
+.rhythm .chips button small { color: var(--muted); margin-left: 4px }
+.rh-line { overflow-x: auto; margin: 6px 0 }
+.rhythm-line { display: block; max-width: 100% }
+.rhythm-line.small { height: auto }
+.rl-staff { stroke: var(--line); stroke-width: 1.5 }
+.rl-bar { stroke: var(--fret); stroke-width: 2 }
+.rl-head { fill: var(--text) } .rl-head.open { fill: none; stroke: var(--text); stroke-width: 2 }
+.rl-stem, .rl-flag { stroke: var(--text); stroke-width: 2; fill: none }
+.rl-beam { stroke: var(--text); stroke-width: 4 }
+.rl-rest { fill: var(--muted) }
+.rl-count, .rl-tuplet { fill: var(--muted); font: 600 12px system-ui, sans-serif }
+.rl-stroke { fill: var(--blue); font: 700 16px system-ui, sans-serif } .rl-stroke.ghost { fill: var(--grey-text) }
+.rl-hit.good { fill: var(--good) } .rl-hit.bad { fill: var(--bad-text) }
+.rl-miss { fill: var(--bad-text); font: 700 16px system-ui, sans-serif }
+.rh-score b { font-size: 34px; color: var(--blue) }
+.rh-result p { margin: 4px 0 }
