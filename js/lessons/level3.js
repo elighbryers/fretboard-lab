@@ -32,7 +32,7 @@ export default {
     {
       id: 'l3-1',
       title: 'Intervals from the root',
-      review: [degreeItem(inKey('C', 'scale', 'major'), '2')],
+      review: ['rhythm:rests', degreeItem(inKey('C', 'scale', 'major'), '2')],
       steps: {
         hear: { text: 'C, then E. C, then G. C, then C an octave up. Three distances from one root.', sound: { seq: [P(5, 3), P(4, 2), null, P(5, 3), P(4, 5), null, P(5, 3), P(3, 5)], bpm: 90 } },
         learn: {
@@ -51,7 +51,7 @@ export default {
             task('Tap the 2nd above this C.', above(P(5, 3), 2, { from: 0, to: 7 }), { dots: R(Cc, 5, 3), item: degreeItem(inKey('C', 'scale', 'major'), '2'), explain: 'Yes! The 2nd above C is D.' })
           ]
         },
-        play: { text: 'Play root, 3rd, 5th, 3rd from C, and say the names as you go: "root, three, five, three".', view: [0, 7], bpm: 60, follow: [P(5, 3), P(4, 2), P(4, 5), P(4, 2)] },
+        play: { skills: ['rests'], text: 'Play root, 3rd, 5th, 3rd from C, and say the names as you go: "root, three, five, three".', view: [0, 7], bpm: 60, follow: [P(5, 3), P(4, 2), P(4, 5), P(4, 2)] },
         check: {
           pass: 3, view: [0, 8],
           questions: [
@@ -85,7 +85,7 @@ export default {
             ivTask(Ac, 3, 2, 'M3', [0, 9], { prompt: 'Across the B string: tap the 3rd above this root.' })
           ]
         },
-        play: { text: 'Play root, 3rd, 5th, octave from G, then from A and C. Same shape each time.', view: [0, 9], bpm: 60, follow: [P(6, 3), P(5, 2), P(5, 5), P(4, 5), P(6, 5), P(5, 4), P(5, 7), P(4, 7), P(5, 3), P(4, 2), P(4, 5), P(3, 5)] },
+        play: { skills: ['hammer-pull'], text: 'Play root, 3rd, 5th, octave from G, then from A and C. Same shape each time.', view: [0, 9], bpm: 60, follow: [P(6, 3), P(5, 2), P(5, 5), P(4, 5), P(6, 5), P(5, 4), P(5, 7), P(4, 7), P(5, 3), P(4, 2), P(4, 5), P(3, 5)] },
         check: {
           pass: 3, view: [0, 12],
           questions: [
@@ -119,7 +119,7 @@ export default {
             task('Listen, then tap the 3rd you heard above this C.', above(P(5, 3), 3, { from: 0, to: 9 }), { dots: R(Cc, 5, 3), sound: pair(5, 3, 3), item: 'interval-ear:m3', explain: 'Yes! That darker sound is the minor 3rd, Eb.' })
           ]
         },
-        play: { text: 'From G: play the root and major 3rd, then the root and minor 3rd. Listen for bright, then dark.', view: [0, 7], bpm: 60, follow: [P(6, 3), P(5, 2), P(6, 3), P(5, 1)] },
+        play: { skills: ['slides'], text: 'From G: play the root and major 3rd, then the root and minor 3rd. Listen for bright, then dark.', view: [0, 7], bpm: 60, follow: [P(6, 3), P(5, 2), P(6, 3), P(5, 1)] },
         check: {
           pass: 3, view: [0, 10],
           questions: [
@@ -153,7 +153,7 @@ export default {
             ivTask(Ac, 6, 5, 'P5', [0, 9], { prompt: 'Make an A5 power chord: tap the 5th above this root.' })
           ]
         },
-        play: {
+        play: { skills: ['muting'],
           text: 'Play four power chords, one per bar: G5, A5, C5, D5. Mute the other strings with your fretting hand.',
           view: [0, 9], bpm: 80, beatsPerStep: 4,
           follow: [[P(6, 3), P(5, 5), P(4, 5)], [P(6, 5), P(5, 7), P(4, 7)], [P(5, 3), P(4, 5), P(3, 5)], [P(5, 5), P(4, 7), P(3, 7)]]
@@ -172,7 +172,7 @@ export default {
     {
       id: 'l3-5',
       title: '6ths and 7ths',
-      review: ['interval:m6', 'interval:M6', 'interval:m7', 'interval:M7', 'interval-ear:m7', 'interval-ear:M7'],
+      review: ['rhythm:waltz', 'interval:m6', 'interval:M6', 'interval:m7', 'interval:M7', 'interval-ear:m7', 'interval-ear:M7'],
       steps: {
         hear: { text: 'From G: a major 6th, a minor 7th, then a major 7th.', sound: { seq: [P(6, 3), P(4, 2), null, P(6, 3), P(4, 3), null, P(6, 3), P(4, 4)], bpm: 80 } },
         learn: {
@@ -191,7 +191,7 @@ export default {
             ivTask(Cc, 5, 3, 'M7', [0, 10])
           ]
         },
-        play: { text: 'From G, play root, 6th, minor 7th, major 7th, octave. Slowly, and listen to each one against the root.', view: [0, 7], bpm: 56, follow: [P(6, 3), P(4, 2), P(4, 3), P(4, 4), P(4, 5)] },
+        play: { skills: ['waltz'], text: 'From G, play root, 6th, minor 7th, major 7th, octave. Slowly, and listen to each one against the root.', view: [0, 7], bpm: 56, follow: [P(6, 3), P(4, 2), P(4, 3), P(4, 4), P(4, 5)] },
         check: {
           pass: 3, view: [0, 10],
           questions: [

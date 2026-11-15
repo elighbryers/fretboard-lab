@@ -7,6 +7,7 @@ import { context, metronome, droneStart, droneStop, backing } from './audio.js';
 import { volumeHTML, esc, clock } from './ui.js';
 import { recordAnswer, completeLesson, unlockLesson, addLog, getLesson, setLessonBpm, getTempo, recordClean, startBelow } from './storage.js';
 import { SpeedTrainer, trainerSetupHTML, trainerStatusHTML } from './speed.js';
+import { findSkill, renderSkill } from './skills.js';
 import { fretboardLink } from './router.js';
 import { playSound, parseChord } from './sound.js';
 import { chordOf } from './progressions.js';
@@ -257,6 +258,9 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
         <div class="trainer" id="st-tr" hidden></div>
         <p class="msg muted" id="st-tmsg">${best ? `Your best clean tempo here is ${best.best} bpm, so this starts a little below it.` : ''}</p>
         <p class="now-chord" id="st-chord"></p>
+        ${(d.skills || []).length ? `<div class="step-skills"><span class="muted small">Hands &amp; rhythm for this step:</span>
+          ${d.skills.map(id => findSkill(id)).filter(Boolean).map(sk => `<button class="skill-chip" data-skill="${sk.id}" aria-expanded="false">${esc(sk.kind === 'chord' ? sk.name + ' chord' : sk.title)}</button>`).join('')}
+          <div class="skill-panel" id="st-skill" hidden></div></div>` : ''}
         <div class="st-board"></div>
         <p class="muted">Tap Done when you've played along.</p>`;
       const $b = s => body.querySelector(s);
@@ -289,6 +293,15 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
         if (!d.bpmKey) setLessonBpm(lesson.id, bpm);
       };
       const tmsg = text => { $b('#st-tmsg').textContent = text; };
+      // Skill panels (chord shapes, strums, technique) open inline, without leaving the lesson.
+      let skillCleanup = null;
+      body.querySelectorAll('.skill-chip').forEach(btn => btn.onclick = () => {
+        const panel = $b('#st-skill'), open = btn.getAttribute('aria-expanded') !== 'true';
+        skillCleanup?.(); skillCleanup = null;
+        body.querySelectorAll('.skill-chip').forEach(b => b.setAttribute('aria-expanded', 'false'));
+        panel.hidden = !open;
+        if (open) { btn.setAttribute('aria-expanded', 'true'); skillCleanup = renderSkill(panel, findSkill(btn.dataset.skill), { compact: true }); }
+      });
       $b('#st-clean').onclick = () => { const r = recordClean(exId, bpm, exTitle); tmsg(`Saved: ${bpm} bpm clean. Your best here is ${r.best} bpm.`); };
       function trainerPanel() {
         const tr = $b('#st-tr');
@@ -360,6 +373,7 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
       $b('#st-key')?.addEventListener('change', e => { key = e.target.value; if (metronome.running) startAll(); });
       setReady(false);
       return () => {
+        skillCleanup?.();
         off();
         stopAll();
         if (saved.running) metronome.start();

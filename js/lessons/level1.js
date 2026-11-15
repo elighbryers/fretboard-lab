@@ -30,6 +30,7 @@ export default {
     {
       id: 'l1-1',
       title: 'String names and fret numbers',
+      review: ['chordshape:em', 'rhythm:quarters'],
       steps: {
         hear: { text: 'These are the six open strings, from the lowest sound to the highest.', sound: { seq: OPEN_LOW_TO_HIGH, bpm: 80 } },
         learn: {
@@ -48,7 +49,7 @@ export default {
             task('Tap string 6, fret 5.', P(6, 5))
           ]
         },
-        play: {
+        play: { skills: ['em', 'quarters'],
           text: 'Pick up your guitar. Play the open strings from 6 to 1, one per click, and say each name out loud: E, A, D, G, B, E.',
           view: [0, 5], bpm: 60, beatsPerBar: 6, follow: OPEN_LOW_TO_HIGH
         },
@@ -66,6 +67,7 @@ export default {
     {
       id: 'l1-2',
       title: 'The musical alphabet',
+      review: ['chordshape:am'],
       steps: {
         hear: { text: 'Seven letters, then the first one again: A B C D E F G A.', sound: { seq: naturals(5), bpm: 80 } },
         learn: {
@@ -87,7 +89,7 @@ export default {
             task('Tap C on the A string.', at('C', 5))
           ]
         },
-        play: {
+        play: { skills: ['am'],
           text: 'Play up the A string on the lit frets, one per click, and say each letter: A B C D E F G A.',
           view: [0, 12], bpm: 60, follow: NATURAL[5].map(f => P(5, f))
         },
@@ -105,6 +107,7 @@ export default {
     {
       id: 'l1-3',
       title: 'Whole and half steps',
+      review: ['chordshape:e'],
       steps: {
         hear: { text: 'Half steps first (one fret each), then whole steps (two frets each).', sound: { seq: [P(5, 0), P(5, 1), P(5, 2), P(5, 3), null, P(5, 0), P(5, 2), P(5, 4), P(5, 6)], bpm: 90 } },
         learn: {
@@ -126,7 +129,7 @@ export default {
             task('Tap one half step below G on the low E string.', P(6, 2), { dots: [noteDot(6, 3, { role: 'root' })] })
           ]
         },
-        play: {
+        play: { skills: ['e'],
           text: 'Climb the G string in half steps from open to fret 4, then come back down in whole steps: 4, 2, 0.',
           view: [0, 6], bpm: 60, follow: [0, 1, 2, 3, 4, 4, 2, 0].map(f => P(3, f))
         },
@@ -165,7 +168,7 @@ export default {
             task('Tap D on the low E string.', at('D', 6))
           ]
         },
-        play: {
+        play: { skills: ['changes-em-am'],
           text: 'Play the natural notes on the low E string, open to 12, and say each name.',
           view: [0, 12], bpm: 60, follow: NATURAL[6].map(f => P(6, f))
         },
@@ -183,6 +186,7 @@ export default {
     {
       id: 'l1-5',
       title: 'Octave shapes',
+      review: ['chordshape:a'],
       steps: {
         hear: { text: 'The same note, G, in three places on the neck.', sound: { seq: [P(6, 3), P(4, 5), P(1, 3)], bpm: 70 } },
         learn: {
@@ -205,7 +209,7 @@ export default {
             task('Tap the E on the B string, one octave above this one.', P(2, 5), { dots: [noteDot(4, 2, { role: 'root' })] })
           ]
         },
-        play: {
+        play: { skills: ['a'],
           text: 'Play A on the low E string, its octave on the D string, then the A on the high e string. Use the shapes, not memory.',
           view: [0, 10], bpm: 60, follow: [P(6, 5), P(4, 7), P(1, 5), P(4, 7)]
         },
@@ -223,6 +227,7 @@ export default {
     {
       id: 'l1-6',
       title: 'Sharps and flats',
+      review: ['chordshape:d'],
       steps: {
         hear: { text: 'A, then A sharp, then B: one fret at a time.', sound: { seq: [P(5, 0), P(5, 1), P(5, 2)], bpm: 70 } },
         learn: {
@@ -244,7 +249,7 @@ export default {
             task('Tap C# on the A string.', at('C#', 5))
           ]
         },
-        play: {
+        play: { skills: ['d'],
           text: 'Play every fret on the A string from open to fret 5 and say both names where there are two: A, A# or Bb, B, C, C# or Db, D.',
           view: [0, 6], bpm: 56, follow: [0, 1, 2, 3, 4, 5].map(f => P(5, f))
         },
@@ -280,7 +285,7 @@ export default {
             task('Tap A on the G string.', at('A', 3))
           ]
         },
-        play: {
+        play: { skills: ['changes-a-d'],
           text: 'Play every natural note in the open position, low E to high e, and say each name. Then play them back down.',
           view: [0, 5], bpm: 60, follow: [...OPEN_POS, ...OPEN_POS.slice(0, -1).reverse()].map(d => P(d.string, d.fret))
         },
@@ -305,6 +310,12 @@ export default {
           { text: 'The app names a note and a string. Play it on your guitar, then tap where you played it. You have 3 seconds.', board: { view: [0, 12], dots: [noteDot(5, 10, { role: 'root' })] } },
           { text: 'Not sure? Find it on the low E or A string first, then use an octave shape. Get 8 of 10 to pass.', board: { view: [0, 12], dots: [noteDot(6, 3, { role: 'root' }), noteDot(4, 5, { role: 'root' })] } }
         ]
+      },
+      {
+        type: 'play', name: 'Chord changes', skills: ['changes-em-am'],
+        text: 'Hands check: change between Em and Am in time, one strum per bar, for 8 bars. Use the chord buttons below if you need the shapes.',
+        view: [0, 5], bpm: 60, beatsPerStep: 4,
+        follow: [[P(6, 0), P(5, 2), P(4, 2), P(3, 0), P(2, 0), P(1, 0)], [P(5, 0), P(4, 2), P(3, 2), P(2, 1), P(1, 0)]]
       },
       { type: 'timed', name: 'Challenge', text: `Ten notes, 3 seconds each, on any string from fret 0 to 12. Ready?`, rounds: 10, seconds: 3, pass: 8, frets: [0, 12] }
     ]

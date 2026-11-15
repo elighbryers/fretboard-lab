@@ -48,7 +48,7 @@ export default {
     {
       id: 'l4-1',
       title: 'Building triads from 1-3-5',
-      review: ['R', '3', '5'].map(l => toneItem(Cmaj, l)),
+      review: [...['R', '3', '5'].map(l => toneItem(Cmaj, l)), 'chordshape:c', 'chordshape:g', 'chordshape:d'],
       steps: {
         hear: { text: 'C, E and G one at a time, then all together: the C major chord.', sound: { seq: [P(5, 3), P(4, 2), P(3, 0), ps(OPEN_C)], bpm: 70 } },
         learn: {
@@ -67,7 +67,7 @@ export default {
             task('Tap the root of the G major chord.', Gmaj.spots('R', { from: 0, to: 6 }), { item: toneItem(Gmaj, 'R'), explain: 'Yes! G is the root.' })
           ]
         },
-        play: { text: 'Play C, E and G one at a time, then strum the open C chord. Repeat.', view: [0, 6], bpm: 60, follow: [P(5, 3), P(4, 2), P(3, 0), ps(OPEN_C)] },
+        play: { skills: ['c', 'g', 'd'], text: 'Play C, E and G one at a time, then strum the open C chord. Repeat.', view: [0, 6], bpm: 60, follow: [P(5, 3), P(4, 2), P(3, 0), ps(OPEN_C)] },
         check: {
           pass: 3, view: [0, 6],
           questions: [
@@ -116,7 +116,7 @@ export default {
     {
       id: 'l4-3',
       title: 'The chords in a key',
-      review: ['fact:g-ii', 'fact:major-chords-in-key', degreeItem(Gs, '4'), degreeItem(Gs, '5'), degreeItem(Gs, '6')],
+      review: ['rhythm:first-strum', 'rhythm:syncopation', 'fact:g-ii', 'fact:major-chords-in-key', degreeItem(Gs, '4'), degreeItem(Gs, '5'), degreeItem(Gs, '6')],
       steps: {
         hear: { text: 'One chord on every note of G major: G, Am, Bm, C, D, Em, F#°, then G again.', sound: { seq: chordSpecs('G', [...KEY_ROMANS, 'I']), bpm: 70 } },
         learn: {
@@ -135,8 +135,8 @@ export default {
             task('Tap the root of the vi chord in G (it is minor).', Gs.spots('6', { strings: [6, 5], from: 0, to: 10 }), { item: degreeItem(Gs, '6'), explain: 'Yes! vi in G is Em.' })
           ]
         },
-        play: {
-          text: 'The backing track plays every chord in G major. Strum along with any shape you know, or play each chord\'s root. Watch the chord name.',
+        play: { skills: ['first-strum', 'syncopation'],
+          text: 'The backing track plays every chord in G major. Strum along with the open chords you know (G, Am, C, D, Em), or play each chord\'s root. Watch the chord name.',
           view: [0, 10], bpm: 70, backing: { key: 'G', progression: [...KEY_ROMANS, 'I'] }, dots: keyDots('name')
         },
         check: {
@@ -153,7 +153,7 @@ export default {
     {
       id: 'l4-4',
       title: 'Triads on three strings',
-      review: ['R', '3', '5'].map(l => toneItem(Gmaj, l)),
+      review: [...['R', '3', '5'].map(l => toneItem(Gmaj, l)), 'rhythm:six-eight'],
       steps: {
         hear: { text: 'G major three times, higher each time, on just the top three strings.', sound: { seq: [ps(TOP.a), null, ps(TOP.b), null, ps(TOP.c)], bpm: 60 } },
         learn: {
@@ -172,7 +172,7 @@ export default {
             task('In this G shape, tap the 5th.', P(1, 10), { item: toneItem(Gmaj, '5'), dots: Gmaj.dots([[3, 12], [2, 12]]), explain: 'Yes! D, the 5th.' })
           ]
         },
-        play: { text: 'Play the three G shapes, one per bar, low to high and back. Pick the notes, then strum them.', view: [0, 12], bpm: 70, beatsPerStep: 4, follow: [ps(TOP.a), ps(TOP.b), ps(TOP.c), ps(TOP.b)] },
+        play: { skills: ['six-eight'], text: 'Play the three G shapes, one per bar, low to high and back. Pick the notes, then strum them.', view: [0, 12], bpm: 70, beatsPerStep: 4, follow: [ps(TOP.a), ps(TOP.b), ps(TOP.c), ps(TOP.b)] },
         check: {
           pass: 3, view: [0, 12],
           questions: [
@@ -206,7 +206,7 @@ export default {
             task('Move the E shape to make B major: tap its root on the low E string.', P(6, 7), { item: toneItem(Bmaj, 'R'), explain: 'Yes! B is at fret 7.' })
           ]
         },
-        play: { text: 'Barre chords, one per bar: G (E shape, fret 3), C (A shape, fret 3), D (A shape, fret 5). If barres hurt, play just the top four strings.', view: [0, 9], bpm: 70, beatsPerStep: 4, follow: [ps(eShape(3)), ps(aShape(3)), ps(aShape(5)), ps(eShape(3))] },
+        play: { skills: ['barre'], text: 'Barre chords, one per bar: G (E shape, fret 3), C (A shape, fret 3), D (A shape, fret 5). If barres hurt, play just the top four strings, and work on the barre chord goal over the next few weeks.', view: [0, 9], bpm: 70, beatsPerStep: 4, follow: [ps(eShape(3)), ps(aShape(3)), ps(aShape(5)), ps(eShape(3))] },
         check: {
           pass: 3, view: [0, 10],
           questions: [

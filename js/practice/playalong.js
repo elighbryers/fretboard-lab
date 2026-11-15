@@ -32,10 +32,35 @@ function library(el) {
   };
 }
 
+// Note lengths under the tab, the way tab books show rhythm: stems for quarters,
+// beams for notes shorter than a beat (two for sixteenths), a dot for dotted
+// notes, a short stem for halves, a block for rests, "3" over triplets.
+function rhythmLine(tl, y) {
+  let out = '<g class="pa-rhythm">';
+  const x = e => LEFT + e.start * BW + 4, top = y, bot = y + 20;
+  tl.forEach(e => {
+    if (e.rest) { out += `<rect class="pa-rest" x="${x(e) - 4}" y="${top + 6}" width="9" height="5" rx="1"/>`; return; }
+    if (e.beats >= 3.99) return;
+    out += `<line class="pa-stem" x1="${x(e)}" x2="${x(e)}" y1="${top}" y2="${e.beats >= 2 - 1e-6 ? top + 10 : bot}"/>`;
+    if ([0.75, 1.5, 3].some(v => Math.abs(e.beats - v) < 1e-6)) out += `<circle class="pa-dot" cx="${x(e) + 6}" cy="${bot - 2}" r="2"/>`;
+  });
+  // beams: consecutive notes shorter than a beat inside the same beat
+  const end = tl.length ? Math.ceil(tl[tl.length - 1].start + tl[tl.length - 1].beats) : 0;
+  for (let b = 0; b < end; b++) {
+    const g = tl.filter(e => !e.rest && e.beats < 1 - 1e-6 && e.start >= b - 1e-6 && e.start < b + 1 - 1e-6);
+    if (!g.length) continue;
+    if (g.length === 1) { out += `<path class="pa-stem" d="M${x(g[0])} ${bot}q7 -4 6 -11"/>`; continue; }
+    out += `<line class="pa-beam" x1="${x(g[0])}" x2="${x(g[g.length - 1])}" y1="${bot}" y2="${bot}"/>`;
+    if (g.every(e => e.beats <= 0.25 + 1e-6)) out += `<line class="pa-beam" x1="${x(g[0])}" x2="${x(g[g.length - 1])}" y1="${bot - 5}" y2="${bot - 5}"/>`;
+    if (g.some(e => Math.abs(e.beats * 3 - Math.round(e.beats * 3)) < 1e-6 && Math.round(e.beats * 3) % 3)) out += `<text class="pa-tuplet" x="${(x(g[0]) + x(g[g.length - 1])) / 2}" y="${bot + 11}">3</text>`;
+  }
+  return out + '</g>';
+}
+
 function player(el, tab) {
   const tl = timeline(tab), notes = tl.filter(e => !e.rest), bb = barBeats(tab);
   const total = tl.length ? tl[tl.length - 1].start + tl[tl.length - 1].beats : 0, bars = Math.round(total / bb);
-  const prefs = getPracticePrefs(), toggles = { countIn: true, hear: true, click: true, ...(prefs.tabToggles || {}) };
+  const prefs = getPracticePrefs(), toggles = { countIn: true, hear: true, click: true, rhythm: true, ...(prefs.tabToggles || {}) };
   let pct = prefs.tabTempo[tab.id] || 100;
   // Restart a little below the best clean tempo (stored in bpm).
   const exId = `tab:${tab.id}`, best = getTempo(exId);
@@ -51,7 +76,8 @@ function player(el, tab) {
   for (let b = 0; b < total - 1e-6; b++) tickAt(b).click = b % bb === 0 ? 2 : 1;
   const ticks = [...tickMap.values()].sort((a, b) => a.beat - b.beat);
 
-  const W = LEFT + total * BW + 60, H = TOP + 5 * GAP + 26, lineY = string => TOP + (string - 1) * GAP;
+  const RY = TOP + 5 * GAP + 18, RH = 34;  // rhythm line under the tab
+  const W = LEFT + total * BW + 60, H = TOP + 5 * GAP + 26 + RH, lineY = string => TOP + (string - 1) * GAP;
   let svg = '';
   for (let s = 1; s <= 6; s++) svg += `<line class="pa-line" x1="0" x2="${W}" y1="${lineY(s)}" y2="${lineY(s)}"/>`;
   for (let b = 0; b <= bars; b++) {
@@ -61,6 +87,7 @@ function player(el, tab) {
       `<rect class="pa-hit" data-bar="${b}" x="${x}" y="0" width="${bb * BW}" height="${H}"/>`;
   }
   svg += '<rect class="pa-loop" id="pa-loop-rect" x="0" y="2" width="0" height="' + (H - 4) + '" hidden/>';
+  svg += rhythmLine(tl, RY);
   notes.forEach(n => {
     const x = LEFT + n.start * BW, y = lineY(n.string);
     svg += `<g class="pa-note" data-i="${n.i}"><rect x="${x - 3}" y="${y - 9}" width="${String(n.fret).length * 9 + 6}" height="18" rx="4"/><text x="${x}" y="${y + 5}">${n.fret}</text></g>`;
@@ -89,6 +116,7 @@ function player(el, tab) {
       <div class="row toggles">
         <button id="pa-loop">Loop a section</button>
         <label class="check"><input type="checkbox" id="pa-countin"> Count-in</label>
+        <label class="check"><input type="checkbox" id="pa-rhythm"> Rhythm line</label>
         <label class="check"><input type="checkbox" id="pa-hear"> Hear the tab</label>
         <label class="check"><input type="checkbox" id="pa-click"> Click</label>
       </div>
@@ -96,11 +124,13 @@ function player(el, tab) {
     </div>`;
   const $ = s => el.querySelector(s);
   const fb = new Fretboard($('#pa-board'), { view: [0, Math.min(15, maxFret)], labels: 'notes', playOnTap: true, ariaLabel: 'Current note on the fretboard' });
-  ['countIn', 'hear', 'click'].forEach(k => {
+  const paintRhythm = () => $('#pa-svg').classList.toggle('no-rhythm', !toggles.rhythm);
+  ['countIn', 'hear', 'click', 'rhythm'].forEach(k => {
     const box = $(`#pa-${k.toLowerCase()}`);
     box.checked = toggles[k];
-    box.onchange = () => { toggles[k] = box.checked; updatePracticePrefs({ tabToggles: { ...toggles } }); };
+    box.onchange = () => { toggles[k] = box.checked; updatePracticePrefs({ tabToggles: { ...toggles } }); paintRhythm(); };
   });
+  paintRhythm();
 
   /* ---------- transport ---------- */
   let playing = false, startPos = 0, segs = [], k = 0, segBeat = 0, segTime = 0, endAt = Infinity, schedTimer = null, raf = 0;

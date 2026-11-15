@@ -13,6 +13,9 @@ import { finishedLessonItems, factQuestion } from './lessons/index.js';
 import { asRound, DRILLS } from './practice/drills.js';
 import { itemName } from './stats.js';
 import { esc, shuffle } from './ui.js';
+import { SKILLS, findSkill } from './skills.js';
+import { PATTERNS, findPattern, rhythmSVG } from './rhythm.js';
+import { pluckAt, click as clickAt, now as audioNow, context } from './audio.js';
 
 /* ---------- item types beyond the drills ----------
    degree:G:major:3     tap the 3rd of G major (anywhere on the neck)
@@ -42,7 +45,9 @@ const EAR_NAMES = { major: 'Major', minor: 'Minor', dim: 'Diminished', maj7: 'Ma
 const earSet = id => EAR_SETS.find(s => s.includes(id));
 
 // Items the review screen knows how to ask.
-export const askable = id => !!asRound(id) || (id.startsWith('fact:') && !!factQuestion(id)) || !!parseDegreeItem(id)
+const chordShapeOf = id => { const s = id.startsWith('chordshape:') && findSkill(id.slice(11)); return s && s.kind === 'chord' ? s : null; };
+const patternOf = id => (id.startsWith('rhythm:') ? findPattern(id.slice(7)) : null);
+export const askable = id => !!asRound(id) || (id.startsWith('fact:') && !!factQuestion(id)) || !!parseDegreeItem(id) || !!chordShapeOf(id) || !!patternOf(id)
   || (id.startsWith('chord-ear:') && !!earSet(id.slice(10)));
 
 // Today's saved session, or null if there isn't one for today.
@@ -87,6 +92,62 @@ function degreeRound(ui, id) {
       ok ? ui.autoNext(900) : ui.showNext();
     }
   };
+}
+
+// "Which chord is this?" The shape in neutral dots (root outlined); pick its name.
+function chordShapeRound(ui, id) {
+  const sk = chordShapeOf(id), shownAt = performance.now();
+  const others = shuffle(SKILLS.filter(x => x.kind === 'chord' && x.id !== sk.id && Math.abs(x.level - sk.level) <= 3)).slice(0, 2);
+  let done = false;
+  ui.fb.o.view = [0, 5];
+  ui.fb.setDots(sk.shape.map(([s, f]) => { const d = sk.chord.dot(s, f); return { s: s - 1, f, role: 'bare', ring: d.role === 'root' }; }));
+  ui.prompt('Which chord is this?');
+  ui.choices(shuffle([sk, ...others]).map(x => `<button data-k="${x.id}">${esc(x.name)}</button>`).join(''));
+  ui.$('#dr-choices').onclick = e => {
+    const b = e.target.closest('button');
+    if (!b || done) return;
+    done = true;
+    const ok = b.dataset.k === sk.id;
+    recordAnswer(id, ok, performance.now() - shownAt);
+    ui.$$('#dr-choices button').forEach(x => { x.disabled = true; if (x.dataset.k === sk.id) x.classList.add('good'); else if (x === b) x.classList.add('bad'); });
+    ui.fb.setDots(sk.shape.map(([s, f]) => { const d = sk.chord.dot(s, f); return { s: s - 1, f, role: d.role, label: d.label }; }));
+    playSound({ seq: [sk.shape.map(([s, f]) => ({ string: s, fret: f }))], bpm: 60 });
+    ui.msg(`${ok ? 'Yes! ' : ''}That is ${sk.name}: ${sk.tip}`, ok ? 'good' : 'bad');
+    ui.result(ok);
+    ok ? ui.autoNext(1400) : ui.showNext();
+  };
+  return {};
+}
+
+// "Which rhythm did you hear?" Plays the pattern over a click; tap the matching rhythm line.
+function rhythmRound(ui, id) {
+  const pat = patternOf(id), shownAt = performance.now();
+  const others = shuffle(PATTERNS.filter(p => p.id !== pat.id && p.beats === pat.beats)).slice(0, 2);
+  let done = false;
+  const play = () => {
+    if (!context()) return;
+    const t0 = audioNow() + 0.15, spb = 60 / 80;
+    for (let k = 0; k < pat.beats * 2; k++) clickAt(t0 + k * spb, k % pat.beats === 0 ? 2 : 1, 0.6);
+    for (let bar = 0; bar < 2; bar++) { let b = bar * pat.beats; pat.notes.forEach(n => { if (!n.rest) pluckAt(76, t0 + b * spb, 0.6); b += n.dur; }); }
+  };
+  ui.fb.wrap.hidden = true;
+  ui.prompt('Which rhythm is this?');
+  ui.tools('<button class="primary" id="rv-replay">▶ Play again</button>');
+  ui.$('#rv-replay').onclick = play;
+  ui.choices(shuffle([pat, ...others]).map(p => `<button class="rhythm-choice" data-p="${p.id}" aria-label="Rhythm option">${rhythmSVG(p, { small: true, pxPerBeat: 40 })}</button>`).join(''));
+  ui.$('#dr-choices').onclick = e => {
+    const b = e.target.closest('button');
+    if (!b || done) return;
+    done = true;
+    const ok = b.dataset.p === pat.id;
+    recordAnswer(id, ok, performance.now() - shownAt);
+    ui.$$('#dr-choices button').forEach(x => { x.disabled = true; if (x.dataset.p === pat.id) x.classList.add('good'); else if (x === b) x.classList.add('bad'); });
+    ui.msg(`${ok ? 'Yes! ' : ''}That was ${pat.name}: ${pat.count}.`, ok ? 'good' : 'bad');
+    ui.result(ok);
+    ok ? ui.autoNext(1200) : ui.showNext();
+  };
+  play();
+  return { end() { ui.fb.wrap.hidden = false; } };
 }
 
 // Hear a chord on a random root; name its kind from its set of three.
@@ -192,7 +253,7 @@ export function runReview(el, { onExit }) {
     autoNext(ms) { autoTimer = setTimeout(next, ms); }
   };
   const KIND = { note: 'Find the note', ear: 'Hear it, find it', interval: 'Interval', 'interval-ear': 'Interval by ear', fact: 'Quick question',
-    degree: 'Scale degree', tone: 'Chord tone', 'chord-ear': 'Chord by ear' };
+    degree: 'Scale degree', tone: 'Chord tone', 'chord-ear': 'Chord by ear', chordshape: 'Chord shape', rhythm: 'Rhythm' };
   const paintTop = () => {
     const n = r.queue.length;
     $('#rv-bar').style.width = (100 * r.index / n) + '%';
@@ -226,6 +287,8 @@ export function runReview(el, { onExit }) {
     paintTop();
     if (id.startsWith('fact:')) { if (droneOn()) droneStop(); current = factRound(ui, id); return; }
     if (parseDegreeItem(id)) { if (droneOn()) droneStop(); current = degreeRound(ui, id); return; }
+    if (chordShapeOf(id)) { if (droneOn()) droneStop(); current = chordShapeRound(ui, id); return; }
+    if (patternOf(id)) { if (droneOn()) droneStop(); current = rhythmRound(ui, id); return; }
     if (id.startsWith('chord-ear:')) { if (droneOn()) droneStop(); current = chordEarRound(ui, id); return; }
     if (!round) { ui.result(true); return next(); }  // no longer askable: skip it quietly
     // The drone plays only for hear-it rounds.

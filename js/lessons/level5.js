@@ -77,7 +77,7 @@ export default {
     {
       id: 'l5-2',
       title: 'I-IV-V and the 12-bar blues',
-      review: ['fact:blues-bar-5', degreeItem(Es, 'R'), degreeItem(Es, '4')],
+      review: ['chordshape:a7', 'chordshape:d7', 'chordshape:e7', 'rhythm:shuffle', 'fact:blues-bar-5', degreeItem(Es, 'R'), degreeItem(Es, '4')],
       steps: {
         hear: { text: 'A 12-bar blues in A: A7, D7 and E7.', sound: { seq: chordSpecs('A', TWELVE_BAR), bpm: 110 } },
         learn: {
@@ -100,7 +100,7 @@ export default {
             rootTask(Es, 'R', 'I')
           ]
         },
-        play: {
+        play: { skills: ['a7', 'd7', 'e7', 'shuffle', 'changes-a7-d7'],
           text: 'A 12-bar blues in A. Strum A7, D7 and E7, or just play each root on beat 1. Watch the chord name change.',
           view: [0, 10], bpm: 90, backing: { key: 'A', progression: TWELVE_BAR, keys: ['A', 'E', 'G', 'C'] }, dots: [rootDot(6, 5, 'I'), rootDot(5, 5, 'IV'), rootDot(5, 7, 'V')]
         },
@@ -118,7 +118,7 @@ export default {
     {
       id: 'l5-3',
       title: 'I-V-vi-IV, the pop progression',
-      review: ['fact:hear-pop', 'fact:g-vi', degreeItem(Cs, '6'), degreeItem(Ds, '6'), degreeItem(As, '6')],
+      review: ['rhythm:first-strum', 'fact:hear-pop', 'fact:g-vi', degreeItem(Cs, '6'), degreeItem(Ds, '6'), degreeItem(As, '6')],
       steps: {
         hear: { text: 'G, D, Em, C. You have heard this loop in hundreds of songs.', sound: hearProg('G', [...P1564, ...P1564]) },
         learn: {
@@ -133,7 +133,7 @@ export default {
           view: [0, 10],
           tasks: [rootTask(Cs, '6', 'vi'), rootTask(Ds, '6', 'vi'), rootTask(Ds, '5', 'V')]
         },
-        play: {
+        play: { skills: ['first-strum'],
           text: 'I-V-vi-IV with the backing track. Play the triads shown, one per bar, or strum any shapes you know.',
           view: [0, 7], bpm: 80, beatsPerStep: 4, follow: [triPos('G'), triPos('D'), triPos('Em'), triPos('C')],
           backing: { key: 'G', progression: P1564 }
@@ -299,7 +299,7 @@ export default {
     {
       id: 'l5-7',
       title: 'A progression in one position',
-      review: [toneItem(Dmaj, 'R'), toneItem(Em, 'R'), toneItem(Cmaj, '3'), toneItem(Am, 'R'), toneItem(Gmaj, '3')],
+      review: ['rhythm:syncopation', toneItem(Dmaj, 'R'), toneItem(Em, 'R'), toneItem(Cmaj, '3'), toneItem(Am, 'R'), toneItem(Gmaj, '3')],
       steps: {
         hear: { text: 'G, D, Em, C, all between frets 2 and 5, with barely any movement.', sound: { seq: [triPos('G'), triPos('D'), triPos('Em'), triPos('C')], bpm: 50 } },
         learn: {
@@ -318,7 +318,7 @@ export default {
             task('This is C. Tap its 3rd.', P(2, 5), { item: toneItem(Cmaj, '3'), dots: Cmaj.dots(without(TRI.C, [[2, 5]])), explain: 'Yes! E is the 3rd of C.' })
           ]
         },
-        play: {
+        play: { skills: ['syncopation'],
           text: 'I-V-vi-IV in G with the backing track, using only these triads. Keep your hand in one place.',
           view: [0, 7], bpm: 80, beatsPerStep: 4, follow: [triPos('G'), triPos('D'), triPos('Em'), triPos('C')], backing: { key: 'G', progression: P1564 }
         },

@@ -422,7 +422,7 @@ button.round { width: 64px; height: 64px; border-radius: 50%; font-size: 30px; p
 .pill.medium { color: var(--on-soft); background: var(--lavender); border-color: var(--lavender) }
 .pa-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px }
 .pa-head b { font-size: 18px }
-.tabview { position: relative; overflow: hidden; height: 152px; margin-top: 10px; border-radius: 12px; background: var(--board); border: 1px solid var(--line); touch-action: pan-y }
+.tabview { position: relative; overflow: hidden; height: 186px; margin-top: 10px; border-radius: 12px; background: var(--board); border: 1px solid var(--line); touch-action: pan-y }
 #pa-svg { position: absolute; left: 0; top: 0; will-change: transform; user-select: none; -webkit-user-select: none }
 .pa-line { stroke: var(--string); stroke-width: 1 }
 .pa-bar { stroke: var(--muted); stroke-width: 1.5 }
@@ -446,7 +446,7 @@ button.round { width: 64px; height: 64px; border-radius: 50%; font-size: 30px; p
 @media (max-height: 500px) and (orientation: landscape) {
   header { display: none }
   .pa #pa-board { display: none }
-  .tabview { height: 140px }
+  .tabview { height: 178px }
 }
 
 /* ---------- log ---------- */
@@ -572,3 +572,30 @@ header { padding-top: calc(20px + env(safe-area-inset-top)) }
 .rl-miss { fill: var(--bad-text); font: 700 16px system-ui, sans-serif }
 .rh-score b { font-size: 34px; color: var(--blue) }
 .rh-result p { margin: 4px 0 }
+
+/* ---------- Hands & rhythm ---------- */
+.hands-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 4px 0 10px }
+.hr-title { font-size: 13px; font-weight: 700; color: var(--pink) }
+.hr-chips { display: flex; flex-wrap: wrap; gap: 6px }
+.hr-chip { display: inline-flex; align-items: center; min-height: 36px; padding: 4px 12px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel2); color: var(--text); text-decoration: none; font-size: 14px }
+.hr-chip.done { border-color: var(--good); color: var(--good) }
+.step-skills { margin: 10px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px }
+.skill-chip[aria-expanded="true"] { background: var(--blue); color: var(--on-soft); border-color: var(--blue) }
+.skill-panel { flex: 1 0 100%; background: var(--panel2); border-radius: 12px; padding: 12px }
+.sk-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
+@media (max-width: 700px) { .sk-pair { grid-template-columns: 1fr } }
+.changes-test { text-align: center; background: var(--panel2); border-radius: 12px; padding: 14px; margin-top: 10px }
+.ct-clock { font-size: 44px; font-weight: 800; color: var(--blue); margin-bottom: 8px }
+.ct-count { margin-top: 12px } .ct-count .row { justify-content: center; align-items: center }
+.ct-count input { width: 90px; text-align: center; font-size: 20px }
+.goal-status { color: var(--pink); font-weight: 600 }
+.goal-checks { list-style: none; padding: 0; display: grid; gap: 6px }
+.rhythm-choice { padding: 6px 10px; background: var(--panel2) }
+.rhythm-choice svg { display: block }
+/* play-along rhythm line */
+.pa-rhythm .pa-stem { stroke: var(--muted); stroke-width: 1.6; fill: none }
+.pa-rhythm .pa-beam { stroke: var(--muted); stroke-width: 3.5 }
+.pa-rhythm .pa-rest, .pa-rhythm .pa-dot { fill: var(--muted) }
+.pa-rhythm .pa-tuplet { fill: var(--muted); font: 600 10px system-ui, sans-serif; text-anchor: middle }
+#pa-svg.no-rhythm .pa-rhythm { display: none }
+

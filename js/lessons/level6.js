@@ -75,7 +75,7 @@ export default {
     {
       id: 'l6-2',
       title: 'Aiming for chord tones',
-      review: [toneItem(Am, 'b3'), toneItem(Am, '5'), toneItem(Cmaj, 'R'), toneItem(Cmaj, '3'), toneItem(Cmaj, '5'), 'fact:chord-tone'],
+      review: ['rhythm:sixteenths', toneItem(Am, 'b3'), toneItem(Am, '5'), toneItem(Cmaj, 'R'), toneItem(Cmaj, '3'), toneItem(Cmaj, '5'), 'fact:chord-tone'],
       steps: {
         hear: { text: 'Am, then C. A line that lands on A over Am, then on C when the chord changes.', sound: { seq: ['A:minor', P(2, 5), P(1, 5), 'C:major', P(1, 8), null], bpm: 70 } },
         learn: {
@@ -94,7 +94,7 @@ export default {
             toneQ(Cmaj, '5', view(1), 'Tap the 5th of C.', task, { explain: 'Yes! G is the 5th of C.' })
           ]
         },
-        play: {
+        play: { skills: ['sixteenths'],
           text: 'Improvise over Am and C for 60 seconds with position 1. As each chord arrives, land on one of its notes.',
           view: [3, 10], bpm: 80, seconds: 60, backing: { key: 'C', progression: ['vi', 'vi', 'I', 'I'], keys: ['C', 'G', 'D'] }, dots: pos(1)
         },

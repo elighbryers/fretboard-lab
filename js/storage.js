@@ -11,7 +11,9 @@
 //   streak:   { current, best, lastDay },  // kept for older data; best is a floor
 //   confusions: { 'a-b': count }   // intervals mixed up, by semitones from the root (sorted), e.g. '3-4' = m3/M3
 //   milestones: { [badgeId]: { at, seen } }
-//   tempos:   { [exerciseId]: { best, title, history: [{ day, bpm }] } }  // highest clean bpm, per day
+//   tempos:   { [exerciseId]: { best, title, unit?, history: [{ day, bpm }] } }  // highest clean bpm (or best
+//             count, unit 'changes', for one-minute chord changes), best per day
+//   goals:    { [goalId]: { started: day, days: [day], checks: { [checkId]: day } } }  // multi-week goals
 //   placement: 0 | level number the placement quiz opened (levels below it are open too)
 //   review:   { day, queue: [itemId], index, results: [{ id, ok, from, to }], done, bonus, key, seconds } | null  // today's session
 //   settings: { labels, sound, metroVol, droneVol, tabVol, tabClickVol,
@@ -40,6 +42,7 @@ const blank = () => ({
   review: null,
   placement: 0,
   tempos: {},
+  goals: {},
   settings: {
     labels: 'notes', sound: true, metroVol: 0.7, droneVol: 0.5, tabVol: 0.8, tabClickVol: 0.6,
     metronome: { bpm: 80, sig: '4/4', subdiv: 1, accent: true }
@@ -155,10 +158,11 @@ export const dueItems = (prefix = '', day = today()) =>
 /* ---------- clean tempo: the highest bpm an exercise was played cleanly ---------- */
 export const getTempo = id => (data.tempos[id] ? JSON.parse(JSON.stringify(data.tempos[id])) : null);
 export const allTempos = () => JSON.parse(JSON.stringify(data.tempos));
-export function recordClean(id, bpm, title) {
+export function recordClean(id, bpm, title, unit) {
   bpm = Math.round(bpm);
   const t = data.tempos[id] || { best: 0, title, history: [] }, d = today();
   t.title = title || t.title;
+  if (unit) t.unit = unit;
   t.best = Math.max(t.best, bpm);
   const h = t.history.find(x => x.day === d);
   if (h) h.bpm = Math.max(h.bpm, bpm); else t.history.push({ day: d, bpm });
@@ -169,6 +173,12 @@ export function recordClean(id, bpm, title) {
 }
 // Where to start next time: a little below the best clean tempo.
 export const startBelow = best => Math.max(30, Math.round(best * 0.9));
+
+/* ---------- multi-week goals (e.g. barre chords) ---------- */
+export const getGoal = id => (data.goals[id] ? JSON.parse(JSON.stringify(data.goals[id])) : null);
+function goal(id) { return data.goals[id] || (data.goals[id] = { started: today(), days: [], checks: {} }); }
+export function practiseGoal(id) { const g = goal(id); if (!g.days.includes(today())) g.days.push(today()); touchStreak(); save(); return getGoal(id); }
+export function checkGoal(id, checkId, on = true) { const g = goal(id); if (on) g.checks[checkId] = today(); else delete g.checks[checkId]; save(); return getGoal(id); }
 
 /* ---------- placement quiz ---------- */
 export const getPlacement = () => data.placement || 0;
@@ -321,6 +331,10 @@ function merge(a, b) {
   out.days = [...new Set([...out.days, ...b.days])].sort();
   out.streak.best = Math.max(out.streak.best || 0, b.streak.best || 0);
   out.placement = Math.max(out.placement || 0, b.placement || 0);
+  for (const [id, g] of Object.entries(b.goals || {})) {
+    const m = out.goals[id];
+    out.goals[id] = m ? { started: m.started < g.started ? m.started : g.started, days: [...new Set([...m.days, ...g.days])].sort(), checks: { ...g.checks, ...m.checks } } : g;
+  }
   for (const [id, t] of Object.entries(b.tempos || {})) {
     const m = out.tempos[id];
     if (!m) { out.tempos[id] = t; continue; }

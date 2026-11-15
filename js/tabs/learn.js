@@ -10,6 +10,7 @@ import { go } from '../router.js';
 import { runReview, reviewCardHTML, startReview, planToday } from '../review-screen.js';
 import { esc } from '../ui.js';
 import { planCardHTML, wirePlanCard } from '../plan.js';
+import { findSkill, renderSkill, skillRowHTML } from '../skills.js';
 
 let el, cleanup = null;
 
@@ -41,6 +42,7 @@ function renderMap() {
       return `
       <li class="level open${levelDone(li) ? ' done' : ''}">
         <div class="level-head"><div class="num">${levelDone(li) ? '✓' : li + 1}</div><div><h3>${L.title}</h3><p>${L.blurb}</p></div></div>
+        ${skillRowHTML(li + 1)}
         <ol class="nodes">${nodes.map((n, i) => {
           const p = getLesson(n.id), nodeIsOpen = nodeOpen(li, i), cur = up && up.node === n;
           const state = p.completed ? 'done' : cur ? 'current' : nodeIsOpen ? 'open' : 'locked';
@@ -80,6 +82,19 @@ export default {
     cleanup = null;
     if (params.get('review')) {
       cleanup = runReview(el, { onExit: () => go('learn') });
+      window.scrollTo(0, 0);
+      return;
+    }
+    const skill = params.get('skill') && findSkill(params.get('skill'));
+    if (skill) {
+      el.innerHTML = `
+        <div class="lesson"><div class="card skill-card">
+          <div class="step-name">Hands &amp; rhythm · Level ${skill.level}</div>
+          <h2>${esc(skill.kind === 'chord' ? skill.title : skill.title)}</h2>
+          <div class="step-body" id="sk-body"></div>
+          <a class="button-link" href="#learn">← Back to the path</a>
+        </div></div>`;
+      cleanup = renderSkill(el.querySelector('#sk-body'), skill);
       window.scrollTo(0, 0);
       return;
     }

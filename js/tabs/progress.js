@@ -48,7 +48,7 @@ export default {
       </section>
       <section class="p-card"><h3>Drills</h3><div id="p-drills"></div></section>
       <section class="p-card"><h3>Play-along tabs</h3><div id="p-tabs"></div></section>
-      <section class="p-card"><h3>Clean tempo</h3><p class="muted sub">The fastest you've played each exercise cleanly. Next time it starts a little below this.</p><div id="p-tempos"></div></section>
+      <section class="p-card"><h3>Clean tempo and chord changes</h3><p class="muted sub">The fastest you've played each exercise cleanly (next time it starts a little below this), and your best one-minute chord changes.</p><div id="p-tempos"></div></section>
       <section class="p-card"><h3>Milestones</h3><div class="badges" id="p-badges"></div></section>
       <section class="p-card"><h3>Your data</h3>
         <p class="muted sub">Progress is saved in this browser only. Export it to keep a copy or move it to another device.</p>
@@ -238,8 +238,8 @@ export default {
     $('#p-tempos').innerHTML = tempos.length
       ? `<ul class="tempo-list">${tempos.map(([id, t]) => {
           const vals = t.history.map(h => h.bpm), first = vals[0], gain = vals.length > 1 ? vals.at(-1) - first : 0;
-          return `<li><span class="tl-name"><b>${esc(t.title || id)}</b><small>${t.history.length} day${t.history.length === 1 ? '' : 's'}${gain > 0 ? ` · up ${gain} bpm` : ''}</small></span>
-            ${spark(vals, { label: `Clean tempo for ${t.title}: ${vals.join(', ')} bpm` })}<span class="tl-best">${t.best}<small> bpm</small></span></li>`;
+          return `<li><span class="tl-name"><b>${esc(t.title || id)}</b><small>${t.history.length} day${t.history.length === 1 ? '' : 's'}${gain > 0 ? ` · up ${gain} ${t.unit === 'changes' ? 'changes' : 'bpm'}` : ''}</small></span>
+            ${spark(vals, { label: `${t.title}: ${vals.join(', ')} ${t.unit || 'bpm'}` })}<span class="tl-best">${t.best}<small> ${t.unit === 'changes' ? 'changes' : 'bpm'}</small></span></li>`;
         }).join('')}</ul>`
       : '<p class="empty">Tap <b>✓ Clean run</b> in a Play step or a play-along to start tracking your clean tempo.</p>';
   },

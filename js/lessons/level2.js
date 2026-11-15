@@ -30,7 +30,7 @@ export default {
     {
       id: 'l2-1',
       title: 'The major scale pattern',
-      review: [degreeItem(G, 'R')],
+      review: ['chordshape:c', degreeItem(G, 'R')],
       steps: {
         hear: { text: 'The G major scale, up one string. You know this sound: do re mi fa so la ti do.', sound: { seq: ps(G_ONE), bpm: 90 } },
         learn: {
@@ -49,7 +49,7 @@ export default {
             task('Tap the note that ends the pattern, G again.', P(6, 15), { dots: G.dots(G_ONE.slice(0, 7), 'note') })
           ]
         },
-        play: { text: 'Play G major up the low E string and back down, one note per click. Sing along if you like.', view: [0, 15], bpm: 60, follow: ps(upDown(G_ONE)) },
+        play: { skills: ['c'], text: 'Play G major up the low E string and back down, one note per click. Sing along if you like.', view: [0, 15], bpm: 60, follow: ps(upDown(G_ONE)) },
         check: {
           pass: 3, view: [0, 15],
           questions: [
@@ -64,7 +64,7 @@ export default {
     {
       id: 'l2-2',
       title: 'One-octave scale shapes',
-      review: [degreeItem(C, 'R')],
+      review: ['chordshape:g', degreeItem(C, 'R')],
       steps: {
         hear: { text: 'G major again, now in one small shape across three strings.', sound: { seq: ps(shape6(3)), bpm: 90 } },
         learn: {
@@ -83,7 +83,7 @@ export default {
             task('Start a C major shape: tap the C on the A string.', P(5, 3))
           ]
         },
-        play: { text: 'Play the G major shape up and down. Use one finger per fret: fingers 1 to 4 cover frets 2 to 5.', view: [0, 6], bpm: 60, follow: ps(upDown(shape6(3))) },
+        play: { skills: ['g', 'alt-picking'], text: 'Play the G major shape up and down. Use one finger per fret: fingers 1 to 4 cover frets 2 to 5.', view: [0, 6], bpm: 60, follow: ps(upDown(shape6(3))) },
         check: {
           pass: 3, view: [0, 6],
           questions: [
@@ -98,7 +98,7 @@ export default {
     {
       id: 'l2-3',
       title: 'Scale degrees 1 to 7',
-      review: ['R', '3', '5'].map(l => degreeItem(G, l)),
+      review: [...['R', '3', '5'].map(l => degreeItem(G, l)), 'rhythm:eighths'],
       steps: {
         hear: { text: 'A G drone, then the scale on top. Listen to how the root feels like home.', sound: { seq: ps(shape6(3)), bpm: 80, drone: 'G' } },
         learn: {
@@ -117,7 +117,7 @@ export default {
             task('Tap the 6th of G major.', G.spots('6', { from: 0, to: 6 }), { item: degreeItem(G, '6'), dots: root(G, 6, 3), explain: 'Yes! The 6th of G major is E.' })
           ]
         },
-        play: {
+        play: { skills: ['eighths'],
           text: 'Improvise: over the G drone, play the G major shape slowly in any order. Every few notes, stop on the R, 3 or 5 and let it ring.',
           view: [0, 6], bpm: 70, drone: 'G', seconds: 45, dots: G.dots(shape6(3))
         },
@@ -154,7 +154,7 @@ export default {
             task('Tap the root of D major on the A string.', P(5, 5))
           ]
         },
-        play: { text: 'Play A major up and down from fret 5. Then try D major from the A string at fret 5.', view: [2, 9], bpm: 60, follow: ps(upDown(shape6(5))) },
+        play: { skills: ['changes-c-g'], text: 'Play A major up and down from fret 5. Then try D major from the A string at fret 5.', view: [2, 9], bpm: 60, follow: ps(upDown(shape6(5))) },
         check: {
           pass: 3, view: [2, 9],
           questions: [
@@ -169,7 +169,7 @@ export default {
     {
       id: 'l2-6',
       title: 'The relative minor',
-      review: ['R', 'b3', '5'].map(l => degreeItem(Em, l)),
+      review: [...['R', 'b3', '5'].map(l => degreeItem(Em, l)), 'rhythm:first-strum'],
       steps: {
         hear: { text: 'G major, then the same notes starting from E. Hear how it turns darker.', sound: { seq: [...ps(shape6(3)), null, ...ps(EM_OPEN)], bpm: 110 } },
         learn: {
@@ -188,7 +188,7 @@ export default {
             task('Tap the root of C major\'s relative minor on the A string.', [P(5, 0), P(5, 12)], { dots: root(C, 5, 3) })
           ]
         },
-        play: {
+        play: { skills: ['first-strum'],
           text: 'Improvise: over an E drone, play the E minor notes in any order. Let the root and b3 ring.',
           view: [0, 5], bpm: 70, drone: 'E', seconds: 45, dots: Em.dots(EM_OPEN)
         },
