@@ -1,13 +1,13 @@
 // The path: six levels in the order from docs/research-findings.md section 5.
 // A level with `level` data has lessons; the rest show as "coming soon".
 import level1 from './level1.js';
+import level2 from './level2.js';
 import { fretboardLink } from '../router.js';
 import { NOTES, TUNINGS, midiAt, pcOf } from '../theory.js';
 
 export const LEVELS = [
   { title: 'The neck and note names', blurb: 'String names, the musical alphabet, natural notes on the E and A strings, octave shapes.', level: level1 },
-  { title: 'The major scale and keys', blurb: 'Build the major scale from whole and half steps, then move it to any key.',
-    peek: { label: 'G major on the neck', link: fretboardLink({ key: 'G', scale: 'major', labels: 'intervals' }) } },
+  { title: 'The major scale and keys', blurb: 'Build the major scale from whole and half steps, then move it to any key.', level: level2 },
   { title: 'Intervals', blurb: 'Hear and find distances from the root: 3rds, 5ths, octaves and more.',
     peek: { label: 'Intervals in C', link: fretboardLink({ key: 'C', scale: 'major', labels: 'intervals' }) } },
   { title: 'Chords and CAGED', blurb: 'Triads from 1-3-5, the chords in a key, and the five CAGED shapes.',
