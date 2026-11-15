@@ -20,6 +20,10 @@ Then open http://localhost:8000.
 
 ```
 index.html            page shell: header, tab bar, empty #views, loads js/app.js
+manifest.json         installable web app: name, icons, dark theme color, standalone
+sw.js                 service worker: network first, saved copy when offline (cache fretboard-lab-v1)
+icons/                app icon (icon.svg) and its PNG sizes (180 Apple, 192, 512 incl. maskable)
+js/pwa.js             registers sw.js, asks for persistent storage, iPhone "Add to Home Screen" hint
 css/styles.css        all styles, including the --deg-* degree colors
 js/app.js             builds the tab bar, routes #hash -> tab, sound on/off
 js/router.js          hash helpers: parseHash, go, replaceParams, fretboardLink
@@ -151,3 +155,21 @@ items, then up to 5 new items from finished lessons, capped at 20, with
 confusable interval pairs next to each other. The session is saved after every
 answer (`review` in storage), so Pause or a reload resumes it. Nothing due =
 a bonus round of weak spots. On phones questions show a 6-fret window.
+
+## Keeping progress safe
+
+Progress lives in localStorage, and iPhone Safari deletes a site's storage after
+7 days of Safari use without a visit, unless the app was added to the Home Screen.
+So the app is installable (manifest.json, sw.js) and opens offline, calls
+`navigator.storage.persist()` on load, shows iPhone Safari users a dismissible
+"Add to Home Screen" hint at most once a week (`fretboard-lab:install-hint`
+holds when it was last shown), and the Progress tab shows "Last export" with a
+gentle reminder after 2 weeks. The service worker caches whatever the page
+loads, so new files need no list; it is network first, so changes show up on
+the next load. The service worker only runs on https or localhost, not on a
+plain-http LAN address.
+
+Colors: every colored dot carries a label (interval, note name, or its own
+label), so color is never the only clue; the "Dots" label mode on the Fretboard
+tab switches to neutral dots with the root outlined. Text colors that must pass
+contrast use `--bad-text` and `--grey-text`; `--bad` and `--deg-other` are for fills.

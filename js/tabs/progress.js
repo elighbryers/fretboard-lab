@@ -2,7 +2,8 @@
 // All numbers come from js/stats.js; charts are plain SVG from js/charts.js.
 import { NOTES, midiAt, pcOf, TUNINGS } from '../theory.js';
 import { Fretboard } from '../fretboard.js';
-import { exportData, readExport, importData, resetAll, seeMilestones, today } from '../storage.js';
+import { exportData, readExport, importData, resetAll, seeMilestones, today, getSettings, setSetting, getDays } from '../storage.js';
+import { storagePersisted, isStandalone } from '../pwa.js';
 import { glance, dailyMinutes, weeklyAccuracy, calendar, weakest, noteStats, confusedPairs, drillStats, tabStats,
   checkMilestones, fmtMin, fmtDay } from '../stats.js';
 import { bars, line, calendarGrid } from '../charts.js';
@@ -32,6 +33,7 @@ export default {
     el.innerHTML = `
       <h2>Progress</h2>
       <p class="p-note" id="p-note" hidden></p>
+      <div class="backup-nudge" id="p-backup" hidden></div>
       <div class="tiles" id="p-tiles"></div>
       ${section('p-minutes', 'Practice minutes, last 30 days')}
       ${section('p-acc', 'Quiz and drill accuracy, by week', 'Share of drill rounds and lesson questions answered right.')}
@@ -49,6 +51,7 @@ export default {
       <section class="p-card"><h3>Milestones</h3><div class="badges" id="p-badges"></div></section>
       <section class="p-card"><h3>Your data</h3>
         <p class="muted sub">Progress is saved in this browser only. Export it to keep a copy or move it to another device.</p>
+        <p class="export-status" id="p-export-status"></p>
         <div class="row">
           <button id="p-export">Export progress</button>
           <label class="button-like"><input type="file" id="p-import" accept=".json,application/json" hidden>Import progress</label>
@@ -72,7 +75,9 @@ export default {
     el.addEventListener('click', tip);
     el.addEventListener('mouseover', tip);
 
-    $('#p-export').onclick = () => {
+    $('#p-export').onclick = () => this.exportNow();
+    this.exportNow = () => {
+      setSetting('lastExport', Date.now());  // first, so the file carries its own export date
       const blob = new Blob([JSON.stringify(exportData(), null, 1)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -80,6 +85,7 @@ export default {
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
       $('#p-data-msg').textContent = 'Saved a copy to your downloads.';
+      this.backupStatus();
     };
     $('#p-import').onchange = async e => {
       const file = e.target.files[0];
@@ -117,6 +123,25 @@ export default {
       </div>`).join('');
     $('#p-import-box').hidden = true;
     $('#p-data-msg').textContent = '';
+    this.backupStatus();
+  },
+
+  // "Last export: <date>", whether the browser keeps storage, and a gentle nudge
+  // after 2 weeks without an export (counted from the first practice day if never).
+  backupStatus() {
+    const last = getSettings().lastExport, days = getDays(), now = Date.now(), TWO_WEEKS = 14 * 86400000;
+    const since = last || (days.length ? new Date(days[0] + 'T12:00').getTime() : null);
+    const kept = storagePersisted() || isStandalone();
+    $('#p-export-status').innerHTML = `Last export: <b>${last ? fmtDay(today(last), { month: 'short', day: 'numeric', year: 'numeric' }) : 'never'}</b>` +
+      (kept ? ' · <span class="ok">This browser keeps your progress.</span>' : '');
+    const overdue = since != null && now - since > TWO_WEEKS;
+    const box = $('#p-backup');
+    box.hidden = !overdue;
+    if (!overdue) return;
+    const weeks = Math.floor((now - since) / (7 * 86400000));
+    box.innerHTML = `<span>${last ? `It's been ${weeks} weeks since your last export.` : "You haven't exported your progress yet."} A copy keeps it safe if this browser clears its data.</span>
+      <button id="p-backup-now">Export now</button>`;
+    box.querySelector('#p-backup-now').onclick = () => this.exportNow();
   },
 
   tiles() {

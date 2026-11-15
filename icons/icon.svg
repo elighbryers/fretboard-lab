@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Fretboard Lab app icon: full-bleed so it also works as a maskable icon
+       (the strings and dots sit inside the central 80% safe zone). -->
+  <rect width="512" height="512" fill="#0F0F14"/>
+  <g stroke="#89CFF0" stroke-width="14" stroke-linecap="round">
+    <path d="M120 186H392M120 256H392M120 326H392"/>
+  </g>
+  <path d="M184 150V362M328 150V362" stroke="#4B4B58" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="256" cy="256" r="58" fill="#F4C2C2"/>
+  <circle cx="184" cy="186" r="30" fill="#89CFF0"/>
+  <circle cx="328" cy="326" r="30" fill="#9B7FD1"/>
+</svg>

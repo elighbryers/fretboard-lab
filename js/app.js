@@ -5,6 +5,7 @@ import { checkMilestones } from './stats.js';
 import { parseHash } from './router.js';
 import { applyVolumes } from './ui.js';
 import { mountTimerBar } from './practice/timer.js';
+import { setupPWA } from './pwa.js';
 import learn from './tabs/learn.js';
 import fretboard from './tabs/fretboard.js';
 import practice from './tabs/practice.js';
@@ -68,6 +69,7 @@ nav.querySelector('[data-tab="progress"]').appendChild(dot);
 const paintDot = () => { dot.hidden = !checkMilestones().some(b => b.fresh); };
 onSave(paintDot);
 
+setupPWA($('install-hint'));
 unlock();
 mountTimerBar($('timer-bar'));
 window.addEventListener('hashchange', route);

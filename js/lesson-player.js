@@ -24,7 +24,8 @@ const describe = (s, f) => `string ${tuning.strings[s].num}, ${f === 0 ? 'open' 
 const noteItem = ({ s, f }) => `note:${NOTES[pcOf(midiAt(s, f))]}@s${tuning.strings[s].num}`;
 const list = a => (Array.isArray(a) ? a : [a]);
 // Dots in lesson data ({ string, fret, label, role, quiet }) -> board dots.
-const toDots = dots => (dots || []).map(d => ({ ...toSF(d), label: d.label, role: d.role || 'plain', quiet: d.quiet }));
+// No role = the neutral 'other' color; the fretboard labels every dot (note name if no label is given).
+const toDots = dots => (dots || []).map(d => ({ ...toSF(d), label: d.label, role: d.role, quiet: d.quiet }));
 // A play-along step's backing chords: absolute ('G:major') or numerals in a key.
 const backingChords = (b, key) => b.progression ? b.progression.map(r => chordOf(key, r)) : b.chords.map(parseChord);
 

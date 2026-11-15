@@ -8,7 +8,7 @@
 //   fb.playSequence([{s,f}, [{s,f},{s,f}], null], { bpm: 120 });  // light + sound in time
 //
 // Strings are indexed high to low like tab: s = 0 is the top line (high e).
-import { TUNINGS, NOTES, INTERVALS, pcOf, midiAt } from './theory.js';
+import { TUNINGS, NOTES, INTERVALS, pcOf, midiAt, preferredName } from './theory.js';
 import { pluck, pluckAt, context, now } from './audio.js';
 
 /* ---------- the one color code ----------
@@ -102,7 +102,8 @@ export class Fretboard {
     return this;
   }
 
-  // Explicit dots: [{ s, f, label?, role?, quiet? }]. quiet = small, unlabeled background note.
+  // Explicit dots: [{ s, f, label?, role?, quiet?, ring? }]. quiet = small, unlabeled background note;
+  // role 'bare' = neutral, unlabeled dot (used when labels are hidden on purpose); ring = outlined.
   // Pass rootPc to get degree colors and interval labels.
   setDots(dots, rootPc = null) { this.dots = dots.slice(); this.root = rootPc; this.render(); return this; }
   clear() { this.dots = []; this.marks = []; this.lit = []; this.root = null; this.render(); return this; }
@@ -207,8 +208,13 @@ export class Fretboard {
     // dots, then lit (sequence) dots, then answer marks
     const dot = (d, extra) => {
       const pc = pcOf(midiAt(d.s, d.f, tuning)), rel = this.root == null ? null : pcOf(pc - this.root);
-      const role = d.role || roleOf(rel), lbl = d.quiet && !extra ? '' : this._label(d, pc);
-      const cls = (this._focused(d.s, d.f) ? '' : ' dim') + (d.quiet && !extra ? ' quiet' : '') + extra;
+      const role = d.role || roleOf(rel);
+      // Every colored dot is labelled (color is never the only clue): its own label, the
+      // board's label mode, else its interval from the root or its note name. Small
+      // "quiet" background dots and the neutral "bare" dots carry no color meaning.
+      const lbl = (d.quiet && !extra) || role === 'bare' ? ''
+        : this._label(d, pc) || (rel == null ? preferredName(pc) : INTERVALS[rel]);
+      const cls = (this._focused(d.s, d.f) ? '' : ' dim') + (d.quiet && !extra ? ' quiet' : '') + (d.ring ? ' ring' : '') + extra;
       return `<g class="fb-dot role-${role}${cls}"><circle cx="${cx(d.f)}" cy="${sy(d.s)}" r="${d.quiet && !extra ? 8 : 15}"/>` +
         (lbl ? `<text x="${cx(d.f)}" y="${sy(d.s) + 5}" text-anchor="middle" font-size="13">${lbl}</text>` : '') + '</g>';
     };

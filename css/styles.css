@@ -11,10 +11,15 @@
   --text: #EDEDF2; --muted: #A9A9B8; --on-soft: #15151B; /* dark text on the soft colors */
   --accent: var(--blue); --accent-text: var(--pink); --link: var(--blue); --focus: var(--lavender);
   --good: #57C98E; --bad: #D91E25; --on-bad: #FFFFFF; --shadow: 0 8px 30px #000a;
+  /* text versions that pass WCAG contrast on the dark background (--bad and --deg-other are for fills only) */
+  --bad-text: #FF6B6B;      /* 6.9:1 on --bg */
+  --grey-text: #80808E;     /* 4.9:1 on --bg */
   /* fretboard: plain, no wood texture */
   --board: #14141A; --fret: #4B4B58; --string: #9393A3; --inlay: #2C2C37; --nut: #D6D6E0; --dim: #0F0F14;
-  /* the one degree color code (roles are assigned in js/theory.js parseFormula + js/fretboard.js) */
-  --deg-root: var(--pink); --deg-third: var(--blue); --deg-fifth: var(--lavender);
+  /* the one degree color code (roles are assigned in js/theory.js parseFormula + js/fretboard.js).
+     The 5th is a deeper violet than --lavender so it stays distinct from the 3rd's blue for
+     red-green color blindness; every colored dot also carries a label, so color is never the only clue. */
+  --deg-root: var(--pink); --deg-third: var(--blue); --deg-fifth: #9B7FD1;
   --deg-other: #6E6E7C; --deg-text: var(--on-soft); --deg-other-text: #FFFFFF;
   --tabbar-h: 64px;
 }
@@ -146,11 +151,12 @@ body.no-scroll { overflow: hidden }
 .role-root circle, .sw.role-root { fill: var(--deg-root); background: var(--deg-root) }
 .role-third circle, .sw.role-third { fill: var(--deg-third); background: var(--deg-third) }
 .role-other text { fill: var(--deg-other-text) }
-.role-plain text { fill: var(--on-soft) }
 .fb-dot.quiet { opacity: .55 }
 .role-fifth circle, .sw.role-fifth { fill: var(--deg-fifth); background: var(--deg-fifth) }
 .role-other circle, .sw.role-other { fill: var(--deg-other); background: var(--deg-other) }
-.role-plain circle { fill: none; stroke: none }
+/* "Dots" label mode: one neutral color and no label (color means nothing there); the root gets a ring */
+.role-bare circle { fill: var(--muted) }
+.fb-dot.ring circle { stroke: var(--text); stroke-width: 3 }
 .fb-dot.dim { opacity: .25 }
 .fb-dot.lit circle { stroke: var(--text); stroke-width: 4 }
 .fb-dot.lit { filter: drop-shadow(0 0 6px var(--blue)) }
@@ -206,7 +212,10 @@ svg.tappable .hit { cursor: pointer }
 .node small { color: var(--muted) }
 .node.done .dot { background: var(--good); border-color: var(--good); color: var(--on-soft) }
 .node.current .dot { background: var(--accent); border-color: var(--accent); color: var(--on-soft); box-shadow: 0 0 0 4px var(--pink) }
-.node.locked { opacity: .55 }
+/* locked: dim the icon, but keep the words readable (fading the whole row failed contrast) */
+.node.locked .dot { opacity: .55 }
+.node.locked b { color: var(--muted) }
+.node.locked small { color: var(--grey-text) }
 .node.challenge .dot { border-color: var(--pink) }
 
 /* ---------- learn: lesson player ---------- */
@@ -241,7 +250,7 @@ button:disabled { opacity: .45; cursor: default }
 .choices button.bad { background: var(--bad); border-color: var(--bad); color: var(--on-bad); opacity: 1 }
 .result { border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid var(--line) }
 .result b { font-size: 22px }
-.result.good b { color: var(--good) } .result.bad b { color: var(--bad) }
+.result.good b { color: var(--good) } .result.bad b { color: var(--bad-text) }
 .result p { margin: 4px 0 0 }
 
 /* ---------- progress ---------- */
@@ -359,7 +368,7 @@ label.vol input { flex: 1 1 auto; width: auto }
 .big-emoji { font-size: 44px }
 .score-big { font-size: 56px; font-weight: 800; color: var(--blue) }
 .score-big span { font-size: 28px; color: var(--muted) }
-.msg.good { color: var(--good) } .msg.bad { color: #FF6B70 } .msg.muted { color: var(--muted) }
+.msg.good { color: var(--good) } .msg.bad { color: var(--bad-text) } .msg.muted { color: var(--muted) }
 .timer-bar { position: sticky; top: 0; z-index: 20; margin: 8px 0 0 }
 .timer-bar a { display: block; padding: 10px 14px; border-radius: 10px; background: var(--lavender); color: var(--on-soft); text-decoration: none }
 
@@ -488,3 +497,19 @@ label.key-pick { flex-direction: row; align-items: center; gap: 8px; font-size: 
 .step-body .target, .prompt .target { color: var(--pink); font-size: 1.2em }
 .placement-link { display: inline-block; margin-top: 10px }
 .q-body { margin-top: 4px }
+
+/* ---------- installable app: iPhone Home Screen hint; backup reminder ---------- */
+#install-hint { max-width: 1100px; margin: 10px auto 0; padding: 0 16px }
+.install-hint { display: flex; align-items: flex-start; gap: 10px; background: var(--blue-tint); border: 1px solid var(--blue); border-radius: 12px; padding: 10px 6px 10px 14px }
+.install-hint p { margin: 0; flex: 1; font-size: 14px; line-height: 1.45 }
+.install-hint p > span { display: block; color: var(--muted) }
+.install-hint .icon { min-width: 44px; background: none; border: 0; color: var(--muted) }
+.share-ico { display: inline-flex; vertical-align: -4px; color: var(--blue) }
+.share-ico svg { width: 18px; height: 18px }
+.backup-nudge { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; font-size: 14px; color: var(--muted) }
+.backup-nudge span { flex: 1 1 220px }
+.export-status { font-size: 14px; color: var(--muted); margin: 0 0 10px }
+.export-status b { color: var(--text) }
+.export-status .ok { color: var(--good) }
+/* the standalone (Home Screen) app draws under the status bar */
+header { padding-top: calc(20px + env(safe-area-inset-top)) }

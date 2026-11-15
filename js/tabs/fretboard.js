@@ -49,10 +49,13 @@ function draw() {
   tuning.strings.forEach((str, s) => {
     for (let f = 0; f <= FRETS; f++) {
       const pc = pcOf(str.midi + f), inScale = scale.get(pcOf(pc - state.key)), inChord = chord?.map.get(pc);
+      // "Dots" mode hides the names to quiz yourself, so the dots go neutral too (color
+      // would otherwise be the only clue); the root keeps an outline.
+      const bare = x => ({ s, f, role: 'bare', ring: x.role === 'root' });
       if (chord) {
-        if (inChord) dots.push({ s, f, role: inChord.role, label: label(inChord) });
+        if (inChord) dots.push(state.labels === 'none' ? bare(inChord) : { s, f, role: inChord.role, label: label(inChord) });
         else if (inScale) dots.push({ s, f, role: 'other', quiet: true });
-      } else if (inScale) dots.push({ s, f, role: inScale.role, label: label(inScale) });
+      } else if (inScale) dots.push(state.labels === 'none' ? bare(inScale) : { s, f, role: inScale.role, label: label(inScale) });
     }
   });
   fb.set({
