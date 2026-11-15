@@ -75,3 +75,4 @@ mountTimerBar($('timer-bar'));
 window.addEventListener('hashchange', route);
 route();
 paintDot();
+window.__appStarted = true;

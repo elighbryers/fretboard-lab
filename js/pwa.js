@@ -17,8 +17,17 @@ export function isIOSSafari(ua = navigator.userAgent) {
   return ios && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA\//.test(ua);
 }
 
+// Local development addresses: no service worker and no saved copy, so edits always show.
+export const isLocalDev = (host = location.hostname) =>
+  /^(localhost|127\.|\[::1\]|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host) || host.endsWith('.local');
+
 function registerWorker() {
   if (!('serviceWorker' in navigator) || !window.isSecureContext) return;
+  if (isLocalDev()) {
+    navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(() => {});
+    window.caches?.keys().then(ks => ks.filter(k => k.startsWith('fretboard-lab-')).forEach(k => caches.delete(k))).catch(() => {});
+    return;
+  }
   navigator.serviceWorker.register('sw.js').then(() => navigator.serviceWorker.ready).then(reg => {
     const urls = [location.href.split('#')[0], ...performance.getEntriesByType('resource').map(r => r.name)]
       .filter(u => u.startsWith(location.origin));

@@ -11,10 +11,19 @@ Product direction lives in [docs/research-findings.md](docs/research-findings.md
 ES modules don't load from `file://`, so serve the folder:
 
 ```
-python3 -m http.server 8000
+python3 tools/serve.py 8000
 ```
 
-Then open http://localhost:8000.
+Then open http://localhost:8000 (or http://<your Wi-Fi address>:8000 on a phone).
+`tools/serve.py` is `python3 -m http.server` plus `Cache-Control: no-store`, so the
+browser never keeps an old or half-saved file. On local addresses the service
+worker removes itself and its saved copy. If the app ever fails to start, the
+page shows "Reload fresh", which re-downloads every file.
+
+**Keep the project out of an iCloud-optimised folder.** Desktop and Documents
+synced with iCloud ("Optimize Mac Storage") can hand programs a partly
+downloaded file when the disk is nearly full, which breaks a module and leaves
+the app blank.
 
 ## How the files fit together
 
@@ -55,6 +64,7 @@ js/review-screen.js   the Daily review: the card on Learn, one question at a tim
 js/stats.js           the Progress numbers, worked out from saved data (and badge rules)
 js/charts.js          plain-SVG bar, line and calendar charts
 js/tabs/ear.js        Ear Training: coming soon
+js/pwa.js, sw.js      installable app, offline copy, persistent storage, iPhone hint
 ```
 
 The dependencies only go downwards. Tabs use the engines (`fretboard`, `audio`,
@@ -173,3 +183,4 @@ Colors: every colored dot carries a label (interval, note name, or its own
 label), so color is never the only clue; the "Dots" label mode on the Fretboard
 tab switches to neutral dots with the root outlined. Text colors that must pass
 contrast use `--bad-text` and `--grey-text`; `--bad` and `--deg-other` are for fills.
+
