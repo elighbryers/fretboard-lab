@@ -4,6 +4,7 @@ import level1 from './level1.js';
 import level2 from './level2.js';
 import level3 from './level3.js';
 import level4 from './level4.js';
+import level5 from './level5.js';
 import { fretboardLink } from '../router.js';
 import { NOTES, TUNINGS, midiAt, pcOf } from '../theory.js';
 
@@ -12,7 +13,7 @@ export const LEVELS = [
   { title: 'The major scale and keys', blurb: 'Build the major scale from whole and half steps, then move it to any key.', level: level2 },
   { title: 'Intervals', blurb: 'Hear and find distances from the root: 3rds, 5ths, octaves and more.', level: level3 },
   { title: 'Chords and CAGED', blurb: 'Triads from 1-3-5, the chords in a key, and the five CAGED shapes.', level: level4 },
-  { title: 'Progressions', blurb: 'Roman numerals, I–IV–V, the pop progression, ii–V–I, and hearing them.' },
+  { title: 'Progressions', blurb: 'Roman numerals, I–IV–V, the pop progression, ii–V–I, and hearing them.', level: level5 },
   { title: 'Improvising', blurb: 'Pentatonic positions, landing on chord tones, phrasing and the blues.',
     peek: { label: 'A minor pentatonic', link: fretboardLink({ key: 'A', scale: 'minor-pentatonic' }) } }
 ];
