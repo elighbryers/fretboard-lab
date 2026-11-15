@@ -82,3 +82,12 @@ export const degreeItem = (k, label) => `degree:${k.key}:${k.id}:${label}`;
 export const toneItem = (k, label) => `tone:${k.key}:${k.id}:${label}`;
 // A sequence through positions, as a sound spec.
 export const seqOf = (positions, bpm = 90, extra = {}) => ({ seq: positions.map(p => (Array.isArray(p) ? p.map(q => P(q.string, q.fret)) : p && P(p.string, p.fret))), bpm, ...extra });
+
+// Every position sounding exactly this MIDI note (same pitch, not just the same name).
+export function exact(midi, { strings = ALL, from = 0, to = 12 } = {}) {
+  const out = [];
+  strings.forEach(s => { const f = midi - midiOf(s, 0); if (f >= from && f <= to) out.push(P(s, f)); });
+  return out;
+}
+// Positions `semis` above a root position, e.g. above(P(6, 3), 4) = the major 3rds above G.
+export const above = (root, semis, opts) => exact(midiOf(root.string, root.fret) + semis, opts);
