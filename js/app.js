@@ -1,7 +1,10 @@
 // App shell: builds the tab bar, routes #hash -> tab, wires global settings.
 import { unlock, setMuted, supported as audioSupported } from './audio.js';
-import { getSettings, setSetting } from './storage.js';
+import { getSettings, setSetting, onSave } from './storage.js';
+import { checkMilestones } from './stats.js';
 import { parseHash } from './router.js';
+import { applyVolumes } from './ui.js';
+import { mountTimerBar } from './practice/timer.js';
 import learn from './tabs/learn.js';
 import fretboard from './tabs/fretboard.js';
 import practice from './tabs/practice.js';
@@ -53,9 +56,20 @@ function paintSound() {
 }
 soundBtn.onclick = () => { setSetting('sound', !getSettings().sound); setMuted(!getSettings().sound); paintSound(); };
 setMuted(!getSettings().sound);
+applyVolumes();
 paintSound();
 if (!audioSupported) soundBtn.textContent = 'No audio in this browser';
 
+/* ---------- a small dot on Progress when a badge is newly earned ---------- */
+const dot = document.createElement('i');
+dot.className = 'dot';
+dot.title = 'New badge';
+nav.querySelector('[data-tab="progress"]').appendChild(dot);
+const paintDot = () => { dot.hidden = !checkMilestones().some(b => b.fresh); };
+onSave(paintDot);
+
 unlock();
+mountTimerBar($('timer-bar'));
 window.addEventListener('hashchange', route);
 route();
+paintDot();

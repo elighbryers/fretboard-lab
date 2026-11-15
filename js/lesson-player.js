@@ -1,14 +1,20 @@
 // Plays one lesson from data (see js/lessons/level1.js for the shape): six steps,
-// one card at a time, with Back/Next and a progress bar.
-import { TUNINGS, NOTES, midiAt, pcOf } from './theory.js';
+// one card at a time, with Back/Next and a progress bar. Challenges use `flow`
+// (an ordered list of steps) and may add a timed step.
+import { TUNINGS, NOTES, midiAt, pcOf, preferredName, parseNote } from './theory.js';
 import { Fretboard } from './fretboard.js';
-import { pluckAt, context, now, metronome } from './audio.js';
+import { context, metronome, droneStart, droneStop, backing } from './audio.js';
+import { volumeHTML, esc, clock } from './ui.js';
 import { recordAnswer, completeLesson, unlockLesson, addLog, getLesson, setLessonBpm } from './storage.js';
+import { fretboardLink } from './router.js';
+import { playSound, parseChord } from './sound.js';
+import { chordOf } from './progressions.js';
 
 const STEPS = [
   ['hear', 'Hear it'], ['learn', 'Learn it'], ['see', 'See it'],
   ['try', 'Try it'], ['play', 'Play it'], ['check', 'Check it']
 ];
+const NAMES = Object.fromEntries(STEPS);
 const tuning = TUNINGS.standard;
 const PLAY_BPM = { min: 40, max: 160, default: 60 }; // Play it tempo range for every lesson
 
@@ -16,18 +22,68 @@ const PLAY_BPM = { min: 40, max: 160, default: 60 }; // Play it tempo range for 
 const toSF = ({ string, fret }) => ({ s: tuning.strings.findIndex(x => x.num === string), f: fret });
 const describe = (s, f) => `string ${tuning.strings[s].num}, ${f === 0 ? 'open' : 'fret ' + f}`;
 const noteItem = ({ s, f }) => `note:${NOTES[pcOf(midiAt(s, f))]}@s${tuning.strings[s].num}`;
+const list = a => (Array.isArray(a) ? a : [a]);
+// Dots in lesson data ({ string, fret, label, role, quiet }) -> board dots.
+const toDots = dots => (dots || []).map(d => ({ ...toSF(d), label: d.label, role: d.role || 'plain', quiet: d.quiet }));
+// A play-along step's backing chords: absolute ('G:major') or numerals in a key.
+const backingChords = (b, key) => b.progression ? b.progression.map(r => chordOf(key, r)) : b.chords.map(parseChord);
+
+// One question (a Check question, a placement question): renders into host and
+// calls onAnswer(ok, item, feedback) once. Returns a cleanup function.
+export function renderQuestion(host, x, { view = [0, 12], onAnswer }) {
+  let stopSound = () => {}, done = false;
+  const sound = x.sound ? `<button class="primary" data-play>▶ Play${x.type === 'choice' ? '' : ' again'}</button>` : '';
+  host.innerHTML = `${sound ? `<div class="row">${sound}</div>` : ''}<div class="q-body"></div>`;
+  const play = () => { stopSound(); stopSound = playSound(x.sound); };
+  host.querySelector('[data-play]')?.addEventListener('click', play);
+  const body = host.querySelector('.q-body');
+  const shownAt = performance.now();
+  const finish = (ok, item, feedback) => {
+    if (done) return;
+    done = true;
+    if (item) recordAnswer(item, ok, performance.now() - shownAt);
+    onAnswer(ok, item, feedback);
+  };
+  if (x.type === 'choice') {
+    body.innerHTML = `<div class="choices">${x.options.map(o => `<button data-o="${esc(o)}">${esc(o)}</button>`).join('')}</div>`;
+    body.querySelectorAll('button').forEach(b => b.onclick = () => {
+      if (done) return;
+      body.querySelectorAll('button').forEach(o => {
+        o.disabled = true;
+        if (o.dataset.o === x.answer) o.classList.add('good');
+        else if (o === b) o.classList.add('bad');
+      });
+      finish(b.dataset.o === x.answer, x.item, x.explain || `Not quite. The answer is ${x.answer}.`);
+    });
+  } else {
+    const answers = list(x.answer).map(toSF);
+    const fb = new Fretboard(body, {
+      view: x.view || view, labels: 'none', mode: 'tap',
+      onTap: ({ s, f }) => {
+        if (done) return;
+        const hit = answers.find(a => a.s === s && a.f === f), ok = !!hit;
+        fb.mark(s, f, ok, ok && x.label ? x.label : undefined);
+        if (!ok) answers.slice(0, 3).forEach(a => fb.mark(a.s, a.f, true, x.label, true));
+        finish(ok, x.item || noteItem(hit || answers[0]), x.explain || `Not quite. You tapped ${describe(s, f)}; the answer is shown in green.`);
+      }
+    });
+    if (x.dots) fb.setDots(toDots(x.dots));
+  }
+  if (x.sound) play();
+  return () => stopSound();
+}
 
 // Returns a cleanup function (stops sound, metronome and timers).
 export function runLesson(el, lesson, { next, onExit, onContinue }) {
-  const steps = STEPS.filter(([k]) => lesson.steps[k]);
+  const flow = lesson.flow || STEPS.filter(([k]) => lesson.steps[k]).map(([type]) => ({ type, ...lesson.steps[type] }));
   const startedAt = Date.now();
-  let i = 0, ready = false, stepCleanup = null;
+  let i = 0, ready = false, stepCleanup = null, stepNav = null;
 
   el.innerHTML = `
     <div class="lesson">
       <div class="lesson-top">
         <button class="icon" id="ls-exit" aria-label="Leave lesson">✕</button>
-        <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="${steps.length}"><i></i></div>
+        <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="${flow.length}"><i></i></div>
         <span id="ls-count"></span>
       </div>
       <div class="card" id="ls-card"></div>
@@ -44,203 +100,338 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
   function show(n) {
     stepCleanup?.();
     stepCleanup = null;
+    stepNav = null;
     i = n;
-    const [key, name] = steps[i];
-    $('.bar i').style.width = `${(100 * (i + 1)) / steps.length}%`;
+    const step = flow[i], last = i === flow.length - 1;
+    $('.bar i').style.width = `${(100 * (i + 1)) / flow.length}%`;
     $('.bar').setAttribute('aria-valuenow', i + 1);
-    $('#ls-count').textContent = `${i + 1}/${steps.length}`;
+    $('#ls-count').textContent = `${i + 1}/${flow.length}`;
     $('#ls-back').disabled = i === 0;
-    $('#ls-next').hidden = key === 'check';
-    $('#ls-next').textContent = key === 'play' ? 'Done' : 'Next';
-    card.innerHTML = `<div class="step-name">${name}</div><h2>${lesson.title}</h2><div class="step-body"></div>`;
+    $('#ls-next').hidden = last && (step.type === 'check' || step.type === 'timed');
+    $('#ls-next').textContent = step.type === 'play' ? 'Done' : 'Next';
+    card.innerHTML = `<div class="step-name">${step.name || NAMES[step.type] || ''}</div><h2>${lesson.title}</h2><div class="step-body"></div>`;
     setReady(true);
-    stepCleanup = RENDER[key](card.querySelector('.step-body'), lesson.steps[key]) || null;
+    stepCleanup = RENDER[step.type](card.querySelector('.step-body'), step, last) || null;
   }
 
-  $('#ls-back').onclick = () => i > 0 && show(i - 1);
-  $('#ls-next').onclick = () => ready && i < steps.length - 1 && show(i + 1);
+  $('#ls-back').onclick = () => { if (stepNav?.back()) return; if (i > 0) show(i - 1); };
+  $('#ls-next').onclick = () => { if (!ready) return; if (stepNav?.next()) return; if (i < flow.length - 1) show(i + 1); };
   $('#ls-exit').onclick = onExit;
 
-  /* ---------- step renderers: (body, data) -> optional cleanup ---------- */
   const board = (host, view, opts = {}) => new Fretboard(host, { view, labels: 'none', ...opts });
 
-  function playSeq(sequence, bpm) {
-    if (!context()) return;
-    const t0 = now() + 0.05, beat = 60 / bpm;
-    sequence.map(toSF).forEach((p, k) => pluckAt(midiAt(p.s, p.f), t0 + k * beat));
+  // A passed check (or timed round) finishes the lesson when it's the last step.
+  function complete(score, total) {
+    completeLesson(lesson.id, score);
+    if (next) unlockLesson(next.id);
+    addLog({ minutes: Math.max(1, Math.round((Date.now() - startedAt) / 60000)), activity: `Lesson: ${lesson.title}`, detail: `Check ${score}/${total}`,
+      lesson: lesson.id, score, total });
+  }
+  function resultHTML(passed, score, total, need) {
+    return passed
+      ? `<div class="result good"><b>${lesson.challenge ? 'Challenge complete!' : 'Lesson complete!'}</b><p>You got ${score} of ${total}.</p></div>
+         ${next ? `<button class="primary big" id="st-cont">Continue: ${esc(next.title)}</button>` : ''}
+         <button id="st-path">Back to path</button>`
+      : `<div class="result bad"><b>${score} of ${total}</b><p>You need ${need} to pass. Have another go.</p></div>
+         <button class="primary big" id="st-retry">Try again</button>
+         <button id="st-path">Back to path</button>`;
+  }
+  function wireResult(body, retry) {
+    body.querySelector('#st-cont')?.addEventListener('click', onContinue);
+    body.querySelector('#st-retry')?.addEventListener('click', retry);
+    body.querySelector('#st-path').onclick = onExit;
   }
 
+  /* ---------- step renderers: (body, data, isLast) -> optional cleanup ---------- */
   const RENDER = {
     hear(body, d) {
+      const sound = d.sound || { seq: d.sequence, bpm: d.bpm };
       body.innerHTML = `<p>${d.text}</p><button class="primary big" id="st-play">▶ Play</button>`;
-      body.querySelector('#st-play').onclick = () => playSeq(d.sequence, d.bpm);
+      let stop = () => {};
+      body.querySelector('#st-play').onclick = () => { stop(); stop = playSound(sound); };
+      return () => stop();
     },
 
+    // 2-3 cards, one idea each, each with a small neck. Next/Back move between cards first.
     learn(body, d) {
-      body.innerHTML = `<p>${d.text}</p><ul class="points">${d.points.map(p => `<li>${p}</li>`).join('')}</ul><div class="st-board"></div>`;
-      if (d.board) board(body.querySelector('.st-board'), d.board.view).setDots(d.board.dots.map(x => ({ ...toSF(x), label: x.label })));
+      const cards = d.cards || [{ text: d.text, points: d.points, board: d.board }];
+      let k = 0;
+      const paint = () => {
+        const c = cards[k];
+        body.innerHTML = `<p>${c.text}</p>${c.points ? `<ul class="points">${c.points.map(p => `<li>${p}</li>`).join('')}</ul>` : ''}
+          <div class="st-board"></div>
+          ${cards.length > 1 ? `<div class="card-dots" aria-label="Card ${k + 1} of ${cards.length}">${cards.map((_, j) => `<i${j === k ? ' class="on"' : ''}></i>`).join('')}</div>` : ''}`;
+        if (c.board) {
+          const fb = board(body.querySelector('.st-board'), c.board.view, { focus: c.board.focus ? { strings: c.board.focus.strings?.map(n => toSF({ string: n, fret: 0 }).s), frets: c.board.focus.frets } : null });
+          fb.setDots(toDots(c.board.dots));
+        }
+      };
+      stepNav = {
+        next: () => { if (k < cards.length - 1) { k++; paint(); return true; } return false; },
+        back: () => { if (k > 0) { k--; paint(); return true; } return false; }
+      };
+      paint();
     },
 
     see(body, d) {
-      body.innerHTML = `<p>${d.text}</p><button class="primary" id="st-play">▶ Play</button><div class="st-board"></div>`;
+      const link = d.link ? `<a class="button-link" href="${fretboardLink(d.link)}">Open in Fretboard →</a>` : '';
+      body.innerHTML = `<p>${d.text}</p><div class="row"><button class="primary" id="st-play">▶ Play</button>${link}</div><div class="st-board"></div>`;
       const fb = board(body.querySelector('.st-board'), d.view, { mode: 'sequence' });
-      const pos = d.sequence.map(toSF);
-      fb.setDots(pos);
-      body.querySelector('#st-play').onclick = () => fb.playSequence(pos, { bpm: d.bpm });
-      return () => fb.stopSequence();
+      const steps = d.sequence.map(st => st && (Array.isArray(st) ? st.map(toSF) : toSF(st)));
+      const flat = d.sequence.flatMap(st => (st ? list(st) : []));
+      fb.setDots(toDots(d.dots || flat));
+      body.querySelector('#st-play').onclick = () => {
+        if (d.drone) droneStart(parseNote(d.drone));
+        fb.playSequence(steps, { bpm: d.bpm || 90 }).then(() => { if (d.drone) droneStop(); });
+      };
+      return () => { fb.stopSequence(); if (d.drone) droneStop(); };
     },
 
+    // Tap-the-neck tasks, retry until right. A task can accept several spots and
+    // name the review item it practices.
     try(body, d) {
-      let t = 0, timer;
-      body.innerHTML = `<p class="prompt" id="st-prompt"></p><div class="st-board"></div><div class="msg" id="st-msg"></div>`;
-      const msg = (text, color) => { const m = body.querySelector('#st-msg'); m.textContent = text; m.style.color = color || ''; };
+      let t = 0, timer, stop = () => {};
+      body.innerHTML = `<p class="prompt" id="st-prompt"></p><div class="row" id="st-tools"></div><div class="st-board"></div><div class="msg" id="st-msg"></div>`;
+      const msg = (text, kind = '') => { const m = body.querySelector('#st-msg'); m.textContent = text; m.className = 'msg ' + kind; };
+      let shownAt = performance.now(), fb;
       const ask = () => {
-        body.querySelector('#st-prompt').innerHTML = `${d.tasks[t].prompt} <span class="muted">${t + 1} of ${d.tasks.length}</span>`;
+        const task = d.tasks[t];
+        body.querySelector('#st-prompt').innerHTML = `${task.prompt} <span class="muted">${t + 1} of ${d.tasks.length}</span>`;
+        fb.o.view = task.view || d.view;
         fb.clearMarks();
+        fb.setDots(toDots(task.dots));
+        body.querySelector('#st-tools').innerHTML = task.sound ? '<button class="primary" id="st-hear">▶ Play</button>' : '';
+        if (task.sound) {
+          const play = () => { stop(); stop = playSound(task.sound); };
+          body.querySelector('#st-hear').onclick = play;
+          play();
+        }
+        shownAt = performance.now();
       };
-      let shownAt = performance.now();
-      const fb = board(body.querySelector('.st-board'), d.view, {
-        mode: 'tap', labels: 'none',
+      fb = board(body.querySelector('.st-board'), d.view, {
+        mode: 'tap',
         onTap: ({ s, f }) => {
           if (t >= d.tasks.length) return;
-          const want = toSF(d.tasks[t].answer), ok = s === want.s && f === want.f;
-          recordAnswer(noteItem(want), ok, performance.now() - shownAt);
+          const task = d.tasks[t], answers = list(task.answer).map(toSF), hit = answers.find(a => a.s === s && a.f === f);
+          recordAnswer(task.item || noteItem(hit || answers[0]), !!hit, performance.now() - shownAt);
           shownAt = performance.now();
-          fb.mark(s, f, ok);
-          if (!ok) { msg(`That's ${describe(s, f)}. Try again.`, 'var(--bad)'); return; }
-          msg(`Yes! ${describe(s, f)} is ${NOTES[pcOf(midiAt(s, f))]}.`, 'var(--good)');
+          fb.mark(s, f, !!hit, hit && task.label ? task.label : undefined);
+          if (!hit) { msg(task.hint ? `${task.hint} Try again.` : `That's ${describe(s, f)} (${preferredName(midiAt(s, f))}). Try again.`, 'bad'); return; }
+          msg(task.explain || `Yes! ${describe(s, f)} is ${preferredName(midiAt(s, f))}.`, 'good');
           t++;
-          if (t < d.tasks.length) timer = setTimeout(() => { ask(); msg(''); }, 800);
+          if (t < d.tasks.length) timer = setTimeout(() => { ask(); msg(''); }, 900);
           else { setReady(true); body.querySelector('#st-prompt').textContent = 'All done. Tap Next.'; }
         }
       });
       setReady(false);
       ask();
-      return () => clearTimeout(timer);
+      return () => { clearTimeout(timer); stop(); };
     },
 
+    // Play on the real guitar: metronome (lights follow the beat), optional drone,
+    // optional backing track (with a key choice) and an optional countdown for improvising.
     play(body, d) {
+      const id = d.bpmKey ? `${lesson.id}:${d.bpmKey}` : lesson.id;
       const clamp = v => Math.min(PLAY_BPM.max, Math.max(PLAY_BPM.min, Math.round(+v) || PLAY_BPM.default));
-      let bpm = clamp(getLesson(lesson.id).playBpm ?? d.bpm ?? PLAY_BPM.default);
+      let bpm = clamp((d.bpmKey ? null : getLesson(lesson.id).playBpm) ?? d.bpm ?? PLAY_BPM.default);
+      let key = d.backing?.key || d.drone || null;
+      const keys = d.backing?.keys || d.keys;
       body.innerHTML = `<p>${d.text}</p>
+        ${keys ? `<label class="key-pick">Key<select id="st-key">${keys.map(k => `<option${k === key ? ' selected' : ''}>${k}</option>`).join('')}</select></label>` : ''}
         <div class="tempo">
           <button class="icon" id="st-slower" aria-label="Slower">−</button>
           <input type="range" id="st-bpm" min="${PLAY_BPM.min}" max="${PLAY_BPM.max}" value="${bpm}" aria-label="Tempo in beats per minute">
           <button class="icon" id="st-faster" aria-label="Faster">+</button>
           <output id="st-bpm-out"><b>${bpm}</b> bpm</output>
         </div>
-        <div class="row"><button class="primary" id="st-metro">▶ Start metronome</button></div>
+        ${volumeHTML('metroVol', 'Click volume')}${d.drone ? volumeHTML('droneVol', 'Drone volume') : ''}
+        <div class="row"><button class="primary" id="st-metro">▶ ${d.backing ? 'Start backing track' : d.drone ? 'Start drone and click' : 'Start metronome'}</button>
+          <span class="countdown" id="st-count"></span></div>
+        <p class="now-chord" id="st-chord"></p>
         <div class="st-board"></div>
         <p class="muted">Tap Done when you've played along.</p>`;
-      const fb = board(body.querySelector('.st-board'), d.view, { labels: 'none' });
-      const pos = d.follow.map(toSF);
-      fb.setDots(pos);
-      const saved = { bpm: metronome.bpm, beats: metronome.beatsPerBar, running: metronome.running };
-      let count = 0;
-      const off = metronome.listen(() => { fb.highlight([pos[count % pos.length]]); count++; });
+      const $b = s => body.querySelector(s);
+      const fb = board($b('.st-board'), d.view || [0, 12], { labels: 'none' });
+      const follow = (d.follow || []).map(st => list(st).map(toSF));
+      fb.setDots(toDots(d.dots || (d.follow || []).flatMap(list)));
+      const per = d.beatsPerStep || 1;
+      const saved = { bpm: metronome.bpm, beats: metronome.beatsPerBar, subdiv: metronome.subdiv, group: metronome.group, running: metronome.running };
+      let count = 0, timer = null, left = d.seconds || 0;
+      const chords = () => d.backing ? backingChords(d.backing, key) : null;
+      const off = metronome.listen((beat, t, bar) => {
+        if (follow.length && count % per === 0) fb.highlight(follow[(count / per) % follow.length]);
+        if (d.backing && beat === 0) {
+          const list2 = chords(), c = list2[bar % list2.length];
+          $b('#st-chord').innerHTML = `Now: <b>${esc(c.name || '')}</b>${d.backing.progression ? ` <span class="muted">(${esc(c.roman)})</span>` : ''}`;
+        }
+        count++;
+      });
       const setBpm = v => {
         bpm = clamp(v);
-        body.querySelector('#st-bpm').value = bpm;
-        body.querySelector('#st-bpm-out b').textContent = bpm;
-        body.querySelector('#st-slower').disabled = bpm <= PLAY_BPM.min;
-        body.querySelector('#st-faster').disabled = bpm >= PLAY_BPM.max;
+        $b('#st-bpm').value = bpm;
+        $b('#st-bpm-out b').textContent = bpm;
+        $b('#st-slower').disabled = bpm <= PLAY_BPM.min;
+        $b('#st-faster').disabled = bpm >= PLAY_BPM.max;
         if (metronome.running) metronome.setBpm(bpm);
-        setLessonBpm(lesson.id, bpm);
+        if (!d.bpmKey) setLessonBpm(lesson.id, bpm);
       };
-      body.querySelector('#st-bpm').oninput = e => setBpm(e.target.value);
-      body.querySelector('#st-slower').onclick = () => setBpm(bpm - 1);
-      body.querySelector('#st-faster').onclick = () => setBpm(bpm + 1);
-      body.querySelector('#st-slower').disabled = bpm <= PLAY_BPM.min;
-      body.querySelector('#st-faster').disabled = bpm >= PLAY_BPM.max;
-      const btn = body.querySelector('#st-metro');
-      btn.onclick = () => {
-        if (metronome.running) { metronome.stop(); fb.highlight([]); btn.textContent = '▶ Start metronome'; return; }
-        metronome.stop();
-        metronome.setBpm(bpm);
-        metronome.beatsPerBar = d.beatsPerBar || 4;
+      $b('#st-bpm').oninput = e => setBpm(e.target.value);
+      $b('#st-slower').onclick = () => setBpm(bpm - 1);
+      $b('#st-faster').onclick = () => setBpm(bpm + 1);
+      $b('#st-slower').disabled = bpm <= PLAY_BPM.min;
+      $b('#st-faster').disabled = bpm >= PLAY_BPM.max;
+      const btn = $b('#st-metro'), label = btn.textContent;
+      const stopAll = () => { backing.stop(); metronome.stop(); if (d.drone) droneStop(); clearInterval(timer); fb.highlight([]); };
+      const startAll = () => {
+        stopAll();
         count = 0;
-        metronome.start();
+        if (d.drone) droneStart(parseNote(key || d.drone));
+        if (d.backing) backing.start(chords(), { bpm, beatsPerBar: d.beatsPerBar || 4 });
+        else {
+          metronome.setBpm(bpm);
+          metronome.beatsPerBar = d.beatsPerBar || 4;
+          metronome.subdiv = 1;
+          metronome.group = 0;
+          metronome.start();
+        }
+        if (d.seconds) {
+          left = d.seconds;
+          $b('#st-count').textContent = clock(left);
+          timer = setInterval(() => {
+            left--;
+            $b('#st-count').textContent = left > 0 ? clock(left) : "Time's up!";
+            if (left <= 0) { stopAll(); btn.textContent = label; }
+          }, 1000);
+        }
         btn.textContent = '■ Stop';
         setReady(true);
       };
+      btn.onclick = () => { if (metronome.running || backing.running) { stopAll(); btn.textContent = label; } else startAll(); };
+      $b('#st-key')?.addEventListener('change', e => { key = e.target.value; if (metronome.running) startAll(); });
       setReady(false);
       return () => {
         off();
-        if (metronome.running && !saved.running) metronome.stop();
+        stopAll();
+        if (saved.running) metronome.start();
         metronome.setBpm(saved.bpm);
         metronome.beatsPerBar = saved.beats;
+        metronome.subdiv = saved.subdiv;
+        metronome.group = saved.group;
       };
     },
 
-    check(body, d) {
-      let q = 0, score = 0, shownAt, fb;
-
-      const answered = (ok, item, feedback) => {
-        recordAnswer(item, ok, performance.now() - shownAt);
-        if (ok) score++;
-        const fbEl = body.querySelector('#st-msg');
-        fbEl.textContent = ok ? 'Correct!' : feedback;
-        fbEl.style.color = ok ? 'var(--good)' : 'var(--bad)';
-        body.querySelector('#st-qnext').hidden = false;
-        body.querySelector('#st-qnext').focus();
-      };
-
+    check(body, d, last) {
+      let q = 0, score = 0, cleanup = null;
+      const pass = d.pass ?? Math.ceil(d.questions.length * 0.75);
       const ask = () => {
+        cleanup?.();
         const x = d.questions[q];
-        shownAt = performance.now();
         body.innerHTML = `<p class="prompt">${x.prompt} <span class="muted">Question ${q + 1} of ${d.questions.length}</span></p>
           <div class="st-answer"></div><div class="msg" id="st-msg"></div>
           <button class="primary" id="st-qnext" hidden>${q + 1 < d.questions.length ? 'Next question' : 'See result'}</button>`;
         body.querySelector('#st-qnext').onclick = () => { q++; q < d.questions.length ? ask() : result(); };
-        const host = body.querySelector('.st-answer');
-        if (x.type === 'choice') {
-          host.innerHTML = `<div class="choices">${x.options.map(o => `<button data-o="${o}">${o}</button>`).join('')}</div>`;
-          host.querySelectorAll('button').forEach(b => b.onclick = () => {
-            host.querySelectorAll('button').forEach(o => {
-              o.disabled = true;
-              if (o.dataset.o === x.answer) o.classList.add('good');
-              else if (o === b) o.classList.add('bad');
-            });
-            answered(b.dataset.o === x.answer, x.item, `Not quite. The answer is ${x.answer}.`);
-          });
-        } else {
-          const want = toSF(x.answer);
-          let done = false;
-          fb = board(host, d.view, {
-            mode: 'tap', labels: 'none',
-            onTap: ({ s, f }) => {
-              if (done) return;
-              done = true;
-              const ok = s === want.s && f === want.f;
-              fb.mark(s, f, ok);
-              if (!ok) fb.mark(want.s, want.f, true, null, true);
-              answered(ok, noteItem(want), `Not quite. You tapped ${describe(s, f)}; the answer is shown in green.`);
-            }
-          });
-        }
+        cleanup = renderQuestion(body.querySelector('.st-answer'), x, {
+          view: d.view,
+          onAnswer: (ok, item, feedback) => {
+            if (ok) score++;
+            const m = body.querySelector('#st-msg');
+            m.textContent = ok ? (x.explainRight || 'Correct!') : feedback;
+            m.className = 'msg ' + (ok ? 'good' : 'bad');
+            body.querySelector('#st-qnext').hidden = false;
+            body.querySelector('#st-qnext').focus();
+          }
+        });
       };
-
       const result = () => {
-        const passed = score >= d.pass;
-        if (passed) {
-          completeLesson(lesson.id, score);
-          if (next) unlockLesson(next.id);
-          addLog({ minutes: Math.max(1, Math.round((Date.now() - startedAt) / 60000)), activity: `Lesson: ${lesson.title}`, detail: `Check ${score}/${d.questions.length}` });
+        cleanup?.();
+        const passed = score >= pass;
+        if (passed && last) complete(score, d.questions.length);
+        if (!last) {
+          body.innerHTML = `<div class="result ${passed ? 'good' : 'bad'}"><b>${score} of ${d.questions.length}</b><p>${passed ? 'Nice. Tap Next.' : 'Have another go, or tap Next to carry on.'}</p></div>
+            <button id="st-retry">Try again</button>`;
+          body.querySelector('#st-retry').onclick = () => { q = 0; score = 0; ask(); };
+          setReady(true);
+          return;
         }
-        body.innerHTML = passed
-          ? `<div class="result good"><b>Lesson complete!</b><p>You got ${score} of ${d.questions.length}.</p></div>
-             ${next ? `<button class="primary big" id="st-cont">Continue: ${next.title}</button>` : ''}
-             <button id="st-path">Back to path</button>`
-          : `<div class="result bad"><b>${score} of ${d.questions.length}</b><p>You need ${d.pass} to pass. Have another go.</p></div>
-             <button class="primary big" id="st-retry">Try again</button>
-             <button id="st-path">Back to path</button>`;
-        body.querySelector('#st-cont')?.addEventListener('click', onContinue);
-        body.querySelector('#st-retry')?.addEventListener('click', () => { q = 0; score = 0; ask(); });
-        body.querySelector('#st-path').onclick = onExit;
+        body.innerHTML = resultHTML(passed, score, d.questions.length, pass);
+        wireResult(body, () => { q = 0; score = 0; ask(); });
       };
-
       setReady(false);
       ask();
+      return () => cleanup?.();
+    },
+
+    // Level 1 challenge: the app names a note; play it, then tap it within the time limit.
+    timed(body, d, last) {
+      const strings = d.strings || [6, 5, 4, 3, 2, 1], [from, to] = d.frets || [0, 12];
+      let round = 0, score = 0, target = null, deadline = 0, raf = null, timer = null, shownAt = 0, lastKey = '';
+      const pass = d.pass ?? 8;
+      body.innerHTML = `<p>${d.text}</p><button class="primary big" id="st-go">▶ Start</button>`;
+      const pick = () => {
+        let s, pc, key;
+        do {
+          s = toSF({ string: strings[Math.floor(Math.random() * strings.length)], fret: 0 }).s;
+          const f = from + Math.floor(Math.random() * (to - from + 1));
+          pc = pcOf(midiAt(s, f));
+          key = s + ':' + pc;
+        } while (key === lastKey);
+        lastKey = key;
+        return { s, pc };
+      };
+      const start = () => {
+        round = 0; score = 0;
+        body.innerHTML = `<div class="drill-top"><span id="st-round"></span><span id="st-score"></span></div>
+          <p class="prompt" id="st-prompt"></p><div class="time-bar"><i id="st-time"></i></div>
+          <div class="st-board"></div><div class="msg" id="st-msg"></div>`;
+        const fb = board(body.querySelector('.st-board'), [from, to], {
+          mode: 'tap',
+          onTap: ({ s, f, pc }) => {
+            if (!target || target.done) return;
+            if (s !== target.s) { body.querySelector('#st-msg').textContent = `That's string ${tuning.strings[s].num}. Find it on the ${tuning.strings[target.s].name} string.`; return; }
+            const ms = performance.now() - shownAt, ok = pc === target.pc, inTime = ms <= d.seconds * 1000;
+            target.done = true;
+            cancelAnimationFrame(raf);
+            recordAnswer(`note:${NOTES[target.pc]}@s${tuning.strings[s].num}`, ok && inTime, ms);
+            if (ok && inTime) score++;
+            fb.mark(s, f, ok, preferredName(pc));
+            const m = body.querySelector('#st-msg');
+            m.textContent = ok ? (inTime ? `Yes, ${(ms / 1000).toFixed(1)} s.` : `Right note, but ${(ms / 1000).toFixed(1)} s. Aim for under ${d.seconds}.`) : `That's ${preferredName(pc)}.`;
+            m.className = 'msg ' + (ok && inTime ? 'good' : 'bad');
+            timer = setTimeout(nextRound, ok ? 700 : 1400);
+          }
+        });
+        const nextRound = () => {
+          if (round >= d.rounds) return finish();
+          round++;
+          target = pick();
+          fb.clearMarks();
+          body.querySelector('#st-round').textContent = `Round ${round} of ${d.rounds}`;
+          body.querySelector('#st-score').textContent = `Score ${score}`;
+          body.querySelector('#st-prompt').innerHTML = `Play <span class="target">${preferredName(target.pc)}</span> on the ${tuning.strings[target.s].name} string (string ${tuning.strings[target.s].num}), then tap it.`;
+          body.querySelector('#st-msg').textContent = '';
+          fb.o.focus = { strings: [target.s] };
+          fb.render();
+          shownAt = performance.now();
+          deadline = shownAt + d.seconds * 1000;
+          const tick = () => {
+            const left = Math.max(0, deadline - performance.now());
+            const el2 = body.querySelector('#st-time');
+            if (el2) el2.style.width = (100 * left / (d.seconds * 1000)) + '%';
+            if (left > 0 && !target.done) raf = requestAnimationFrame(tick);
+          };
+          tick();
+        };
+        nextRound();
+      };
+      const finish = () => {
+        const passed = score >= pass;
+        if (passed && last) complete(score, d.rounds);
+        body.innerHTML = resultHTML(passed, score, d.rounds, pass);
+        wireResult(body, start);
+      };
+      body.querySelector('#st-go').onclick = start;
+      if (last) setReady(false);
+      return () => { cancelAnimationFrame(raf); clearTimeout(timer); };
     }
   };
 

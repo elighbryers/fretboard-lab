@@ -1,7 +1,7 @@
 // The shared fretboard component. Every screen that shows a neck uses this.
 //
 //   const fb = new Fretboard(containerEl, { view: [0, 5], labels: 'intervals', mode: 'tap', onTap });
-//   fb.showSet(rootPc, SCALES.Major);        // dots for a scale/chord, colored by degree
+//   fb.showSet(rootPc, [0, 2, 4, 5, 7, 9, 11]); // dots for semitones above a root, colored by degree
 //   fb.setDots([{ s: 5, f: 3 }], rootPc);    // or any explicit positions
 //   fb.mark(s, f, true);                     // green/red answer feedback
 //   fb.setHeatmap((s, f) => score0to1);      // per-position overlay
@@ -34,18 +34,24 @@ const dist = n => 1 - Math.pow(2, -n / 12); // real fret spacing
 // A full neck uses a 1000-unit-wide drawing that scrolls on phones. A short
 // range (a lesson's frets 0–5) gets a narrower drawing so it fits the screen
 // at a tappable size instead of shrinking.
-function geometry(from, to, nStrings) {
+// flipX mirrors left-right (left-handed). flipY puts the low E on top, the way
+// a player sees their own neck when looking down at it.
+function geometry(from, to, nStrings, flipX = false, flipY = false) {
   const open = from === 0, first = Math.max(1, from);
   const NUT = open ? 64 : 40;
   const columns = to - first + 1 + (open ? 1 : 0), wide = columns >= 12;
   const W = wide ? 1000 : NUT + (to - first + 1) * 76 + 20, END = W - 20;
   const d0 = dist(first - 1), span = dist(to) - d0;
-  const fx = n => NUT + (END - NUT) * (dist(n) - d0) / span;          // x of fret wire n
-  const cx = n => (n === 0 ? NUT - 30 : (fx(n - 1) + fx(n)) / 2);     // middle of fret n
-  const cellX = n => (n === 0 ? [NUT - 58, NUT] : [fx(n - 1), fx(n)]);
-  const sy = s => TOP + s * GAP;
-  const H = sy(nStrings - 1) + 44;
-  return { open, first, NUT, END, W, wide, fx, cx, cellX, sy, H };
+  const X = x => (flipX ? W - x : x);                                   // mirror a raw x
+  const span2 = (a, b) => [Math.min(X(a), X(b)), Math.abs(X(b) - X(a))]; // [x, width]
+  const rawFx = n => NUT + (END - NUT) * (dist(n) - d0) / span;
+  const fx = n => X(rawFx(n));                                          // x of fret wire n
+  const cx = n => X(n === 0 ? NUT - 30 : (rawFx(n - 1) + rawFx(n)) / 2); // middle of fret n
+  const cellX = n => { const [x, w] = n === 0 ? span2(NUT - 58, NUT) : span2(rawFx(n - 1), rawFx(n)); return [x, x + w]; };
+  const sy = s => TOP + (flipY ? nStrings - 1 - s : s) * GAP;
+  const yB = TOP + (nStrings - 1) * GAP;                                 // bottom string line
+  const H = yB + 44;
+  return { open, first, NUT, END, W, wide, X, span2, rawFx, fx, cx, cellX, sy, yB, H };
 }
 
 export class Fretboard {
@@ -58,6 +64,8 @@ export class Fretboard {
       playOnTap: true,
       onTap: null,            // mode 'tap': ({ s, f, midi, pc, note, string, focused }) => void
       focus: null,            // { frets: [a, b], strings: [indexes] } - everything else is dimmed
+      leftHanded: false,      // mirror left-right (nut on the right)
+      playerView: false,      // low E on top, as a player sees their own neck
       ariaLabel: 'Guitar fretboard',
       ...opts
     };
@@ -82,6 +90,7 @@ export class Fretboard {
   set(opts) { Object.assign(this.o, opts); this.render(); return this; }
 
   // Dots for every position of a scale/chord. `formula` = semitones above root.
+  // (The Fretboard tab builds spelled, degree-labeled dots itself via setDots.)
   showSet(rootPc, formula) {
     const [from, to] = this.o.view, set = formula.map(pcOf);
     this.root = rootPc;
@@ -93,7 +102,8 @@ export class Fretboard {
     return this;
   }
 
-  // Explicit dots: [{ s, f, label?, role? }]. Pass rootPc to get degree colors and interval labels.
+  // Explicit dots: [{ s, f, label?, role?, quiet? }]. quiet = small, unlabeled background note.
+  // Pass rootPc to get degree colors and interval labels.
   setDots(dots, rootPc = null) { this.dots = dots.slice(); this.root = rootPc; this.render(); return this; }
   clear() { this.dots = []; this.marks = []; this.lit = []; this.root = null; this.render(); return this; }
 
@@ -101,7 +111,7 @@ export class Fretboard {
   mark(s, f, ok, label, keep = false) { this.marks = [...(keep ? this.marks : []), { s, f, ok, label }]; this.render(); return this; }
   clearMarks() { this.marks = []; this.render(); return this; }
 
-  // fn(s, f) -> 0..1 (or null for no data); pass null to remove.
+  // fn(s, f) -> 0..1 (red to green), -1 for grey "not tried", or null for nothing; pass null to remove.
   setHeatmap(fn) { this.heat = fn; this.render(); return this; }
 
   // Each step is one beat: a position, an array of positions (strummed), or null (rest).
@@ -152,59 +162,65 @@ export class Fretboard {
 
   render() {
     const { tuning, view: [from, to], mode } = this.o, strings = tuning.strings, n = strings.length;
-    const g = geometry(from, to, n), { fx, cx, cellX, sy, NUT, END, W, H } = g;
+    const g = geometry(from, to, n, this.o.leftHanded, this.o.playerView);
+    const { fx, cx, cellX, sy, yB, NUT, END, W, H, X, span2, rawFx } = g;
     const inView = f => f >= from && f <= to;
+    const left = g.open ? NUT : rawFx(g.first - 1); // raw x where the drawn board starts
     let out = '';
 
     // plain board, landmark inlays, frets, nut, strings
-    out += `<rect class="fb-board" x="${g.open ? NUT : fx(g.first - 1)}" y="${TOP - 16}" width="${END - (g.open ? NUT : fx(g.first - 1))}" height="${sy(n - 1) - TOP + 32}" rx="4"/>`;
-    const mid = (sy(0) + sy(n - 1)) / 2;
+    const [bx, bw] = span2(left, END);
+    out += `<rect class="fb-board" x="${bx}" y="${TOP - 16}" width="${bw}" height="${yB - TOP + 32}" rx="4"/>`;
+    const mid = (TOP + yB) / 2;
     INLAYS.filter(f => f >= g.first && f <= to).forEach(f => out += `<circle class="fb-inlay" cx="${cx(f)}" cy="${mid}" r="6"/>`);
     DOUBLE.filter(f => f >= g.first && f <= to).forEach(f =>
-      out += `<circle class="fb-inlay" cx="${cx(f)}" cy="${(sy(0) + mid) / 2}" r="6"/><circle class="fb-inlay" cx="${cx(f)}" cy="${(mid + sy(n - 1)) / 2}" r="6"/>`);
-    for (let f = g.first; f <= to; f++) out += `<line class="fb-fret" x1="${fx(f)}" x2="${fx(f)}" y1="${TOP - 16}" y2="${sy(n - 1) + 16}"/>`;
-    if (g.open) out += `<rect class="fb-nut" x="${NUT - 5}" y="${TOP - 16}" width="7" height="${sy(n - 1) - TOP + 32}"/>`;
-    else out += `<line class="fb-fret" x1="${fx(g.first - 1)}" x2="${fx(g.first - 1)}" y1="${TOP - 16}" y2="${sy(n - 1) + 16}"/>`;
+      out += `<circle class="fb-inlay" cx="${cx(f)}" cy="${(TOP + mid) / 2}" r="6"/><circle class="fb-inlay" cx="${cx(f)}" cy="${(mid + yB) / 2}" r="6"/>`);
+    for (let f = g.first; f <= to; f++) out += `<line class="fb-fret" x1="${fx(f)}" x2="${fx(f)}" y1="${TOP - 16}" y2="${yB + 16}"/>`;
+    if (g.open) { const [nx, nw] = span2(NUT - 5, NUT + 2); out += `<rect class="fb-nut" x="${nx}" y="${TOP - 16}" width="${nw}" height="${yB - TOP + 32}"/>`; }
+    else out += `<line class="fb-fret" x1="${fx(g.first - 1)}" x2="${fx(g.first - 1)}" y1="${TOP - 16}" y2="${yB + 16}"/>`;
+    const labelX = this.o.leftHanded ? W - 2 : 2, anchor = this.o.leftHanded ? 'end' : 'start';
     strings.forEach((str, s) => {
-      out += `<line class="fb-string" x1="${g.open ? NUT - 40 : fx(g.first - 1)}" x2="${END}" y1="${sy(s)}" y2="${sy(s)}" stroke-width="${1 + s * 0.45}"/>`;
-      out += `<text class="fb-text" x="2" y="${sy(s) + 5}" font-size="14">${str.name}</text>`;
+      out += `<line class="fb-string" x1="${X(g.open ? NUT - 40 : left)}" x2="${X(END)}" y1="${sy(s)}" y2="${sy(s)}" stroke-width="${1 + s * 0.45}"/>`;
+      out += `<text class="fb-text" x="${labelX}" y="${sy(s) + 5}" text-anchor="${anchor}" font-size="14">${str.name}</text>`;
     });
-    for (let f = from; f <= to; f++) out += `<text class="fb-text" x="${cx(f)}" y="${sy(n - 1) + 42}" text-anchor="middle" font-size="13">${f}</text>`;
+    for (let f = from; f <= to; f++) out += `<text class="fb-text" x="${cx(f)}" y="${yB + 42}" text-anchor="middle" font-size="13">${f}</text>`;
 
     // heat map cells
     if (this.heat) strings.forEach((_, s) => { for (let f = from; f <= to; f++) {
       const v = this.heat(s, f);
       if (v == null) continue;
       const [x0, x1] = cellX(f), hue = Math.round(Math.max(0, Math.min(1, v)) * 125);
-      out += `<rect class="fb-heat" x="${x0 + 2}" y="${sy(s) - GAP / 2 + 2}" width="${x1 - x0 - 4}" height="${GAP - 4}" rx="6" fill="hsl(${hue} 65% 45%)"/>`;
+      out += `<rect class="fb-heat${v < 0 ? ' none' : ''}" x="${x0 + 2}" y="${sy(s) - GAP / 2 + 2}" width="${x1 - x0 - 4}" height="${GAP - 4}" rx="6"${v < 0 ? '' : ` fill="hsl(${hue} 70% 62%)"`}/>`;
     } });
 
     // dim what isn't the point
     const fo = this.o.focus;
     if (fo) {
-      const [x0] = cellX(from), x1 = END;
-      strings.forEach((_, s) => { if (fo.strings && !fo.strings.includes(s)) out += `<rect class="fb-dim" x="${x0}" y="${sy(s) - GAP / 2}" width="${x1 - x0}" height="${GAP}"/>`; });
+      const [sx, sw] = span2(from === 0 ? NUT - 58 : left, END);
+      strings.forEach((_, s) => { if (fo.strings && !fo.strings.includes(s)) out += `<rect class="fb-dim" x="${sx}" y="${sy(s) - GAP / 2}" width="${sw}" height="${GAP}"/>`; });
       if (fo.frets) for (let f = from; f <= to; f++) if (f < fo.frets[0] || f > fo.frets[1]) {
         const [a, b] = cellX(f);
-        out += `<rect class="fb-dim" x="${a}" y="${TOP - 18}" width="${b - a}" height="${sy(n - 1) - TOP + 36}"/>`;
+        out += `<rect class="fb-dim" x="${a}" y="${TOP - 18}" width="${b - a}" height="${yB - TOP + 36}"/>`;
       }
     }
 
     // dots, then lit (sequence) dots, then answer marks
     const dot = (d, extra) => {
       const pc = pcOf(midiAt(d.s, d.f, tuning)), rel = this.root == null ? null : pcOf(pc - this.root);
-      const role = d.role || roleOf(rel), lbl = this._label(d, pc);
-      const dim = this._focused(d.s, d.f) ? '' : ' dim';
-      return `<g class="fb-dot role-${role}${dim}${extra}"><circle cx="${cx(d.f)}" cy="${sy(d.s)}" r="15"/>` +
+      const role = d.role || roleOf(rel), lbl = d.quiet && !extra ? '' : this._label(d, pc);
+      const cls = (this._focused(d.s, d.f) ? '' : ' dim') + (d.quiet && !extra ? ' quiet' : '') + extra;
+      return `<g class="fb-dot role-${role}${cls}"><circle cx="${cx(d.f)}" cy="${sy(d.s)}" r="${d.quiet && !extra ? 8 : 15}"/>` +
         (lbl ? `<text x="${cx(d.f)}" y="${sy(d.s) + 5}" text-anchor="middle" font-size="13">${lbl}</text>` : '') + '</g>';
     };
     const key = p => p.s + ':' + p.f, litKeys = new Set(this.lit.map(key));
     this.dots.filter(d => inView(d.f) && !litKeys.has(key(d))).forEach(d => out += dot(d, ''));
     this.lit.filter(d => inView(d.f)).forEach(d => out += dot(this.dots.find(x => key(x) === key(d)) || d, ' lit'));
+    // A right answer shows its note; a wrong one shows an X, so it never reads as a root.
     this.marks.filter(m => inView(m.f)).forEach(m => {
-      const pc = pcOf(midiAt(m.s, m.f, tuning));
-      out += `<g class="fb-mark ${m.ok ? 'good' : 'bad'}"><circle cx="${cx(m.f)}" cy="${sy(m.s)}" r="16"/>` +
-        `<text x="${cx(m.f)}" y="${sy(m.s) + 5}" text-anchor="middle" font-size="13">${m.label ?? NOTES[pc]}</text></g>`;
+      const pc = pcOf(midiAt(m.s, m.f, tuning)), x = cx(m.f), y = sy(m.s);
+      out += `<g class="fb-mark ${m.ok ? 'good' : 'bad'}"><circle cx="${x}" cy="${y}" r="16"/>` + (m.ok
+        ? `<text x="${x}" y="${y + 5}" text-anchor="middle" font-size="13">${m.label ?? NOTES[pc]}</text>`
+        : `<path class="fb-x" d="M${x - 6} ${y - 6}L${x + 6} ${y + 6}M${x + 6} ${y - 6}L${x - 6} ${y + 6}"/>`) + '</g>';
     });
 
     // whole-cell tap targets
