@@ -56,6 +56,7 @@ js/practice/timer.js       routines of timed blocks (+ the bar shown while one r
 js/practice/drills.js      Note finder, Hear it find it, Interval trainer
 js/practice/playalong.js   tab library and scrolling tab player
 js/practice/log.js         practice log: grouped by week/day, add/edit/delete
+js/practice/rhythm.js      Rhythm: tap along, early/late and spread, calibration
 js/playalong/*.js     play-along tabs as data (one file per tab, listed in index.js)
 js/ui.js              shared volume sliders and small helpers
 js/tabs/progress.js   at-a-glance tiles, charts, weak spots, drill/tab stats, badges, export/import
@@ -63,7 +64,14 @@ js/review.js          spaced review (Leitner boxes 1, 3, 7, 14, 30 days) and bui
 js/review-screen.js   the Daily review: the card on Learn, one question at a time, the end screen
 js/stats.js           the Progress numbers, worked out from saved data (and badge rules)
 js/charts.js          plain-SVG bar, line and calendar charts
-js/tabs/ear.js        Ear Training: coming soon
+js/tabs/ear.js        Ear Training tab: five tracks, 10-question sessions, adaptive levels
+js/ear.js             ear-training questions (degrees, intervals, chords, bass motion, dictation), shared with the review
+js/skills.js          Hands & rhythm strands: chord shapes, one-minute changes, technique, rhythms, barre goal
+js/speed.js           speed trainer (up after 3 clean runs, down after a miss)
+js/timing.js          timing engine: taps vs beats on the audio clock, windows, calibration maths (pure)
+js/timing-ui.js       tap pad, per-device calibration screen, window setting
+js/rhythm.js          rhythm patterns and the SVG rhythm line
+js/plan.js            "When will you practise?" plan
 js/pwa.js, sw.js      installable app, offline copy, persistent storage, iPhone hint
 ```
 
@@ -184,3 +192,24 @@ label), so color is never the only clue; the "Dots" label mode on the Fretboard
 tab switches to neutral dots with the root outlined. Text colors that must pass
 contrast use `--bad-text` and `--grey-text`; `--bad` and `--deg-other` are for fills.
 
+## Practice science in the app
+
+- **Clean tempo:** every Play step, play-along tab and technique item is an
+  exercise with a highest clean bpm (`tempos` in storage). It starts a little
+  below that next time; the speed trainer goes up a step after 3 clean runs in
+  a row and down a step after "Missed it". One-minute chord changes are stored
+  the same way with `unit: 'changes'`.
+- **Kinder streak:** one missed day per week (Monday to Sunday) is a rest day
+  and doesn't break the streak. The headline is practice days this week.
+- **Timing:** `js/timing.js` scores taps on the Web Audio clock (tap times come
+  through `getOutputTimestamp`), with Easy ±60, Normal ±40 and Strict ±25 ms,
+  and reports lean (early/late) separately from spread. Calibration (listen to
+  4 clicks, tap 8) is stored per output device and always optional.
+- **Ear training:** five tracks in `js/ear.js` (scale degrees in a key with a
+  drone and cadence, intervals in melodies, chord quality by tapping the 3rd,
+  5th or 7th, bass motion, dictation of public-domain tunes). Levels move up
+  at 80% over the last 20 answers and down after 10 answers under 50%. The
+  same question functions serve the daily review (`ear:`, `interval-ear:`,
+  `chord-ear:`, `bass:`, `dictation:` items).
+- **Lesson data version 2:** lessons moved (see Step 2 in the git log); the
+  storage migration carries old progress over.

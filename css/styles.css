@@ -599,6 +599,15 @@ header { padding-top: calc(20px + env(safe-area-inset-top)) }
 .pa-rhythm .pa-tuplet { fill: var(--muted); font: 600 10px system-ui, sans-serif; text-anchor: middle }
 #pa-svg.no-rhythm .pa-rhythm { display: none }
 
+/* ---------- ear training ---------- */
+.ear-tracks { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 10px }
+.ear-track .card-ico { font-size: 20px; font-weight: 800; color: var(--lavender) }
+.ear-level { display: block; margin-top: 4px; color: var(--pink) !important }
+.ear-levels { margin: 6px 0 2px }
+.ear-levels button { min-width: 44px }
+.ear-card .prompt { font-size: 19px; margin: 4px 0 10px }
+.good-note { color: var(--good); font-weight: 600 }
+
 /* shown only if the app fails to start (see index.html) */
 .load-error { max-width: 1100px; margin: 16px auto; padding: 14px 16px; border: 1px solid var(--pink); border-radius: 12px; background: var(--pink-tint) }
 .load-error p { margin: 0 0 10px }

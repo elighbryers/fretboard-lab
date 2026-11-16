@@ -105,6 +105,8 @@ export function itemName(id) {
     const deg = label === 'R' ? 'root' : (/^b/.test(label) ? 'flat ' : '') + (ORD[label.replace(/\D/g, '')] || label);
     return kind === 'degree' ? `${deg} of ${key} ${scale.replace(/-/g, ' ')}` : `${deg} of the ${key} ${scale} chord`;
   }
+  if (kind === 'bass') return `bass motion from I to ${rest.replace(/b(?=[IV])/g, '♭')}`;
+  if (kind === 'dictation') return `melody by ear: ${{ row: 'Row, Row, Row Your Boat', mary: 'Mary Had a Little Lamb', frere: 'Frère Jacques', joy: 'Joy to the World', twinkle: 'Twinkle, Twinkle', saints: 'When the Saints', ode: 'Ode to Joy', susanna: 'Oh! Susanna', grace: 'Amazing Grace' }[rest] || rest}`;
   if (kind === 'chordshape') return `${rest.toUpperCase().replace('M', 'm')} chord shape`;
   if (kind === 'rhythm') return `${{ quarters: 'quarter notes', eighths: 'eighth notes', 'first-strum': 'first strumming pattern', rests: 'rests on 2 and 4', waltz: '3/4 time', syncopation: 'syncopation', 'six-eight': '6/8 time', shuffle: 'shuffle', sixteenths: 'sixteenth notes' }[rest] || rest} (rhythm)`;
   if (kind === 'chord-ear') return `${{ major: 'major', minor: 'minor', dim: 'diminished', maj7: 'major 7', '7': 'dominant 7', m7: 'minor 7' }[rest] || rest} chord by ear`;

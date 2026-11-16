@@ -14,6 +14,7 @@ import { asRound, DRILLS } from './practice/drills.js';
 import { itemName } from './stats.js';
 import { esc, shuffle } from './ui.js';
 import { SKILLS, findSkill } from './skills.js';
+import { asEarRound } from './ear.js';
 import { PATTERNS, findPattern, rhythmSVG } from './rhythm.js';
 import { pluckAt, click as clickAt, now as audioNow, context } from './audio.js';
 
@@ -47,7 +48,7 @@ const earSet = id => EAR_SETS.find(s => s.includes(id));
 // Items the review screen knows how to ask.
 const chordShapeOf = id => { const s = id.startsWith('chordshape:') && findSkill(id.slice(11)); return s && s.kind === 'chord' ? s : null; };
 const patternOf = id => (id.startsWith('rhythm:') ? findPattern(id.slice(7)) : null);
-export const askable = id => !!asRound(id) || (id.startsWith('fact:') && !!factQuestion(id)) || !!parseDegreeItem(id) || !!chordShapeOf(id) || !!patternOf(id)
+export const askable = id => !!asRound(id) || (id.startsWith('fact:') && !!factQuestion(id)) || !!parseDegreeItem(id) || !!chordShapeOf(id) || !!patternOf(id) || !!asEarRound(id)
   || (id.startsWith('chord-ear:') && !!earSet(id.slice(10)));
 
 // Today's saved session, or null if there isn't one for today.
@@ -253,7 +254,7 @@ export function runReview(el, { onExit }) {
     autoNext(ms) { autoTimer = setTimeout(next, ms); }
   };
   const KIND = { note: 'Find the note', ear: 'Hear it, find it', interval: 'Interval', 'interval-ear': 'Interval by ear', fact: 'Quick question',
-    degree: 'Scale degree', tone: 'Chord tone', 'chord-ear': 'Chord by ear', chordshape: 'Chord shape', rhythm: 'Rhythm' };
+    degree: 'Scale degree', tone: 'Chord tone', 'chord-ear': 'Chord by ear', chordshape: 'Chord shape', rhythm: 'Rhythm', bass: 'Bass motion', dictation: 'Melody by ear' };
   const paintTop = () => {
     const n = r.queue.length;
     $('#rv-bar').style.width = (100 * r.index / n) + '%';
@@ -289,6 +290,8 @@ export function runReview(el, { onExit }) {
     if (parseDegreeItem(id)) { if (droneOn()) droneStop(); current = degreeRound(ui, id); return; }
     if (chordShapeOf(id)) { if (droneOn()) droneStop(); current = chordShapeRound(ui, id); return; }
     if (patternOf(id)) { if (droneOn()) droneStop(); current = rhythmRound(ui, id); return; }
+    const ear = asEarRound(id);
+    if (ear) { if (droneOn()) droneStop(); current = ear.round(ui, ear.want); return; }
     if (id.startsWith('chord-ear:')) { if (droneOn()) droneStop(); current = chordEarRound(ui, id); return; }
     if (!round) { ui.result(true); return next(); }  // no longer askable: skip it quietly
     // The drone plays only for hear-it rounds.
