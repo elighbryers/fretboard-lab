@@ -5,7 +5,7 @@
 // then left, then both). Tap a bar to loop it. The tempo trainer starts at 60%, adds 5% after
 // 3 clean runs and drops 10% after a miss, and the log records goals ("3 clean runs at 80 bpm").
 import { PIECES, findPiece, pieceEvents, barsOf } from './pieces.js';
-import { Keyboard, nameOct, isBlack, landscapePhone, onLandscapeChange, colorPref, setColorPref, colorToggleHTML } from './keyboard.js';
+import { Keyboard, nameOct, isBlack, whitesIn, handOf, landscapePhone, onLandscapeChange, colorPref, setColorPref, colorToggleHTML } from './keyboard.js';
 import { TempoTrainer } from './tempo.js';
 import { LH_PATTERNS, lhBar } from './voicing.js';
 import { metronome, pluckAt, now, click } from '../audio.js';
@@ -56,7 +56,7 @@ export const keyLabel = key => { const m = /^([A-G])(#|b)?(m?)$/.exec(key || 'C'
 function player(el, piece) {
   const prefs = { view: 'roll', hand: 'R', wait: false, countIn: true, guide: true, lhPattern: piece.lhPattern || null, ...(getPracticePrefs().pianoPiece || {}) };
   if (!piece.lhPattern) prefs.lhPattern = null;
-  const save = () => updatePracticePrefs({ pianoPiece: { view: prefs.view, hand: prefs.hand, wait: prefs.wait, countIn: prefs.countIn, guide: prefs.guide } });
+  const save = () => updatePracticePrefs({ pianoPiece: { view: prefs.view, hand: prefs.hand, wait: prefs.wait, countIn: prefs.countIn, guide: prefs.guide, rows: prefs.rows } });
   const bar = piece.time[0] * 4 / piece.time[1], bars = barsOf(piece), total = bars * bar;
   let events = pieceEvents({ ...piece, lhPattern: prefs.lhPattern }, lhFn);
   const allMidis = () => events.flatMap(e => e.midis), lo = () => Math.min(...allMidis()) - 2, hi = () => Math.max(...allMidis()) + 2;
@@ -77,7 +77,10 @@ function player(el, piece) {
     ${seg('pp-view', [['roll', 'Piano roll'], ['falling', 'Falling notes'], ['staff', 'Staff'], ['chart', 'Chord chart']], prefs.view)}
     <div class="pp-stage" id="pp-stage"></div>
     <div id="pp-kb"></div>
+    <div class="pp-rows" id="pp-rows" hidden><div class="pp-row"><span class="pp-row-tag rh">RH</span><div data-row="R"></div></div>
+      <div class="pp-row"><span class="pp-row-tag lh">LH</span><div data-row="L"></div></div></div>
     <p class="now-chord" id="pp-now" aria-live="polite"></p>
+    <div class="field" id="pp-rows-field" hidden><span class="lbl">Keyboard</span>${seg('pp-rowseg', [['2', 'Two rows (a row per hand)'], ['1', 'One row']], String(prefs.rows || 2))}</div>
     <div class="field"><span class="lbl">Colors</span><span class="pp-color-slot"></span></div>
     <div class="field"><span class="lbl">You play</span>${seg('pp-hand', [['R', 'Right hand'], ['L', 'Left hand'], ['both', 'Both hands']], prefs.hand)}
       <small class="muted">The app plays the other hand. Start with the right hand, then the left, then both.</small></div>
@@ -93,6 +96,38 @@ function player(el, piece) {
     <p class="msg" id="pp-msg" aria-live="polite"></p></div>`;
   const $ = s => el.querySelector(s), root = $('.piano-pa');
   const kb = new Keyboard($('#pp-kb'), { view: [lo(), hi()], mode: 'tap', playOnTap: true, noGlideAnswers: true, noAutoZoom: true, full88: true, keyHeightFrac: 0.22, colorMode: color, onTap: t => onKey(t.midi) });
+  // Phones held upright, two-hand pieces: two stacked one-octave rows, right hand on top and left
+  // hand below, each following its own hand's notes ("One row" switches back).
+  const rowOpts = hand => ({ view: hand === 'L' ? [48, 60] : [60, 72], mode: 'tap', playOnTap: true, noGlideAnswers: true, keyHeight: 120, colorMode: color, ariaLabel: hand === 'L' ? 'Left-hand keys' : 'Right-hand keys', onTap: t => onKey(t.midi, hand) });
+  const rows = { R: new Keyboard($('[data-row="R"]'), rowOpts('R')), L: new Keyboard($('[data-row="L"]'), rowOpts('L')) };
+  const twoRows = () => !land && String(prefs.rows || 2) === '2' && twoHands() && prefs.view !== 'falling';
+  const boards = () => (twoRows() ? [kb, rows.R, rows.L] : [kb]);
+  function paintRows() {
+    const on = twoRows();
+    $('#pp-kb').hidden = on; $('#pp-rows').hidden = !on;
+    $('#pp-rows-field').hidden = land || !twoHands();
+    if (on) Object.values(rows).forEach(r => r.render());
+  }
+  // A row shows about an octave from a white key at or below the hand's lowest note, wider only if needed;
+  // it moves only when a note falls outside it.
+  function followRow(hand, ms) {
+    const r = rows[hand];
+    if (!ms.length || ms.every(m => m >= r.o.view[0] && m <= r.o.view[1])) return;
+    let lo = Math.min(...ms); if (isBlack(lo)) lo--;
+    const hi = Math.max(lo + 12, Math.max(...ms) + (isBlack(Math.max(...ms)) ? 1 : 0));
+    r.set({ view: [lo, hi], keyWidth: Math.floor((r.wrap.clientWidth || 340) / whitesIn(lo, hi)) });
+  }
+  // Every keyboard on screen at once: dots, lit keys and marks go to the row of the note's hand.
+  const handFor = (m, h) => h || handOf(m);
+  const setKeyDots = (dots, root) => { kb.setDots(dots, root); if (twoRows()) ['R', 'L'].forEach(h => rows[h].setDots(dots.filter(d => handFor(d.f, d.hand) === h), root)); };
+  let litList = [];
+  const lightKeys = list => {
+    litList = list;
+    kb.light(Object.fromEntries(list.map(x => [x.m, x.cls])));
+    if (twoRows()) ['R', 'L'].forEach(h => rows[h].light(Object.fromEntries(list.filter(x => x.hand === h).map(x => [x.m, x.cls]))));
+  };
+  const markKey = (m, ok, label, hand) => { kb.mark(0, m, ok, label, true); if (twoRows()) rows[hand || handOf(m)].mark(0, m, ok, label, true); };
+  const clearKeyMarks = () => [kb, rows.R, rows.L].forEach(k => k.clearMarks());
   const msg = (t, k = '') => { $('#pp-msg').textContent = t; $('#pp-msg').className = 'msg ' + k; };
   const bpm = () => trainer.bpm(piece.bpm);
   const paintTempo = () => { $('#pp-pct').textContent = `${trainer.pct}% speed`; $('#pp-bpm').textContent = `${bpm()} bpm · goal: 3 clean runs, then +5%`; };
@@ -107,7 +142,7 @@ function player(el, piece) {
   const paintColor = () => el.querySelectorAll('.pp-color-slot').forEach(s => { s.innerHTML = colorToggleHTML(color); });
   root.addEventListener('click', e => {
     const b = e.target.closest('.color-seg [data-color]'); if (!b) return;
-    color = b.dataset.color; setColorPref('playalong', color); kb.setColorMode(color); paintColor(); drawView(); showAt(songPos);
+    color = b.dataset.color; setColorPref('playalong', color); [kb, rows.R, rows.L].forEach(k => k.setColorMode(color)); paintColor(); drawView(); showAt(songPos);
   });
 
   /* ---------- landscape: the falling-notes layout ---------- */
@@ -118,6 +153,7 @@ function player(el, piece) {
     $('#pp-rotate').hidden = land || !twoHands() || !matchMedia('(pointer: coarse)').matches || sessionStorage.getItem('pp-rotate-x') === '1';
     if (land) drawStrip();
     kb.render();
+    paintRows();
   }
   $('#pp-rotate-x').onclick = () => { try { sessionStorage.setItem('pp-rotate-x', '1'); } catch { } $('#pp-rotate').hidden = true; };
   el.querySelector('.pp-menu').onclick = () => {
@@ -205,9 +241,10 @@ function player(el, piece) {
   function showAt(pos) {
     songPos = pos;
     const b = Math.min(bars - 1, Math.floor(pos / bar + 1e-6)), sounding = events.filter(e => e.start <= pos + 1e-6 && e.start + e.beats > pos + 1e-6);
+    if (twoRows()) ['R', 'L'].forEach(h => followRow(h, events.filter(e => e.hand === h && (e.bar === b || (e.start <= pos + 1e-6 && e.start + e.beats > pos + 1e-6))).flatMap(e => e.midis)));
     if (!waitState) {
-      kb.setDots(land ? [] : sounding.flatMap(e => e.midis.map(m => ({ s: 0, f: m, role: roleIn(m, e.bar), hand: e.hand, label: preferredName(m), ring: e.hand === 'L' }))), chordOfBar(b).root);
-      kb.light(Object.fromEntries(sounding.flatMap(e => e.midis.map(m => [m, colorOf(m, e)]))));
+      setKeyDots(land ? [] : sounding.flatMap(e => e.midis.map(m => ({ s: 0, f: m, role: roleIn(m, e.bar), hand: e.hand, label: preferredName(m), ring: e.hand === 'L' }))), chordOfBar(b).root);
+      lightKeys(sounding.flatMap(e => e.midis.map(m => ({ m, cls: colorOf(m, e), hand: e.hand }))));
     }
     const focus = sounding.find(e => yours(e)) || sounding[0];
     if (focus) kb.scrollTo(focus.midis[0], true);
@@ -284,7 +321,7 @@ function player(el, piece) {
         const nt = t + (e.start - pos) * spb, mine = yours(e);
         if (!mine || prefs.guide) e.midis.forEach(m => pluckAt(m, nt, mine ? 0.25 : 0.8));
         // light each note's key as it sounds, in its color
-        at(nt, () => { if (running) kb.light({ ...Object.fromEntries(kb.litCls), ...Object.fromEntries(e.midis.map(m => [m, colorOf(m, e)])) }); });
+        at(nt, () => { if (running) lightKeys([...litList.filter(x => !e.midis.includes(x.m)), ...e.midis.map(m => ({ m, cls: colorOf(m, e), hand: e.hand }))]); });
       });
     });
     metronome.start();
@@ -314,21 +351,23 @@ function player(el, piece) {
     if (!w) return;
     if (w.k >= w.points.length) { onPass(); if (running) startWait(); return; }
     const pos = w.points[w.k];
-    kb.clearMarks();
+    clearKeyMarks();
     events.forEach((e, i) => { if (!yours(e) && e.start <= pos + 1e-6 && !w.played.has(i) && (!loop || e.bar >= loop[0])) { w.played.add(i); e.midis.forEach(m => pluckAt(m, now() + 0.02, 0.7)); } });
     showAt(pos);
     const want = events.filter(e => yours(e) && Math.abs(e.start - pos) < 1e-6);
     w.want = want.flatMap(e => e.midis);
     w.got = new Set();
-    kb.light({});
-    kb.setDots(want.flatMap(e => e.midis.map(m => ({ s: 0, f: m, role: roleIn(m, e.bar), hand: e.hand, label: preferredName(m) }))), chordOfBar(Math.min(bars - 1, Math.floor(pos / bar + 1e-6))).root);
+    w.hands = new Map(want.flatMap(e => e.midis.map(m => [m, e.hand])));
+    lightKeys([]);
+    setKeyDots(want.flatMap(e => e.midis.map(m => ({ s: 0, f: m, role: roleIn(m, e.bar), hand: e.hand, label: preferredName(m) }))), chordOfBar(Math.min(bars - 1, Math.floor(pos / bar + 1e-6))).root);
     if (w.want.length) kb.scrollTo(w.want[0], true);
   }
-  function onKey(m) {
+  // A key from the keyboard, a row (hand), the mic or MIDI.
+  function onKey(m, hand) {
     const w = waitState;
     if (!w || !w.want) return;
-    if (w.want.includes(m)) { w.got.add(m); kb.mark(0, m, true, preferredName(m), true); if (w.want.every(x => w.got.has(x))) { w.k++; setTimeout(stepWait, 80); } }
-    else { missed = true; kb.mark(0, m, false, undefined, true); msg(`That's ${nameOct(m)}. Look for the lit key.`, 'bad'); }
+    if (w.want.includes(m)) { w.got.add(m); markKey(m, true, preferredName(m), w.hands.get(m)); if (w.want.every(x => w.got.has(x))) { w.k++; setTimeout(stepWait, 80); } }
+    else { missed = true; markKey(m, false, undefined, hand); msg(`That's ${nameOct(m)}. Look for the lit key.`, 'bad'); }
   }
   // The microphone can answer wait mode too (any octave).
   let stopMic = () => {};
@@ -339,10 +378,11 @@ function player(el, piece) {
     if (running && !silent && Date.now() - startedAt > 20000) addLog({ minutes: Math.max(1, Math.round((Date.now() - startedAt) / 60000)), activity: `Piece: ${piece.title}`, detail: `${trainer.pct}% (${bpm()} bpm), ${prefs.hand === 'both' ? 'hands together' : prefs.hand === 'R' ? 'right hand' : 'left hand'}`, tab: piece.id, bpm: bpm(), pct: trainer.pct });
     running = false;
     paintGo(); $('#pp-missed').hidden = true;
-    kb.clearMarks(); kb.light({});
+    clearKeyMarks(); lightKeys([]);
   }
   const pickSeg = (id, key, after) => { $(id).onclick = e => { const b = e.target.closest('button'); if (!b) return; prefs[key] = b.dataset.v; save(); el.querySelectorAll(`${id} button`).forEach(x => x.setAttribute('aria-pressed', x === b)); after?.(); }; };
-  pickSeg('#pp-view', 'view', () => { drawView(); showAt(songPos); });
+  pickSeg('#pp-view', 'view', () => { drawView(); paintRows(); showAt(songPos); });
+  pickSeg('#pp-rowseg', 'rows', () => { paintRows(); showAt(songPos); });
   pickSeg('#pp-hand', 'hand', () => { if (running) start(); });
   $('#pp-wait').onchange = e => { prefs.wait = e.target.checked; save(); if (running) start(); };
   $('#pp-guide').onchange = e => { prefs.guide = e.target.checked; save(); };
@@ -353,7 +393,7 @@ function player(el, piece) {
   if (micOn()) stopMic = listenNotes(nn => { if (waitState?.want) { const m = waitState.want.find(x => pcOf(x) === nn.pc); if (m != null) onKey(m); } });
   paintColor(); paintTempo(); drawView(); setLand(); showAt(0);
   raf = requestAnimationFrame(fallFrame);
-  return () => { stop(); stopMic(); cancelAnimationFrame(raf); unland(); kb.destroy(); };
+  return () => { stop(); stopMic(); cancelAnimationFrame(raf); unland(); [kb, rows.R, rows.L].forEach(k => k.destroy()); };
 }
 
 export default {

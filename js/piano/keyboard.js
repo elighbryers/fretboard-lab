@@ -70,7 +70,7 @@ export class Keyboard {
       steps: false,           // W/H labels between neighbouring dots
       lock: false,            // no scrolling while a task is active
       keyWidth: null,         // px; default 44 on touch, fitted on desktop
-      keyHeight: null,        // px for white keys (88-key view only; default: keyHeightFrac of the screen height)
+      keyHeight: null,        // px for white keys (default 3.6 key widths; in the 88-key view keyHeightFrac of the screen height)
       keyHeightFrac: 0.27,
       full88: false,          // phones in landscape: show all 88 keys across the width
       colorMode: 'tone',      // 'tone' (chord tone) | 'hand' (LH blue, RH green)
@@ -255,7 +255,7 @@ export class Keyboard {
     const touch = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
     const nW = whitesIn(lo, hi), avail = this.wrap.clientWidth || 360;
     const KW = full ? this._kw() : this.o.keyWidth || (touch ? 44 : Math.max(26, Math.min(44, Math.floor(avail / nW))));
-    const KH = full ? this.o.keyHeight || Math.round(Math.max(64, Math.min(130, (window.innerHeight || 390) * this.o.keyHeightFrac))) : Math.round(KW * 3.6);
+    const KH = full ? this.o.keyHeight || Math.round(Math.max(64, Math.min(130, (window.innerHeight || 390) * this.o.keyHeightFrac))) : this.o.keyHeight || Math.round(KW * 3.6);
     const BW = KW * 0.62, BH = Math.round(KH * 0.62);
     const TOP = full ? 16 : 22, BOT = full ? 14 : 36, H = TOP + KH + BOT, W = nW * KW, small = KW < 30;
     this.wrap.classList.toggle('full88', full);
