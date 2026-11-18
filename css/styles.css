@@ -768,3 +768,7 @@ button.small { padding: 6px 10px; font-size: 13px; min-height: 36px }
 .fb-bar.fill { border-style: dashed } .fb-bar.now { background: var(--blue); color: var(--on-soft) } .fb-bar.now i { color: var(--on-soft) } .fb-bar.looped { outline: 2px dashed var(--lavender) }
 .drum-pa .toggles { flex-direction: column; align-items: flex-start } .drum-pa > * { min-width: 0 }
 #dp-staff .now, #dp-staff .now path { fill: #1565C0 }
+.padboard .kit { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px }
+.pb-pad { max-width: none; min-height: 56px; border-radius: 14px }
+.pb-pad.has { border-color: var(--blue) } .pb-pad.lit { background: var(--blue); color: var(--on-soft) }
+.pb-pad.good { background: var(--good); color: var(--on-soft) } .pb-pad.bad { background: var(--bad); color: var(--on-bad) }

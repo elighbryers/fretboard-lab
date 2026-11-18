@@ -55,7 +55,7 @@ export const INSTRUMENTS = [
 // Items tied to one instrument's neck, keys or sticks; every other item is shared theory.
 // note: a spot on a neck, chordshape: a guitar chord shape, key: a piano key, staff: a staff note
 // read onto the keys, fingering: a piano scale fingering, sticking: a drum sticking.
-const POSITION_ITEM = /^(note|chordshape|key|staff|fingering|sticking):/;
+const POSITION_ITEM = /^(note|chordshape|key|staff|fingering|sticking|pad):/;
 export const isPositionItem = id => POSITION_ITEM.test(id);
 
 const blankInstrument = () => ({ lessons: {}, items: {}, placement: 0, tempos: {}, goals: {}, review: null, tuning: null, timing: [], mic: { heard: 0, matched: 0 } });

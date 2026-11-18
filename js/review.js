@@ -55,7 +55,7 @@ export function schedule(it, correct, ms, now = Date.now(), id = null) {
 
 /* ---------- FSRS ---------- */
 export const FSRS_TYPES = ['note', 'interval', 'interval-ear', 'degree', 'tone', 'fact', 'ear', 'chord-ear', 'bass', 'dictation',
-  'toneear', 'key', 'staff', 'keysig', 'inversion', 'fingering', 'count', 'sticking', 'groove-ear', 'feel-ear'];
+  'toneear', 'key', 'staff', 'keysig', 'inversion', 'fingering', 'count', 'sticking', 'groove-ear', 'feel-ear', 'pad'];
 export const usesFsrs = id => FSRS_TYPES.includes(String(id).split(':')[0]);
 const scheduler = fsrs(generatorParameters({ learning_steps: [], relearning_steps: [], enable_short_term: false }));
 export const gradeOf = (correct, ms) => (!correct ? Rating.Again : ms < QUICK_MS ? Rating.Good : Rating.Hard);

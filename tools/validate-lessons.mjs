@@ -237,7 +237,7 @@ function validatePath(name, levels, kit, names, spec = null) {
       });
       ok(st.see?.sequence?.length > 0, `${id}: See it has a sequence`);
       st.see?.sequence?.flatMap(x => (x ? list(x) : [])).forEach(p => POS(`${id} see`, p, st.see.view));
-      if (n > 0) ok(!!st.see?.link, `${id}: See it has Open in Fretboard`);
+      if (n > 0 && !spec?.noLink) ok(!!st.see?.link, `${id}: See it has Open in Fretboard`);
       ok(st.try?.tasks?.length === 3, `${id}: 3 Try tasks`, st.try?.tasks?.length);
       (st.try?.tasks || []).forEach((t, k) => {
         if (t.grid) { ok(t.grid.notes.length > 0 && !!t.item, `${id} try ${k + 1}: rhythm task with a review item`); return; }
@@ -246,10 +246,11 @@ function validatePath(name, levels, kit, names, spec = null) {
         ok(ITEM(t.item, list(t.answer)[0], t.prompt), `${id} try ${k + 1}: review item matches the position`, t.item);
       });
       ok(st.play?.bpm >= 40 && st.play?.bpm <= 160, `${id}: Play it has a default bpm`, st.play?.bpm);
+      if (typeof st.play?.groove === "object") ok(Object.values(st.play.groove.hits).every(a => a.every(x => x >= 0 && x < st.play.groove.beats * st.play.groove.sub)), `${id}: Play it groove fits one bar`);
       (st.play?.follow || []).filter(Boolean).flatMap(list).filter(Boolean).forEach(p => POS(`${id} play`, p, st.play.view));
       const qs = st.check.questions;
       ok(qs.length === 4 && st.check.pass === 3, `${id}: 4 questions, pass 3`);
-      ok(qs.filter(q => q.type === 'tap').length >= 2, `${id}: at least 2 of 4 questions are taps`);
+      ok(qs.filter(q => q.type === 'tap').length >= (spec?.minTaps ?? 2), `${id}: at least ${spec?.minTaps ?? 2} of 4 questions are taps`);
       if (li >= 2) ok(qs.some(q => /^From (Lesson|Level) \d/.test(q.prompt)), `${id}: one question reviews an earlier lesson`);
       qs.forEach((q, k) => {
         if (q.type === 'tap') {
@@ -308,6 +309,30 @@ const pianoSpec = {
   }
 };
 if (pianoPaths.length) validatePath('piano', pianoPaths, pianoKit, {}, pianoSpec);
+
+/* ---------- drums: pads are { string: 0, fret: index in KIT } ---------- */
+const { KIT } = await import(R + 'drums/kit.js');
+const drumPaths = await import(R + 'drums/lessons/index.js').then(m => m.DRUM_LEVELS).catch(e => { ok(false, 'drum lessons load', e.message); return []; });
+const DRUM_NAMES = Object.fromEntries(KIT.map(p => [p.name.toLowerCase(), p.id]));
+const drumSpec = {
+  noLink: true, minTaps: 1,
+  pos: (where, p) => ok(p && p.string === 0 && Number.isInteger(p.fret) && p.fret >= 0 && p.fret < KIT.length, `${where}: a real pad`, JSON.stringify(p)),
+  prompt: (where, prompt, answers) => {
+    const m = /Tap the (crash|ride|hi-hat foot|hi-hat|open hi-hat|high tom|mid tom|snare|floor tom|kick)\b/i.exec(prompt);
+    if (m) list(answers).forEach(a => ok(KIT[a.fret].id === DRUM_NAMES[m[1].toLowerCase()], `${where}: "${m[0]}" matches the answer`, KIT[a.fret].id));
+  },
+  item: (item, p) => {
+    const id = KIT[p.fret].id;
+    if (item === `pad:${id}` || item === `staff:drum@${id}`) return true;
+    return /^(sticking|count|groove-ear|feel-ear|fact):/.test(item || '');
+  }
+};
+if (drumPaths.length) validatePath('drums', drumPaths, { pcAt: () => 0, midiOf: () => 0 }, {}, drumSpec);
+const { RUDIMENTS } = await import(R + 'drums/rudiments.js');
+for (const lv of drumPaths) for (const n of nodesOf(lv.level)) for (const id of itemsOf(n)) {
+  const st = /^sticking:(.+)$/.exec(id); if (st) ok(RUDIMENTS.some(r => r.id === st[1]), `drums ${n.id}: sticking item ${id} is a known rudiment`);
+  const sf = /^staff:drum@(.+)$/.exec(id); if (sf) ok(KIT.some(p => p.id === sf[1]), `drums ${n.id}: ${id} is a kit piece`);
+}
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exitCode = fail ? 1 : 0;
