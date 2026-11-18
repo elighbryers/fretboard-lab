@@ -39,6 +39,33 @@ All nine bass sections are built, tested and pushed:
 9. **Quality:** every bass lesson walked end to end in Chromium, every drill and play-along exercised, the
    daily review tested with bass items, guitar and bass switched back and forth with nothing mixed up.
 
+### Piano: done
+
+1. **Keyboard view:** ~44 px keys on touch screens (fitted to 26–44 px on desktop), a focus octave on phones in
+   portrait, about 3 octaves in landscape, 61 keys on desktop (88 option), an 88-key mini-map, Middle C always
+   marked, R/3/5 dots near the front of each key (outlined on black keys), grey-out outside the scale, W/H steps,
+   finger numbers (RH above, LH below), a five-finger bracket, inversions side by side, I–IV–V–I voice leading
+   (common tones stay, moving notes slide), an LH pattern menu, scale over chord, drone, heat map, and
+   "show LH / RH / both" fingering. Multi-touch with Pointer Events and glissando.
+2. **Sound:** smplr (MIT, vendored) with the Salamander Grand Piano 30-note MP3 subset (2.0 MB, CC BY 3.0,
+   credited on Progress → About), self-hosted; the lesson range loads first, the rest in the background, and
+   a synth piano plays until samples arrive.
+3. **Input:** MIDI keyboards play into whichever on-screen keyboard is waiting for an answer; the mic answers
+   single notes.
+4. **Drills:** Key finder, Staff reader (landmarks first), Hear it find it over a drone, Interval trainer,
+   Chords (build, quality by ear, which inversion), Key signatures.
+5. **Practice tools:** tempo trainer (60% → +5% after 3 clean runs, −10% after a miss, goals logged),
+   bar-snapped loops, hands separately/together, piano timer routines.
+6. **Play-along:** one data format, four views (piano roll, falling notes, grand staff, chord chart), wait
+   mode or keep going, 14 pieces (11 public-domain melodies arranged here, 3 original etudes).
+7. **Learn path:** all 6 levels from research-piano.md section E (42 lessons, 6 challenges including timed
+   key finding and triad building; placement asks about treble clef, bass clef and triads). Reading runs as a
+   parallel track (lessons 1.7, 3.2, 3.6, 4.6 plus staff items in review).
+8. **Review and progress:** piano items asked on the keys; keyboard and staff heat maps; pieces with clean
+   tempo and hands; four piano milestones.
+9. **Quality:** phone portrait/landscape and desktop, two-finger chords, slow sample loading, every lesson
+   walked, pieces played in all views.
+
 ## 2. Commits
 
 | Commit | What it did |
