@@ -176,7 +176,7 @@ function itemOk(kit, item, p, prompt = '', names = BASS_NAMES) {
   return !!d && T.pcOf(T.parseNote(m[2]) + d.semi) === pc;
 }
 function validatePath(name, levels, kit, names) {
-  ok(levels.length >= 1 && levels.length <= 6, `${name}: up to six levels`, levels.length); // set to === 6 once all six are written
+  ok(levels.length === 6, `${name}: six levels`, levels.length);
   levels.forEach((lv, n) => {
     const L = lv.level, where0 = `${name} level ${n + 1}`;
     ok(L.lessons.length === 7, `${where0}: 7 lessons`, L.lessons.length);

@@ -196,7 +196,8 @@ export default {
   placement: [
     tap('Tap the 5th of G (G is on the E string, fret 3).', P(3, 5)),
     tap('Tap C# on the A string.', at('C#', 3)),
-    choice('In bass tab, the bottom line is…', ['The low E string', 'The G string', 'The first fret'], 'The low E string', 'fact:tab-bottom-line')
+    choice('Listen to this bass rhythm. How is it counted?', ['1 & 2 & 3 & 4 &', '1 2 3 4', '1 e & a 2 e & a'], '1 & 2 & 3 & 4 &', 'fact:count-eighths',
+      { sound: { seq: [33, 33, 33, 33, 33, 33, 33, 33], bpm: 150, drums: false } })
   ]
 };
 export const _K = K;

@@ -4,11 +4,13 @@ import level2 from './level2.js';
 import level3 from './level3.js';
 import level4 from './level4.js';
 import level5 from './level5.js';
+import level6 from './level6.js';
 
 export const BASS_LEVELS = [
   { title: 'The neck, the pulse and your hands', blurb: 'String names, plucking, one finger per fret, the beat, the alphabet, octaves and muting.', level: level1 },
   { title: 'Roots and rhythm', blurb: 'Eighth notes, roots on chord changes, sharps and flats, root-5th-octave, tab and syncopation.', level: level2 },
   { title: 'Major scale, keys and the pentatonic', blurb: 'The major scale in one position, degrees, moving keys, the circle of fifths, minor, pentatonics and blues.', level: level3 },
   { title: 'Intervals and chord tones', blurb: 'Interval shapes, major and minor 3rds, triads, arpeggios and 10ths, 7th chords, chords of a key, hearing chord tones.', level: level4 },
-  { title: 'Progressions and connecting chords', blurb: 'Roman numerals and Nashville numbers, the 12-bar blues, I–V–vi–IV, approach notes, hearing progressions and song form.', level: level5 }
+  { title: 'Progressions and connecting chords', blurb: 'Roman numerals and Nashville numbers, the 12-bar blues, I–V–vi–IV, approach notes, hearing progressions and song form.', level: level5 },
+  { title: 'Groove and walking', blurb: 'Two-feel and four-feel, walking lines, ii–V–I, groove styles, feel, modes, and slap, pick and low B.', level: level6 }
 ];
