@@ -4,7 +4,9 @@
 //   hit('kick', t, 1)   // piece, audio-clock time, velocity 0..1
 // Pieces: kick, snare, rim (cross-stick), hat (closed), ohat (open), phat (pedal),
 // ride, bell, crash, tom1 (high), tom2 (mid), tom3 (floor). Used by the groove player
-// (js/groove.js) and the drums instrument.
+// (js/groove.js) and the drums instrument. The plan's optional CC0 Karoryfer samples could not be
+// downloaded in the build environment (docs/overnight-report.md), so the synth is the drum sound;
+// useSamples(fn) lets a sample player take over later.
 import { context, output } from './audio.js';
 
 export const PIECES = ['crash', 'ride', 'bell', 'ohat', 'hat', 'tom1', 'tom2', 'snare', 'rim', 'tom3', 'kick', 'phat'];

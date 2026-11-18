@@ -96,6 +96,13 @@ All nine bass sections are built, tested and pushed:
 
 ## 4. Skipped or changed, and why
 
+- **Bass samples (Bass 2) and drum samples (Drums 2): not shipped.** The build environment's network
+  blocked karoryfer.com, and the sfzinstruments GitHub repositories for Growlybass and the Karoryfer kits
+  were not reachable (GitHub API 403; raw files 404). The brief's fallback was "another CC0 Karoryfer set,
+  else the synth only"; every Karoryfer source was blocked the same way, so bass and drums use the built-in
+  synthesis. Both sound modules keep a hook for samples (`setVoice` in js/audio.js, `useSamples` in
+  js/drumkit.js), so a trimmed CC0 set can be dropped in later without touching anything else.
+
 ## 5. Test results
 
 ## 6. Hand-test checklist
