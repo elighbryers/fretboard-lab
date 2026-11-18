@@ -44,7 +44,7 @@ const save = () => updateFretboardPrefs({ drumsLast: st });
 function light(step) {
   grid.light(step);
   el.querySelectorAll('#dk-staff .now').forEach(x => x.classList.remove('now'));
-  if (step >= 0 && staffIndex[step] >= 0) el.querySelectorAll(`#dk-staff .abcjs-n${staffIndex[step]}`).forEach(x => x.classList.add('now'));
+  if (step >= 0 && staffIndex[step] >= 0) el.querySelectorAll(`#dk-staff .abcjs-mm0.abcjs-n${staffIndex[step]}`).forEach(x => x.classList.add('now'));
 }
 function play() {
   if (off) { off(); off = null; metronome.stop(); light(-1); $('#dk-go').textContent = '▶ Play loop'; return; }

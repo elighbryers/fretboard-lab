@@ -762,3 +762,9 @@ button.small { padding: 6px 10px; font-size: 13px; min-height: 36px }
 .sticking span { min-width: 22px; text-align: center } .sticking .grace { font-size: 12px; color: var(--muted) } .sticking .rest { color: var(--grey-text) }
 .stick-pads { display: flex; gap: 12px } .stick-pads .pad { min-height: 110px; max-width: none }
 .drum-run > *, .groove > *, .lock > * { min-width: 0 } .rgrid { max-width: 100% }
+.form-bar { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px }
+.fb-bar { min-width: 52px; display: grid; gap: 0; padding: 4px; border-radius: 8px; text-align: center }
+.fb-bar small { font-size: 10px; color: var(--pink); min-height: 12px } .fb-bar i { font-style: normal; font-size: 11px; color: var(--muted) }
+.fb-bar.fill { border-style: dashed } .fb-bar.now { background: var(--blue); color: var(--on-soft) } .fb-bar.now i { color: var(--on-soft) } .fb-bar.looped { outline: 2px dashed var(--lavender) }
+.drum-pa .toggles { flex-direction: column; align-items: flex-start } .drum-pa > * { min-width: 0 }
+#dp-staff .now, #dp-staff .now path { fill: #1565C0 }

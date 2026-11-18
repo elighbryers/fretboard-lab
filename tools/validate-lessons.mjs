@@ -172,6 +172,15 @@ for (const pc of PIECES) {
   ok(!/happy birthday/i.test(pc.title) && /public domain|Original/.test(pc.source), `${where}: public domain or original`);
 }
 
+/* ---------- drum play-alongs: bar lengths, chord symbols, originals only ---------- */
+const { SONGS } = await import(R + 'drums/songs.js');
+for (const sg of SONGS) {
+  const per = sg.beats * sg.sub;
+  ok(sg.chords.length === sg.bars.length && sg.chords.every(c => parseChordName(c)), `drum song ${sg.id}: one chord symbol per bar`);
+  sg.bars.forEach((b, i) => Object.entries(b.parts).forEach(([pc, pat]) => ok(pat.length === per && /^[xXg.]+$/.test(pat), `drum song ${sg.id} bar ${i + 1} ${pc}: one bar of ${sg.meter || sg.beats + '/4'}`, pat)));
+  ok(/^Original/.test(sg.source), `drum song ${sg.id}: original material`);
+}
+
 /* ---------- other instruments' paths: bass (and later piano, drums) ---------- */
 // Positions are checked against each instrument's own numbering and js/theory.js: every tap
 // answer must sound the note its prompt names, and every review item must match its position.

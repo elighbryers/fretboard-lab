@@ -6,5 +6,6 @@ export default {
   piano: ['#practice?tool=drills&drill=piano-keys', '#practice?tool=drills&drill=piano-staff', '#practice?tool=drills&drill=piano-hear',
     '#practice?tool=drills&drill=piano-intervals', '#practice?tool=drills&drill=piano-chords', '#practice?tool=drills&drill=piano-keysig',
     '#practice?tool=playalong&tab=minuet-g', '#practice?tool=playalong&tab=gymnopedie-1'],
-  drums: ['#practice?tool=drills&drill=drum-read', '#practice?tool=drills&drill=drum-ear', '#practice?tool=drills&drill=drum-sticking', '#practice?tool=drills&drill=drum-time']
+  drums: ['#practice?tool=drills&drill=drum-read', '#practice?tool=drills&drill=drum-ear', '#practice?tool=drills&drill=drum-sticking', '#practice?tool=drills&drill=drum-time',
+    '#practice?tool=playalong&tab=song-form', '#practice?tool=playalong&tab=six-eight']
 };
