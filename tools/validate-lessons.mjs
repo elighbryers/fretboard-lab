@@ -158,7 +158,15 @@ function checkFrettedPrompt(kit, names, where, prompt, answers) {
   const pc = T.parseNote(m[1]), s = names[m[2]];
   list(answers).forEach(a => ok(a.string === s && T.pcOf(kit.midiOf(a.string, a.fret)) === pc, `${where}: "${m[0]}" matches the answer`, JSON.stringify(a)));
 }
-const itemOk = (kit, item, p) => item === `note:${T.NOTES[T.pcOf(kit.midiOf(p.string, p.fret))]}@s${p.string}`;
+// A tap's review item: the note at that spot, or a degree / chord tone that sounds there.
+function itemOk(kit, item, p) {
+  const pc = T.pcOf(kit.midiOf(p.string, p.fret));
+  if (item === `note:${T.NOTES[pc]}@s${p.string}`) return true;
+  const m = /^(degree|tone):([A-G][#b]?):([\w-]+):(R|bb?\d|#?\d)$/.exec(item || '');
+  if (!m) return false;
+  const degs = T.parseFormula(T.lookup(m[1] === 'degree' ? 'scale' : 'chord', m[3]).formula), d = degs.find(x => x.label === m[4]);
+  return !!d && T.pcOf(T.parseNote(m[2]) + d.semi) === pc;
+}
 function validatePath(name, levels, kit, names) {
   ok(levels.length >= 1 && levels.length <= 6, `${name}: up to six levels`, levels.length); // set to === 6 once all six are written
   levels.forEach((lv, n) => {
