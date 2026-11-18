@@ -173,7 +173,7 @@ registerDrill({ id: 'piano-intervals', own: true, title: 'Interval trainer', blu
       };
       return {};
     }
-    ui.prompt(`Tap a <span class="target">${name}</span> above ${nameOct(root)}.`);
+    ui.prompt(`Tap a${/^[aeiou]/.test(name) ? "n" : ""} <span class="target">${name}</span> above ${nameOct(root)}.`);
     play(root);
     return { tap({ midi }) {
       if (done) return; done = true;

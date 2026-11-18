@@ -22,3 +22,5 @@ if (foot) foot.textContent = 'Piano';
 import { usePianoSound } from './sound.js';
 usePianoSound();
 import './drills.js';
+const sub = document.querySelector('header .title p');
+if (sub) sub.textContent = 'See scales and chords on the keys. Tap any key to hear it.';
