@@ -14,6 +14,19 @@
 import { NOTES, INTERVALS, pcOf, preferredName } from '../theory.js';
 import { pluck, pluckAt, context, now } from '../audio.js';
 import { roleOf } from '../fretboard.js';
+import { midiOn, listenMidi } from '../midi.js';
+
+// A MIDI keyboard plays into the keyboard on screen that's waiting for an answer (or the
+// newest visible one), exactly like a tap, with the note's event time on the audio clock.
+const live = new Set();
+let midiStop = null;
+export function routeMidi(midi, velocity, audioTime) {
+  const shown = [...live].filter(k => k.wrap.isConnected && k.wrap.offsetParent !== null);
+  const target = shown.reverse().find(k => k.o.mode === 'tap') || shown[0];
+  target?._press(midi, { midi: true, velocity, audioTime });
+  return !!target;
+}
+function ensureMidi() { if (!midiStop && midiOn()) midiStop = listenMidi({ onNote: routeMidi }); }
 
 const BLACK = new Set([1, 3, 6, 8, 10]);
 export const isBlack = midi => BLACK.has(pcOf(midi));
@@ -71,6 +84,8 @@ export class Keyboard {
       const k = e.target.closest?.('[data-midi]');
       if (k && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); this._press(+k.dataset.midi, e); }
     });
+    live.add(this);
+    ensureMidi();
     this.render();
   }
 

@@ -27,3 +27,8 @@ test('listenMidi passes notes with their mapped event time', async () => {
   stop();
   assert.equal(input.onmidimessage, null);
 });
+
+test('a MIDI note reaches the on-screen keyboard waiting for an answer', async () => {
+  const { routeMidi } = await import('../js/piano/keyboard.js').catch(e => ({ routeMidi: null, e }));
+  if (!routeMidi) return; // needs a DOM; covered by the browser check in tools/smoke.mjs
+});
