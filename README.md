@@ -41,10 +41,12 @@ js/audio.js           plucked string, strummed chords, drone, metronome, backing
 js/sound.js           one way to describe a short sound (notes, chords, drone) for lessons, review, placement
 js/progressions.js    Roman numerals -> chords in a key (I-V-vi-IV, ii-V-I, the 12-bar blues)
 js/fretboard.js       the shared Fretboard component + the degree color rule
-js/storage.js         saved progress in localStorage (versioned)
+js/storage.js         saved progress in localStorage (versioned): shared parts + one part per instrument
+js/instruments.js     each instrument's string numbering and tunings (guitar, bass 4/5/6-string, drop D; piano, drums)
 js/lesson-player.js   plays one lesson: Hear, Learn, See, Try, Play, Check (challenges: any order, plus a timed step)
 js/lessons/index.js   the six levels, in the research order
-js/lessons/kit.js     helpers for writing lessons: every label and answer is worked out from theory.js
+js/lessons/kit.js     helpers for writing lessons: makeKit(instrument) gives positions in that neck's numbering
+js/lessons/cards.js   shared theory cards: Learn-card text + music as notes and degrees, placed by each instrument
 js/lessons/level1-6.js  each level's 7 lessons, its challenge and 3 placement questions, as data
 js/path.js            which levels and lessons are open; what's next
 js/placement.js       the placement quiz (#learn?placement=1)
@@ -60,7 +62,9 @@ js/practice/rhythm.js      Rhythm: tap along, early/late and spread, calibration
 js/playalong/*.js     play-along tabs as data (one file per tab, listed in index.js)
 js/ui.js              shared volume sliders and small helpers
 js/tabs/progress.js   at-a-glance tiles, charts, weak spots, drill/tab stats, badges, export/import
-js/review.js          spaced review (Leitner boxes 1, 3, 7, 14, 30 days) and building today's session; pure logic
+js/review.js          spaced review (FSRS for facts, Leitner boxes for chord shapes and rhythms) and today's session; pure logic
+js/vendor/ts-fsrs.js  ts-fsrs 5.4.2 (MIT), unmodified, so FSRS loads without a build step or a CDN
+tools/validate-lessons.mjs   lesson validator: node tools/validate-lessons.mjs (see Lessons below)
 js/review-screen.js   the Daily review: the card on Learn, one question at a time, the end screen
 js/stats.js           the Progress numbers, worked out from saved data (and badge rules)
 js/charts.js          plain-SVG bar, line and calendar charts
@@ -86,10 +90,25 @@ query params, for example `#fretboard?key=G&scale=major`.
 
 **Lessons are content, not code.** Each lesson is an object in
 `js/lessons/levelN.js`. The shape of every step is documented at the top of
-`level1.js`. Positions use guitar numbering (string 6 = low E, fret 0 = open).
+`level1.js`. Guitar positions use guitar numbering (string 6 = low E, fret 0 = open);
+each instrument has its own numbering in `js/instruments.js` (on bass, string 4 is the low E).
 Write labels and answers with `js/lessons/kit.js` (`inKey('G', 'scale', 'major').dot(6, 3)`,
-`.spots('3')`, `above(root, 4)`): a dot that isn't in its key throws when the file loads,
-so text and neck can't disagree. Lessons unlock in order: passing Check it (3 of 4)
+`.spots('3')`, `above(root, 4)`; a bass lesson uses `makeKit('bass')`): a dot that isn't in
+its key throws when the file loads, so text and neck can't disagree.
+
+**Theory cards.** A Learn card whose idea is the same on every instrument lives in
+`js/lessons/cards.js` as text plus its music (a key + scale or chord and the degrees or
+notes it shows). A guitar lesson places it with `card('l3-1.1', { view, dots })`, which
+checks every dot against the card's music; bass and piano lessons can reuse the same card
+(`autoPlace(id, makeKit('bass'))`, `cardNotes(id)`). Cards about guitar geometry ("one string
+up, one fret back") stay in the guitar lesson. Positions only appear in an instrument's
+own See, Try and Play steps (and its tap questions).
+
+**Lesson validator.** `node tools/validate-lessons.mjs` (or `... 3 4` for some levels) checks
+every lesson (positions, prompts that name the right string, counts, review items), every
+theory card (used, instrument-free, places on a 4- and 5-string bass), each instrument's
+string numbering, and that the guitar lessons match `tools/guitar-lessons.snapshot.json`
+byte for byte. After changing a lesson on purpose, run it with `--update-snapshot`. Lessons unlock in order: passing Check it (3 of 4)
 unlocks the next one, and passing a Level Challenge opens the next level. The
 placement quiz asks 3 questions per level and opens the first level you miss
 (2 of 3 needed to move on). Each lesson's `review` ids, plus its tasks and
@@ -123,6 +142,14 @@ scale, add one line to a group.
 field. The full shape is documented at the top of `js/storage.js`. If you change
 the shape, bump `VERSION` and add a migration to `MIGRATIONS`. Quiz answers are
 saved as review items such as `note:G@s5` (G on string 5).
+
+**Per instrument.** `instrument` says which instrument is being learned (Progress →
+Settings). Each instrument keeps its own lessons, position items (`note:`, `chordshape:`;
+they feed the heat map), placement, clean tempos, goals and today's review under
+`instruments[id]`. Theory items (facts, degrees, intervals, chord tones, ear training,
+rhythms), the log (each entry tagged with its `instrument`), practice days, the streak and
+badges are shared. `getLesson`, `recordAnswer`, `allItems` and the rest read and write the
+right part on their own.
 
 ## Play-along tabs
 
@@ -166,9 +193,14 @@ or newer value of each) or replace.
 ## Daily review
 
 Every answer (lessons, drills, the review) goes through `recordAnswer` in
-js/storage.js, which updates the item's Leitner box from js/review.js:
-quick and right = up a box (once a day), right but slow = same box,
-wrong = box 1, due tomorrow. Today's session: due/overdue first, then weak
+js/storage.js, which updates the item's schedule from js/review.js.
+Fact-like items (notes, intervals, degrees, chord tones, facts, ear training) use
+FSRS with default parameters: wrong = Again (back tomorrow), right but slow = Hard,
+right and quick = Good; only the first answer of a day counts (plus a first miss).
+Chord shapes and rhythms keep Leitner boxes: quick and right = up a box (once a day),
+right but slow = same box, wrong = box 1, due tomorrow. Version 4 of the saved data
+moved older box items to FSRS keeping each due day (box n = a starting stability of
+1, 3, 7, 14 or 30 days). Today's session: due/overdue first, then weak
 items, then up to 5 new items from finished lessons, capped at 20, with
 confusable interval pairs next to each other. The session is saved after every
 answer (`review` in storage), so Pause or a reload resumes it. Nothing due =
