@@ -1,7 +1,7 @@
 // Plays one lesson from data (see js/lessons/level1.js for the shape): six steps,
 // one card at a time, with Back/Next and a progress bar. Challenges use `flow`
 // (an ordered list of steps) and may add a timed step.
-import { TUNINGS, NOTES, midiAt, pcOf, preferredName, parseNote } from './theory.js';
+import { NOTES, midiAt, pcOf, preferredName, parseNote } from './theory.js';
 import { Fretboard } from './fretboard.js';
 import { context, metronome, droneStart, droneStop, backing } from './audio.js';
 import { volumeHTML, esc, clock } from './ui.js';
@@ -11,13 +11,14 @@ import { findSkill, renderSkill } from './skills.js';
 import { fretboardLink } from './router.js';
 import { playSound, parseChord } from './sound.js';
 import { chordOf } from './progressions.js';
+import { tuningOf } from './instruments.js';
 
 const STEPS = [
   ['hear', 'Hear it'], ['learn', 'Learn it'], ['see', 'See it'],
   ['try', 'Try it'], ['play', 'Play it'], ['check', 'Check it']
 ];
 const NAMES = Object.fromEntries(STEPS);
-const tuning = TUNINGS.standard;
+const tuning = tuningOf('guitar'); // guitar content: positions are in guitar numbering
 const PLAY_BPM = { min: 40, max: 160, default: 60 }; // Play it tempo range for every lesson
 
 // Guitar numbering in lesson data -> board indexes.

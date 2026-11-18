@@ -8,9 +8,11 @@
 //   fb.playSequence([{s,f}, [{s,f},{s,f}], null], { bpm: 120 });  // light + sound in time
 //
 // Strings are indexed high to low like tab: s = 0 is the top line (high e).
-import { TUNINGS, NOTES, INTERVALS, pcOf, midiAt, preferredName } from './theory.js';
+import { NOTES, INTERVALS, pcOf, midiAt, preferredName } from './theory.js';
 import { pluck, pluckAt, context, now } from './audio.js';
 
+import { tuningOf } from './instruments.js';
+import { getInstrument } from './storage.js';
 /* ---------- the one color code ----------
    Which degrees get which role lives here; the colors themselves are the
    --deg-* variables in css/styles.css. Both 3rds share the 3rd color. */
@@ -57,7 +59,7 @@ function geometry(from, to, nStrings, flipX = false, flipY = false) {
 export class Fretboard {
   constructor(el, opts = {}) {
     this.o = {
-      tuning: TUNINGS.standard,
+      tuning: tuningOf(getInstrument()),
       view: [0, 15],          // frets drawn: [from, to]
       labels: 'notes',        // 'notes' | 'intervals' | 'none'
       mode: 'show',           // 'show' | 'tap' | 'sequence'

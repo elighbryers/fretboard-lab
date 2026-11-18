@@ -1,0 +1,121 @@
+// Lesson validator: node tools/validate-lessons.mjs [level numbers...] [--update-snapshot]
+// No level numbers = all six. Checks every guitar lesson's data (positions, prompts that
+// name the right string, card and question counts, review items), the shared theory
+// cards (js/lessons/cards.js) and each instrument's string numbering, and that the
+// guitar lessons are byte-for-byte what tools/guitar-lessons.snapshot.json recorded.
+// After changing a lesson on purpose, run with --update-snapshot to record the new version.
+import { readFileSync, writeFileSync } from 'fs';
+const R = new URL('../js/', import.meta.url).href;
+const { LEVELS, nodesOf, itemsOf, factQuestion } = await import(R + 'lessons/index.js');
+const T = await import(R + 'theory.js');
+const { CARDS, placeCard, autoPlace, cardNotes } = await import(R + 'lessons/cards.js');
+const { makeKit } = await import(R + 'lessons/kit.js');
+const { INSTRUMENT_DEFS, tuningOf } = await import(R + 'instruments.js');
+const args = process.argv.slice(2);
+let pass = 0, fail = 0;
+const ok = (c, n, x = '') => { c ? pass++ : fail++; if (!c) console.log(`FAIL  ${n}${x !== '' ? '  — ' + x : ''}`); };
+const OPEN = { 1: 64, 2: 59, 3: 55, 4: 50, 5: 45, 6: 40 };
+const NAMES = { 'low E': 6, A: 5, D: 4, G: 3, B: 2, 'high e': 1 };
+const list = a => (Array.isArray(a) ? a : [a]);
+const levels = args.filter(a => /^\d$/.test(a)).map(Number);
+if (!levels.length) levels.push(1, 2, 3, 4, 5, 6);
+const sentences = t => (t.replace(/<[^>]+>/g, '').match(/[.!?](\s|$)/g) || []).length;
+
+function checkPos(where, p, view) {
+  ok(p && p.string >= 1 && p.string <= 6 && Number.isInteger(p.fret), `${where}: a real position`, JSON.stringify(p));
+  if (view && p) ok(p.fret >= view[0] && p.fret <= view[1], `${where}: fret ${p.fret} inside view ${view}`, JSON.stringify(p));
+}
+// "Tap G on the A string" / "Tap F# on the low E string": the answer must be that note on that string.
+function checkPrompt(where, prompt, answers) {
+  const m = /Tap (?:any )?([A-G][#b]?) on the (low E|A|D|G|B|high e) string/.exec(prompt);
+  if (!m) return;
+  const pc = T.parseNote(m[1]), s = NAMES[m[2]];
+  list(answers).forEach(a => ok(a.string === s && (OPEN[a.string] + a.fret) % 12 === pc, `${where}: "${m[0]}" matches the answer`, JSON.stringify(a)));
+}
+
+for (const n of levels) {
+  const L = LEVELS[n - 1].level;
+  ok(!!L, `level ${n} has content`);
+  if (!L) continue;
+  ok(L.lessons.length >= 7 && L.lessons.length <= 8, `level ${n}: 7-8 lessons`, L.lessons.length);
+  ok(L.placement?.length === 3, `level ${n}: 3 placement questions`);
+  L.lessons.forEach((les, li) => {
+    const st = les.steps || {}, id = les.id;
+    for (const k of ['hear', 'learn', 'see', 'try', 'play', 'check']) ok(!!st[k], `${id}: has ${k}`);
+    if (!st.check) return;
+    ok(st.hear?.sound?.seq?.length > 0, `${id}: Hear it has a sound`);
+    const cards = st.learn?.cards || [];
+    ok(cards.length >= 2 && cards.length <= 3, `${id}: 2-3 Learn cards`, cards.length);
+    cards.forEach((c, k) => {
+      ok(sentences(c.text) <= 2, `${id} card ${k + 1}: at most 2 sentences`, c.text);
+      ok(c.board?.dots?.length > 0, `${id} card ${k + 1}: has a fretboard with dots`);
+      (c.board?.dots || []).forEach(d => checkPos(`${id} card ${k + 1}`, d, c.board.view));
+    });
+    ok(st.see?.sequence?.length > 0 && !!st.see?.view, `${id}: See it has a sequence`);
+    st.see?.sequence?.flatMap(x => (x ? list(x) : [])).forEach(p => checkPos(`${id} see`, p, st.see.view));
+    if (li >= 0 && n > 1) ok(!!st.see?.link, `${id}: See it has Open in Fretboard`);
+    ok(st.try?.tasks?.length === 3, `${id}: 3 Try tasks`, st.try?.tasks?.length);
+    (st.try?.tasks || []).forEach((t, k) => {
+      list(t.answer).forEach(a => checkPos(`${id} try ${k + 1}`, a, t.view || st.try.view));
+      checkPrompt(`${id} try ${k + 1}`, t.prompt, t.answer);
+      (t.dots || []).forEach(d => checkPos(`${id} try ${k + 1} dot`, d, t.view || st.try.view));
+    });
+    ok(st.play?.bpm >= 40 && st.play?.bpm <= 160, `${id}: Play it has a default bpm`, st.play?.bpm);
+    if (n >= 2) ok(true, '');
+    const qs = st.check.questions;
+    ok(qs.length === 4 && st.check.pass === 3, `${id}: 4 questions, pass 3`);
+    const taps = qs.filter(q => q.type === 'tap').length;
+    ok(taps >= 2, `${id}: mostly tapping (${taps} of 4)`);
+    if (li >= 2) ok(qs.some(q => /^From (Lesson|Level) \d/.test(q.prompt)), `${id}: one question reviews an earlier lesson`);
+    qs.forEach((q, k) => {
+      if (q.type === 'tap') { list(q.answer).forEach(a => checkPos(`${id} q${k + 1}`, a, q.view || st.check.view)); checkPrompt(`${id} q${k + 1}`, q.prompt, q.answer); }
+      else ok(q.options.includes(q.answer) && !!q.item, `${id} q${k + 1}: choice has its answer and a review item`);
+    });
+    ok(itemsOf(les).length >= 3, `${id}: registers review items`, itemsOf(les).length);
+  });
+  const ch = L.challenge;
+  ok(!!ch.flow?.length, `level ${n}: challenge has steps`);
+  ok(['check', 'timed'].includes(ch.flow?.[ch.flow.length - 1]?.type), `level ${n}: challenge ends with something to pass`);
+  if (n >= 2) ok(ch.flow.some(s => s.type === 'play' && (s.drone || s.backing) && s.seconds) || L.lessons.some(l => l.steps.play?.seconds), `level ${n}: includes an improvising task`);
+  (L.placement || []).forEach((q, k) => { if (q.type === 'tap') list(q.answer).forEach(a => checkPos(`level ${n} placement ${k + 1}`, a, q.view || [0, 12])); });
+}
+
+/* ---------- the guitar lessons are exactly as recorded ---------- */
+const snapFile = new URL('./guitar-lessons.snapshot.json', import.meta.url);
+const snap = { levels: LEVELS.map(x => ({ title: x.title, blurb: x.blurb, level: x.level })), items: {}, facts: {} };
+for (const lv of LEVELS) for (const n of nodesOf(lv.level)) {
+  snap.items[n.id] = itemsOf(n);
+  for (const id of itemsOf(n).filter(i => i.startsWith('fact:'))) snap.facts[id] = factQuestion(id);
+}
+const json = JSON.stringify(snap, (k, v) => (typeof v === 'function' ? `[fn ${v.name}]` : v));
+if (args.includes('--update-snapshot')) { writeFileSync(snapFile, json); console.log('snapshot updated'); }
+ok(json === readFileSync(snapFile, 'utf8'), 'guitar lessons match the recorded snapshot exactly (run with --update-snapshot after an intended change)');
+
+/* ---------- shared theory cards ---------- */
+const GEO = /\b(string|strings|fret|frets|neck|shape|shapes|barre|finger|fingers|pick|strum|open|CAGED|capo|box|position|positions|thumb|low E|high e|tab)\b/i;
+const used = new Set();
+for (const lv of LEVELS) for (const n of nodesOf(lv.level)) (n.steps?.learn?.cards || []).forEach(c => { const id = Object.keys(CARDS).find(k => CARDS[k].text === c.text); if (id) used.add(id); });
+const guitarKit = makeKit('guitar'), bass4 = makeKit('bass'), bass5 = makeKit('bass', 'five');
+for (const [id, c] of Object.entries(CARDS)) {
+  ok(used.has(id), `card ${id}: used by a guitar lesson`);
+  ok(!GEO.test(c.text), `card ${id}: text is instrument-free`, c.text);
+  ok(c.theory.length > 0 && c.theory.every(g => !('string' in g) && !('fret' in g) && (g.notes || (g.key && g.kind && g.id && g.labels?.length))), `card ${id}: music stored as notes/degrees, no positions`);
+  ok(cardNotes(id).length > 0, `card ${id}: gives notes for a keyboard`);
+  for (const [name, kit] of [['4-string bass', bass4], ['5-string bass', bass5]]) {
+    let placed = null; try { placed = autoPlace(id, kit, [0, 12]); } catch (e) { placed = e.message; }
+    ok(placed && placed.board && placed.text === c.text, `card ${id}: places on a ${name}`, typeof placed === 'string' ? placed : '');
+    if (placed?.board) { let back = true; try { placeCard(id, placed.board, kit.pcAt); } catch { back = false; } ok(back, `card ${id}: the ${name} placement passes the card check`); }
+  }
+}
+let refused = false;
+try { placeCard('l3-1.1', { view: [0, 7], dots: [{ string: 5, fret: 3, label: 'R', role: 'root' }, { string: 4, fret: 3, label: '3', role: 'third' }] }, guitarKit.pcAt); } catch { refused = true; }
+ok(refused, 'a card placed on the wrong fret is refused (D labelled as the 3rd above C)');
+
+/* ---------- each instrument's own string numbering ---------- */
+ok(guitarKit.midiOf(6, 0) === 40 && guitarKit.STRING[6] === 'low E', 'guitar: string 6 is the low E (MIDI 40)');
+ok(bass4.midiOf(4, 0) === 28 && bass4.STRING[4] === 'E' && bass4.ALL.join() === '4,3,2,1', 'bass: string 4 is the low E (MIDI 28), four strings');
+ok(bass5.midiOf(5, 0) === 23 && bass5.ALL.join() === '5,4,3,2,1', '5-string bass: string 5 is the low B (MIDI 23)');
+ok(tuningOf('guitar') === T.TUNINGS.standard, 'guitar uses the existing standard tuning object (nothing changes on screen)');
+ok(['standard', 'five', 'dropD', 'six'].every(t => INSTRUMENT_DEFS.bass.tunings[t].strings.every((s, i, a) => i === 0 || s.midi < a[i - 1].midi)), 'bass tunings run high to low like guitar tab');
+console.log(`\n${pass} passed, ${fail} failed`);
+process.exitCode = fail ? 1 : 0;

@@ -5,12 +5,13 @@
 // small panel inside the lesson Play steps that need them.
 import { inKey, P } from './lessons/kit.js';
 import { Fretboard } from './fretboard.js';
-import { TUNINGS } from './theory.js';
+
 import { playSound } from './sound.js';
 import { metronome } from './audio.js';
 import { rhythmSVG, findPattern } from './rhythm.js';
 import { recordClean, getTempo, recordAnswer, getItem, getGoal, practiseGoal, checkGoal, today } from './storage.js';
 import { esc, clock } from './ui.js';
+import { tuningOf } from './instruments.js';
 
 const STR = { 6: 'low E', 5: 'A', 4: 'D', 3: 'G', 2: 'B', 1: 'high e' };
 // A chord shape: [[string, fret, finger?]], strings not listed are not played.
@@ -73,7 +74,7 @@ export function touched(s) {
   return !!(item && getItem(item)) || !!getTempo(`skill:${s.id}`);
 }
 
-const tuning = TUNINGS.standard;
+const tuning = tuningOf('guitar'); // guitar content: positions are in guitar numbering
 const sIdx = n => tuning.strings.findIndex(x => x.num === n);
 const shapeDots = (chord, shape) => shape.map(([s, f]) => chord.dot(s, f));
 const fingerText = shape => shape.filter(x => x[2]).map(([s, f, fi]) => `finger ${fi} on the ${STR[s]} string, fret ${f}`).join(' · ');

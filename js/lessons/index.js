@@ -6,7 +6,8 @@ import level3 from './level3.js';
 import level4 from './level4.js';
 import level5 from './level5.js';
 import level6 from './level6.js';
-import { NOTES, TUNINGS, midiAt, pcOf } from '../theory.js';
+import { NOTES, midiAt, pcOf } from '../theory.js';
+import { tuningOf } from '../instruments.js';
 
 export const LEVELS = [
   { title: 'The neck and note names', blurb: 'String names, the musical alphabet, natural notes on the E and A strings, octave shapes.', level: level1 },
@@ -40,7 +41,7 @@ export function findLesson(id) {
 }
 
 /* ---------- review items a lesson introduces ---------- */
-const tuning = TUNINGS.standard;
+const tuning = tuningOf('guitar'); // guitar content: positions are in guitar numbering
 // { string, fret } in guitar numbering -> "note:A@s5"
 export const noteItemAt = ({ string, fret }) => `note:${NOTES[pcOf(midiAt(tuning.strings.findIndex(x => x.num === string), fret, tuning))]}@s${string}`;
 

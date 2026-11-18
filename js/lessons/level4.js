@@ -1,6 +1,6 @@
 // Level 4: chords and CAGED. Chord tones are labelled by js/lessons/kit.js (a
 // dot outside its chord throws); chord names come from js/progressions.js.
-import { P, inKey, tap, choice, task, degreeItem, toneItem } from './kit.js';
+import { P, inKey, tap, choice, task, degreeItem, toneItem, card } from './kit.js';
 import { chordOf, chordSpecs } from '../progressions.js';
 
 const chord = (key, id) => inKey(key, 'chord', id);
@@ -53,8 +53,8 @@ export default {
         hear: { text: 'C, E and G one at a time, then all together: the C major chord.', sound: { seq: [P(5, 3), P(4, 2), P(3, 0), ps(OPEN_C)], bpm: 70 } },
         learn: {
           cards: [
-            { text: 'A chord is three or more notes played together. The simplest, a triad, is the root, 3rd and 5th.', board: { view: [0, 6], dots: Cmaj.dots([[5, 3], [4, 2], [4, 5]]) } },
-            { text: 'Take every other note of the scale: C, skip D, E, skip F, G.', board: { view: [0, 6], dots: Cs.dots([[5, 3], [5, 5], [4, 2], [4, 3], [4, 5]], 'note') } },
+            card('l4-1.1', { view: [0, 6], dots: Cmaj.dots([[5, 3], [4, 2], [4, 5]]) }),
+            card('l4-1.2', { view: [0, 6], dots: Cs.dots([[5, 3], [5, 5], [4, 2], [4, 3], [4, 5]], 'note') }),
             { text: 'Play them together and you hear the C major chord. The open C chord is just those three notes, repeated.', board: { view: [0, 6], dots: Cmaj.dots(OPEN_C) } }
           ]
         },
@@ -87,9 +87,9 @@ export default {
         hear: { text: 'G major, G minor, then G diminished. Bright, sad, then tense.', sound: { seq: ['G:major', null, 'G:minor', null, 'G:dim'], bpm: 60 } },
         learn: {
           cards: [
-            { text: 'A major triad is the root, a major 3rd and a perfect 5th. It sounds bright.', board: { view: [0, 6], dots: Gmaj.dots(TRIAD.major) } },
+            card('l4-2.1', { view: [0, 6], dots: Gmaj.dots(TRIAD.major) }),
             { text: 'Lower the 3rd one fret to b3 and it becomes minor. It sounds sad.', board: { view: [0, 6], dots: Gm.dots(TRIAD.minor) } },
-            { text: 'Lower the 5th as well, to b5, and it is diminished. It sounds tense.', board: { view: [0, 6], dots: Gdim.dots(TRIAD.dim) } }
+            card('l4-2.3', { view: [0, 6], dots: Gdim.dots(TRIAD.dim) })
           ]
         },
         see: { text: 'G major, G minor, G diminished, one after another.', view: [0, 6], sequence: [Gmaj.dots(TRIAD.major), Gm.dots(TRIAD.minor), Gdim.dots(TRIAD.dim)], dots: Gc.dots([[6, 3], [5, 1], [5, 2], [5, 4], [5, 5]]), bpm: 50, link: { key: 'G', chord: 'minor', labels: 'intervals' } },
@@ -260,9 +260,9 @@ export default {
         hear: { text: 'Gmaj7, G7, then Gm7: dreamy, bluesy, smooth.', sound: { seq: ['G:maj7', null, 'G:7', null, 'G:m7'], bpm: 60 } },
         learn: {
           cards: [
-            { text: 'Add a 7th to a triad and you get a 7th chord. Major 7 is R 3 5 7 and sounds dreamy.', board: { view: [0, 6], dots: Gmaj7.dots(GMAJ7) } },
-            { text: 'Dominant 7, written just "7", is R 3 5 b7. It sounds bluesy and wants to move.', board: { view: [0, 6], dots: G7.dots(G_7) } },
-            { text: 'Minor 7 is R b3 5 b7. It sounds smooth and mellow.', board: { view: [0, 6], dots: Gm7.dots(GM7) } }
+            card('l4-7.1', { view: [0, 6], dots: Gmaj7.dots(GMAJ7) }),
+            card('l4-7.2', { view: [0, 6], dots: G7.dots(G_7) }),
+            card('l4-7.3', { view: [0, 6], dots: Gm7.dots(GM7) })
           ]
         },
         see: { text: 'Gmaj7, G7 and Gm7. Only one or two notes change each time.', view: [0, 6], sequence: [Gmaj7.dots(GMAJ7), G7.dots(G_7), Gm7.dots(GM7)], dots: Gc.dots([[6, 3], [5, 5], [4, 3], [4, 4], [3, 3], [3, 4], [2, 3], [1, 3]]), bpm: 40, link: { key: 'G', chord: 'maj7', labels: 'intervals' } },

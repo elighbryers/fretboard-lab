@@ -1,6 +1,6 @@
 // Level 5: progressions. Chords come from Roman numerals (js/progressions.js),
 // labels from js/lessons/kit.js. Backing tracks loop on the metronome.
-import { P, inKey, tap, choice, task, degreeItem, toneItem } from './kit.js';
+import { P, inKey, tap, choice, task, degreeItem, toneItem, card } from './kit.js';
 import { chordOf, chordSpecs, TWELVE_BAR } from '../progressions.js';
 
 const scale = k => inKey(k, 'scale', 'major');
@@ -193,8 +193,8 @@ export default {
         hear: { text: 'G, C, D, G, then the very same shapes with a capo at fret 2: now it is in A.', sound: { seq: [...chordSpecs('G', P1451), null, ...chordSpecs('A', P1451)], bpm: 70 } },
         learn: {
           cards: [
-            { text: 'A key is the set of notes a song uses. G major has one sharp, F#, and D major has two, F# and C#.', board: { view: [2, 9], dots: Ds.dots(shape5(5), 'note') } },
-            { text: 'Each step up a 5th adds a sharp: C, G, D, A. This ring of keys is the circle of fifths.', board: { view: [0, 12], dots: [Cs.dot(5, 3, 'note'), Gs.dot(4, 5, 'note'), Ds.dot(3, 7, 'note'), As.dot(2, 10, 'note')] } },
+            card('l5-keys.1', { view: [2, 9], dots: Ds.dots(shape5(5), 'note') }),
+            card('l5-keys.2', { view: [0, 12], dots: [Cs.dot(5, 3, 'note'), Gs.dot(4, 5, 'note'), Ds.dot(3, 7, 'note'), As.dot(2, 10, 'note')] }),
             { text: 'A capo raises every string. Play G shapes with a capo at fret 2 and you hear A, with the same numerals.', board: { view: [0, 7], dots: Amaj.dots(G_SHAPE_CAPO2, 'note') } }
           ]
         },
@@ -232,7 +232,7 @@ export default {
           cards: [
             { text: '♭VII borrows a chord from outside the key. In G it is F, and ♭VII-IV-I is a classic rock ending.', board: { view: [0, 10], dots: [rootDot(6, 3, 'I'), rootDot(6, 1, '♭VII', 'fifth'), rootDot(5, 3, 'IV')] } },
             { text: 'A secondary dominant is the V of another chord. B7 is the V of Em, so I-V/vi-vi pulls hard into Em.', board: { view: [0, 10], dots: [rootDot(6, 3, 'I'), rootDot(5, 2, 'V/vi', 'fifth'), rootDot(5, 7, 'vi', 'third')] } },
-            { text: 'Spot them by the note from outside the key, like the D# in B7.', board: { view: [0, 5], dots: B7.dots(B7_OPEN) } }
+            card('l5-b7.3', { view: [0, 5], dots: B7.dots(B7_OPEN) })
           ]
         },
         see: { text: 'I, ♭VII, IV, I in G, by the roots.', view: [0, 10], sequence: [rootDot(6, 3, 'I'), rootDot(6, 1, '♭VII', 'fifth'), rootDot(5, 3, 'IV'), rootDot(6, 3, 'I')], bpm: 60, link: { key: 'G', scale: 'mixolydian', labels: 'intervals' } },
@@ -306,7 +306,7 @@ export default {
           cards: [
             { text: 'You don\'t have to jump around. Every chord in a key lives within a few frets.', board: { view: [0, 7], dots: [...tri('G'), ...tri('C').filter(d => d.fret === 5)] } },
             { text: 'G, C, D and Em on the top three strings, all between frets 2 and 5.', board: { view: [0, 7], dots: [...tri('G'), ...tri('D'), ...tri('C').filter(d => d.fret === 5)] } },
-            { text: 'Move to the closest notes of the next chord. From G to Em, only one note changes: D goes up to E.', board: { view: [0, 7], dots: [...tri('G'), Em.dot(2, 5, 'note')] } }
+            card('l5-7.3', { view: [0, 7], dots: [...tri('G'), Em.dot(2, 5, 'note')] })
           ]
         },
         see: { text: 'G, D, Em, C in one position. Watch how little each change moves.', view: [0, 7], sequence: [triPos('G'), triPos('D'), triPos('Em'), triPos('C')], dots: [...tri('G'), ...tri('D'), Em.dot(2, 5, 'note'), Cmaj.dot(3, 5, 'note')], bpm: 40, link: { key: 'G', scale: 'major', labels: 'notes', pos: '2-5' } },

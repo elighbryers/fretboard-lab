@@ -1,6 +1,6 @@
 // Level 2: the major scale and keys. Every label comes from js/lessons/kit.js
 // (a dot outside its key throws when this file loads).
-import { P, inKey, noteDot, tap, choice, task, degreeItem } from './kit.js';
+import { P, inKey, noteDot, tap, choice, task, degreeItem, card } from './kit.js';
 
 const G = inKey('G', 'scale', 'major'), A = inKey('A', 'scale', 'major'), C = inKey('C', 'scale', 'major'), D = inKey('D', 'scale', 'major');
 const Em = inKey('E', 'scale', 'minor'), Gp = inKey('G', 'scale', 'major-pentatonic');
@@ -35,9 +35,9 @@ export default {
         hear: { text: 'The G major scale, up one string. You know this sound: do re mi fa so la ti do.', sound: { seq: ps(G_ONE), bpm: 90 } },
         learn: {
           cards: [
-            { text: 'A major scale is seven notes and then the first note again. The steps between them always follow one pattern.', board: { view: [0, 15], dots: G.dots(G_ONE, 'note'), focus: { strings: [6] } } },
-            { text: 'The pattern is W W H W W W H: whole, whole, half, whole, whole, whole, half.', board: { view: [0, 15], dots: G.dots([[6, 3], [6, 5], [6, 7], [6, 8]], 'note'), focus: { strings: [6] } } },
-            { text: 'The two half steps come after the 3rd note and after the 7th. In G those are B to C and F# to G.', board: { view: [0, 15], dots: G.dots([[6, 7], [6, 8], [6, 14], [6, 15]], 'note'), focus: { strings: [6] } } }
+            card('l2-1.1', { view: [0, 15], dots: G.dots(G_ONE, 'note'), focus: { strings: [6] } }),
+            card('l2-1.2', { view: [0, 15], dots: G.dots([[6, 3], [6, 5], [6, 7], [6, 8]], 'note'), focus: { strings: [6] } }),
+            card('l2-1.3', { view: [0, 15], dots: G.dots([[6, 7], [6, 8], [6, 14], [6, 15]], 'note'), focus: { strings: [6] } })
           ]
         },
         see: { text: 'G major on the low E string. Count the frets between the lights: 2, 2, 1, 2, 2, 2, 1.', view: [0, 15], sequence: G.dots(G_ONE, 'note'), bpm: 80, link: { key: 'G', scale: 'major', labels: 'notes' } },
@@ -103,9 +103,9 @@ export default {
         hear: { text: 'A G drone, then the scale on top. Listen to how the root feels like home.', sound: { seq: ps(shape6(3)), bpm: 80, drone: 'G' } },
         learn: {
           cards: [
-            { text: 'Each note has a number, its scale degree. The root is degree 1, and we write it R.', board: { view: [0, 6], dots: G.dots(shape6(3)) } },
-            { text: 'The root, 3rd and 5th matter most. Together they make the key\'s main chord.', board: { view: [0, 6], dots: G.dots([[6, 3], [5, 2], [5, 5], [4, 5]]) } },
-            { text: 'Numbers work in every key. In G the 3rd is B, and in C the 3rd is E.', board: { view: [0, 6], dots: [G.dot(5, 2, 'deg', { label: '3' }), C.dot(4, 2, 'deg')] } }
+            card('l2-3.1', { view: [0, 6], dots: G.dots(shape6(3)) }),
+            card('l2-3.2', { view: [0, 6], dots: G.dots([[6, 3], [5, 2], [5, 5], [4, 5]]) }),
+            card('l2-3.3', { view: [0, 6], dots: [G.dot(5, 2, 'deg', { label: '3' }), C.dot(4, 2, 'deg')] })
           ]
         },
         see: { text: 'The G major shape with its degree numbers, over a G drone.', view: [0, 6], sequence: G.dots(shape6(3)), bpm: 80, drone: 'G', link: { key: 'G', scale: 'major', labels: 'intervals' } },
@@ -174,9 +174,9 @@ export default {
         hear: { text: 'G major, then the same notes starting from E. Hear how it turns darker.', sound: { seq: [...ps(shape6(3)), null, ...ps(EM_OPEN)], bpm: 110 } },
         learn: {
           cards: [
-            { text: 'Play the notes of G major starting on its 6th note, E, and you get E minor.', board: { view: [0, 5], dots: Em.dots(EM_OPEN, 'note') } },
+            card('l2-6.1', { view: [0, 5], dots: Em.dots(EM_OPEN, 'note') }),
             { text: 'Every major key has a relative minor that shares all its notes. Its root is three frets below the major root.', board: { view: [0, 5], dots: [G.dot(6, 3, 'note'), Em.dot(6, 0, 'note')] } },
-            { text: 'From E, the degrees are 1 2 b3 4 5 b6 b7. The flat 3rd is what makes it sound minor.', board: { view: [0, 5], dots: Em.dots(EM_OPEN) } }
+            card('l2-6.3', { view: [0, 5], dots: Em.dots(EM_OPEN) })
           ]
         },
         see: { text: 'E minor over an E drone.', view: [0, 5], sequence: Em.dots(EM_OPEN), bpm: 80, drone: 'E', link: { key: 'E', scale: 'minor', labels: 'intervals' } },
@@ -211,8 +211,8 @@ export default {
         hear: { text: 'The G major pentatonic: five notes that sound open and happy.', sound: { seq: ps(GP_BOX), bpm: 100 } },
         learn: {
           cards: [
-            { text: 'Take the 4th and 7th out of the major scale. The five notes left are the major pentatonic.', board: { view: [0, 6], dots: Gp.dots(shape6(3).filter(([s, f]) => !['4', '7'].includes(G.info(s, f).label))) } },
-            { text: 'With no half steps left, every note sounds good over the key\'s chord. That makes it great for first solos.', board: { view: [0, 6], dots: Gp.dots(shape6(3).filter(([s, f]) => !['4', '7'].includes(G.info(s, f).label)), 'note') } },
+            card('l2-7.1', { view: [0, 6], dots: Gp.dots(shape6(3).filter(([s, f]) => !['4', '7'].includes(G.info(s, f).label))) }),
+            card('l2-7.2', { view: [0, 6], dots: Gp.dots(shape6(3).filter(([s, f]) => !['4', '7'].includes(G.info(s, f).label)), 'note') }),
             { text: 'This box covers all six strings of G major pentatonic, frets 2 to 5.', board: { view: [0, 6], dots: Gp.dots(GP_BOX) } }
           ]
         },
@@ -248,9 +248,9 @@ export default {
         hear: { text: 'The minor pentatonic, then a first blues lick made from it.', sound: { seq: [...ps(AMP_BOX1), null, ...ps(LICK)], bpm: 110 } },
         learn: {
           cards: [
-            { text: 'Play G major pentatonic from its relative minor, E, and you have E minor pentatonic: the same five notes.', board: { view: [0, 5], dots: Emp.dots(EMP_OPEN) } },
+            card('l2-minpent.1', { view: [0, 5], dots: Emp.dots(EMP_OPEN) }),
             { text: 'Its degrees are 1 b3 4 5 b7. Box 1 puts the root under your first finger on the low E string: at fret 5 it is A minor pentatonic.', board: { view: [3, 10], dots: Amp.dots(AMP_BOX1) } },
-            { text: 'Your first blues lick: G, E, D, C, then home to A.', board: { view: [3, 10], dots: Amp.dots(LICK) } }
+            card('l2-minpent.3', { view: [3, 10], dots: Amp.dots(LICK) })
           ]
         },
         see: { text: 'Box 1 up and down, then the lick.', view: [3, 10], sequence: [...Amp.dots(upDown(AMP_BOX1)), null, ...Amp.dots(LICK)], dots: Amp.dots(AMP_BOX1), bpm: 120, link: { key: 'A', scale: 'minor-pentatonic', labels: 'intervals', pos: '5-8' } },

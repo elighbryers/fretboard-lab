@@ -4,12 +4,13 @@
 import { PLAYALONG, findTab, barBeats, timeline } from '../playalong/index.js';
 import { Fretboard } from '../fretboard.js';
 import { pluckAt, click, context, now } from '../audio.js';
-import { TUNINGS, midiAt, preferredName, pcOf } from '../theory.js';
+import { midiAt, preferredName, pcOf } from '../theory.js';
 import { getSettings, getPracticePrefs, updatePracticePrefs, addLog, getTempo, recordClean, startBelow } from '../storage.js';
 import { SpeedTrainer, trainerSetupHTML, trainerStatusHTML } from '../speed.js';
 import { volumeHTML, esc } from '../ui.js';
+import { tuningOf } from '../instruments.js';
 
-const tuning = TUNINGS.standard;
+const tuning = tuningOf('guitar'); // guitar content: positions are in guitar numbering
 const sIndex = string => tuning.strings.findIndex(x => x.num === string); // guitar string number -> board index
 const BW = 48, LEFT = 44, TOP = 26, GAP = 18; // tab drawing: px per beat, margins, line gap
 const AHEAD = 0.15, LOOKAHEAD_MS = 25;

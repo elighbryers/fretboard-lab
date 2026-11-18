@@ -5,13 +5,14 @@
 // daily review use, so the Ear tab and the review ask them the same way:
 //   round(ui, want) -> { tap({ s, f, pc, midi }), end() }
 // Every answer is recorded with recordAnswer, so it feeds the daily review.
-import { pcOf, midiAt, parseNote, spell, preferredName, TUNINGS } from './theory.js';
+import { pcOf, midiAt, parseNote, spell, preferredName } from './theory.js';
 import { droneStart, droneStop, droneOn, voicing, strumAt, pluckAt, context, now } from './audio.js';
-import { recordAnswer, getSettings, setSetting } from './storage.js';
+import { recordAnswer, getSettings, setSetting, getInstrument } from './storage.js';
 import { chordOf } from './progressions.js';
 import { esc, pick } from './ui.js';
+import { tuningOf } from './instruments.js';
 
-const tuning = TUNINGS.standard;
+const tuning = tuningOf(getInstrument()); // answers go on the current instrument's neck
 const CHROMATIC = ['R', 'b2', '2', 'b3', '3', '4', '#4', '5', 'b6', '6', 'b7', '7'];
 const ORD = { 2: '2nd', 3: '3rd', 4: '4th', 5: '5th', 6: '6th', 7: '7th' };
 export const degreeWords = l => l === 'R' ? 'root' : (l[0] === 'b' ? 'flat ' : l[0] === '#' ? 'sharp ' : '') + ORD[l.replace(/\D/g, '')];

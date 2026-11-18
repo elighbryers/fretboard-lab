@@ -2,13 +2,14 @@
 // strings / frets and 10 or 20 rounds, then a score at the end. Every answer is
 // saved to the per-item stats (heat map, future daily review). Wrong answers
 // never lock you out: you see the right answer and move on.
-import { NOTES, KEY_NAMES, TUNINGS, pcOf, midiAt, lookup, parseFormula, spell, preferredName, noteAbove } from '../theory.js';
+import { NOTES, KEY_NAMES, pcOf, midiAt, lookup, parseFormula, spell, preferredName, noteAbove } from '../theory.js';
 import { Fretboard } from '../fretboard.js';
 import { pluckAt, context, now, droneStart, droneStop, droneOn } from '../audio.js';
-import { recordAnswer, recordConfusion, addLog, getPracticePrefs, updatePracticePrefs } from '../storage.js';
+import { recordAnswer, recordConfusion, addLog, getPracticePrefs, updatePracticePrefs, getInstrument } from '../storage.js';
 import { volumeHTML, esc, pick, shuffle } from '../ui.js';
+import { tuningOf } from '../instruments.js';
 
-const tuning = TUNINGS.standard, ALL = [0, 1, 2, 3, 4, 5], MAX_FRET = 15;
+const tuning = tuningOf(getInstrument()), ALL = [0, 1, 2, 3, 4, 5], MAX_FRET = 15;
 const ORD = { 1: 'root', 2: '2nd', 3: '3rd', 4: '4th', 5: '5th', 6: '6th', 7: '7th' };
 // "b3" -> "flat 3rd", "#4" -> "sharp 4th", "R" -> "root"
 const degreeWords = label => {

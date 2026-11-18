@@ -11,7 +11,7 @@
 // A challenge uses `flow: [{ type, name?, ...step }]`, and may use a `timed` step.
 // `review: [ids]` adds items the lesson teaches to the daily review.
 // pos = { string, fret }
-import { P, noteDot, fretOf, tap, choice, task } from './kit.js';
+import { P, noteDot, fretOf, tap, choice, task, card } from './kit.js';
 
 const OPEN_LOW_TO_HIGH = [6, 5, 4, 3, 2, 1].map(string => P(string, 0));
 const OPEN_DOTS = [6, 5, 4, 3, 2, 1].map(string => P(string, 0, { label: String(string) }));
@@ -72,7 +72,7 @@ export default {
         hear: { text: 'Seven letters, then the first one again: A B C D E F G A.', sound: { seq: naturals(5), bpm: 80 } },
         learn: {
           cards: [
-            { text: 'Music uses seven letters, A to G. After G it starts again at A.', board: { view: [0, 12], dots: naturals(5) } },
+            card('l1-2.1', { view: [0, 12], dots: naturals(5) }),
             { text: 'Most letters are two frets apart, like A and B.', board: { view: [0, 5], dots: [noteDot(5, 0, { role: 'root' }), noteDot(5, 2, { role: 'third' })] } },
             { text: 'B to C and E to F are only one fret apart. There is no note between them.', board: { view: [0, 5], dots: [noteDot(5, 2, { role: 'root' }), noteDot(5, 3, { role: 'third' }), noteDot(6, 0, { role: 'root' }), noteDot(6, 1, { role: 'third' })] } }
           ]
@@ -114,7 +114,7 @@ export default {
           cards: [
             { text: 'A half step is one fret.', board: { view: [0, 5], dots: [noteDot(6, 0, { role: 'root' }), noteDot(6, 1, { role: 'third' })] } },
             { text: 'A whole step is two frets.', board: { view: [0, 6], dots: [noteDot(6, 3, { role: 'root' }), noteDot(6, 5, { role: 'third' })] } },
-            { text: 'B to C and E to F are half steps. Every other pair of letters is a whole step.', board: { view: [0, 6], dots: [noteDot(4, 0), noteDot(4, 2), noteDot(4, 3, { role: 'third' }), noteDot(4, 5)] } }
+            card('l1-3.3', { view: [0, 6], dots: [noteDot(4, 0), noteDot(4, 2), noteDot(4, 3, { role: 'third' }), noteDot(4, 5)] })
           ]
         },
         see: {

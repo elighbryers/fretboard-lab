@@ -1,12 +1,13 @@
 // Fretboard tab: free play. A few controls up front (key, scale/chord, labels,
 // Play it); everything else sits under "More".
 // Links: #fretboard?key=G&scale=major (or chord=m7) &labels=intervals &pos=5-8
-import { KEY_NAMES, SCALE_GROUPS, CHORD_GROUPS, NOTES, lookup, parseFormula, spell, parseNote, pcOf, midiAt, positionForMidi, TUNINGS } from '../theory.js';
+import { KEY_NAMES, SCALE_GROUPS, CHORD_GROUPS, NOTES, lookup, parseFormula, spell, parseNote, pcOf, midiAt, positionForMidi } from '../theory.js';
 import { Fretboard, legendHTML } from '../fretboard.js';
 import { droneStart, droneStop, droneOn } from '../audio.js';
 import { volumeHTML } from '../ui.js';
 import { replaceParams } from '../router.js';
-import { getFretboardPrefs, updateFretboardPrefs, allItems } from '../storage.js';
+import { getFretboardPrefs, updateFretboardPrefs, allItems, getInstrument } from '../storage.js';
+import { tuningOf } from '../instruments.js';
 
 const FRETS = 15;
 const DEFAULT = {
@@ -44,7 +45,7 @@ function compute() {
 
 function draw() {
   const { item, degs, sp, scale, chord } = compute();
-  const dots = [], tuning = TUNINGS.standard;
+  const dots = [], tuning = tuningOf(getInstrument());
   const label = info => (state.labels === 'notes' ? info.name : state.labels === 'intervals' ? info.label : '');
   tuning.strings.forEach((str, s) => {
     for (let f = 0; f <= FRETS; f++) {
@@ -111,7 +112,7 @@ function paintDrone(sp) {
 /* ---------- weak spots (from Practice quiz answers) ---------- */
 const hasQuizData = () => Object.keys(allItems()).some(id => id.startsWith('note:'));
 function heatScore() {
-  const items = allItems(), tuning = TUNINGS.standard;
+  const items = allItems(), tuning = tuningOf(getInstrument());
   return (s, f) => {
     const it = items[`note:${NOTES[pcOf(midiAt(s, f, tuning))]}@s${tuning.strings[s].num}`];
     return it ? it.correct / it.attempts : null;

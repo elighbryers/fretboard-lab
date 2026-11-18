@@ -1,14 +1,16 @@
 // One way to describe a short sound, shared by lessons, the daily review and
 // the placement quiz:
 //   { seq: [step, ...], bpm: 90, drone: 'G' }
-// A step is one beat: a MIDI number, a position { string, fret } (guitar
-// numbering), a chord 'G:major' / 'A:m7' (strummed), an array of steps
+// A step is one beat: a MIDI number, a position { string, fret } (in the
+// current instrument's numbering), a chord 'G:major' / 'A:m7' (strummed), an array of steps
 // (sounded together; positions in an array are strummed), or null (a rest).
 // With `drone`, a drone on that note plays under the sequence and fades after.
-import { TUNINGS, midiAt, parseNote } from './theory.js';
+import { midiAt, parseNote } from './theory.js';
 import { pluckAt, strumAt, voicing, context, now, droneStart, droneStop } from './audio.js';
+import { tuningOf } from './instruments.js';
+import { getInstrument } from './storage.js';
 
-const tuning = TUNINGS.standard;
+const tuning = tuningOf(getInstrument()); // the current instrument's neck (switching reloads the app)
 export const midiOfPos = ({ string, fret }) => midiAt(tuning.strings.findIndex(x => x.num === string), fret, tuning);
 // 'G:major' -> { root: 7, chord: 'major' }
 export const parseChord = str => { const [n, c = 'major'] = str.split(':'); return { root: parseNote(n), chord: c }; };

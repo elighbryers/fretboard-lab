@@ -1,7 +1,7 @@
 // Level 3: intervals. Labels are worked out by js/lessons/kit.js; answers are
 // the exact pitch above the root (above()), so "the 3rd above this C" can't be
 // confused with an E an octave higher.
-import { P, inKey, tap, choice, task, above, degreeItem } from './kit.js';
+import { P, inKey, tap, choice, task, above, degreeItem, card } from './kit.js';
 
 // Chromatic "keys" label any note by its interval from the root: R b2 2 b3 3 4 b5 5 b6 6 b7 7.
 const Gc = inKey('G', 'scale', 'chromatic'), Cc = inKey('C', 'scale', 'chromatic'), Ac = inKey('A', 'scale', 'chromatic');
@@ -37,9 +37,9 @@ export default {
         hear: { text: 'C, then E. C, then G. C, then C an octave up. Three distances from one root.', sound: { seq: [P(5, 3), P(4, 2), null, P(5, 3), P(4, 5), null, P(5, 3), P(3, 5)], bpm: 90 } },
         learn: {
           cards: [
-            { text: 'An interval is the distance from the root to another note.', board: { view: [0, 7], dots: Cc.dots([[5, 3], [4, 2]]) } },
-            { text: 'We name it by the scale degree it lands on. C to E is a 3rd, and C to G is a 5th.', board: { view: [0, 7], dots: Cc.dots([[5, 3], [4, 2], [4, 5]]) } },
-            { text: 'Count the root as 1. C, D, E is three letters, so C to E is a 3rd.', board: { view: [0, 7], dots: Cc.dots([[5, 3], [5, 5], [4, 2]]) } }
+            card('l3-1.1', { view: [0, 7], dots: Cc.dots([[5, 3], [4, 2]]) }),
+            card('l3-1.2', { view: [0, 7], dots: Cc.dots([[5, 3], [4, 2], [4, 5]]) }),
+            card('l3-1.3', { view: [0, 7], dots: Cc.dots([[5, 3], [5, 5], [4, 2]]) })
           ]
         },
         see: { text: 'Every degree of C major, named as an interval from C.', view: [0, 7], sequence: Cc.dots([[5, 3], [5, 5], [4, 2], [4, 3], [4, 5], [3, 2], [3, 4], [3, 5]]), bpm: 80, link: { key: 'C', scale: 'major', labels: 'intervals' } },
@@ -141,7 +141,7 @@ export default {
           cards: [
             { text: 'A perfect 4th is 5 frets up: the same fret on the next string.', board: { view: [0, 7], dots: Gc.dots([[6, 3], [5, 3]]) } },
             { text: 'A perfect 5th is 7 frets up: next string, two frets up.', board: { view: [0, 7], dots: Gc.dots([[6, 3], [5, 5]]) } },
-            { text: 'Root and 5th together (often with the octave) is a power chord, written G5.', board: { view: [0, 7], dots: Gc.dots([[6, 3], [5, 5], [4, 5]]) } }
+            card('l3-4.3', { view: [0, 7], dots: Gc.dots([[6, 3], [5, 5], [4, 5]]) })
           ]
         },
         see: { text: 'G to C (a 4th), G to D (a 5th), then the G5 power chord.', view: [0, 7], sequence: [...Gc.dots([[6, 3], [5, 3]]), null, ...Gc.dots([[6, 3], [5, 5]]), null, Gc.dots([[6, 3], [5, 5], [4, 5]])], bpm: 60, link: { key: 'G', chord: '5', labels: 'intervals' } },
@@ -211,7 +211,7 @@ export default {
         hear: { text: 'A G drone, then the root, 3rd and 5th on top.', sound: { seq: [null, P(6, 3), P(5, 2), P(5, 5), P(4, 5)], bpm: 60, drone: 'G' } },
         learn: {
           cards: [
-            { text: 'A drone holds the root under everything. Each degree has its own feeling against it.', board: { view: [0, 6], dots: G.dots([[6, 3]]) } },
+            card('l3-6.1', { view: [0, 6], dots: G.dots([[6, 3]]) }),
             { text: 'The root sounds like home, the 5th strong and open, the 3rd sweet.', board: { view: [0, 6], dots: G.dots([[6, 3], [5, 2], [5, 5]]) } },
             { text: 'To find a note you hear, sing it, then search near the root with the shapes you know.', board: { view: [0, 6], dots: G.dots(G_SHAPE) } }
           ]
@@ -248,8 +248,8 @@ export default {
         hear: { text: 'Four intervals from C: a major 3rd, a 5th, a minor 7th and a 4th.', sound: { seq: [P(5, 3), P(4, 2), null, P(5, 3), P(4, 5), null, P(5, 3), P(3, 3), null, P(5, 3), P(4, 3)], bpm: 100 } },
         learn: {
           cards: [
-            { text: 'Here are all eight intervals you know, from one root.', board: { view: [0, 6], dots: Cc.dots([[5, 3], [4, 1], [4, 2], [4, 3], [4, 5], [3, 1], [3, 2], [3, 3], [3, 4]]) } },
-            { text: 'They come in confusable pairs: minor and major 3rds, 4ths and 5ths, minor and major 6ths and 7ths.', board: { view: [0, 6], dots: Cc.dots([[5, 3], [4, 1], [4, 2], [4, 3], [4, 5]]) } },
+            card('l3-7.1', { view: [0, 6], dots: Cc.dots([[5, 3], [4, 1], [4, 2], [4, 3], [4, 5], [3, 1], [3, 2], [3, 3], [3, 4]]) }),
+            card('l3-7.2', { view: [0, 6], dots: Cc.dots([[5, 3], [4, 1], [4, 2], [4, 3], [4, 5]]) }),
             { text: 'The trick: find the major shape first, then move one fret back for the minor one.', board: { view: [0, 6], dots: Cc.dots([[5, 3], [3, 3], [3, 4]]) } }
           ]
         },

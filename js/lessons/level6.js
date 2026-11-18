@@ -1,6 +1,6 @@
 // Level 6: improvising. Labels come from js/lessons/kit.js (a dot outside its
 // scale or chord throws); backing tracks from js/progressions.js numerals.
-import { P, inKey, tap, choice, task, degreeItem, toneItem } from './kit.js';
+import { P, inKey, tap, choice, task, degreeItem, toneItem, card } from './kit.js';
 import { TWELVE_BAR } from '../progressions.js';
 
 const Amp = inKey('A', 'scale', 'minor-pentatonic'), Abl = inKey('A', 'scale', 'blues');
@@ -80,9 +80,9 @@ export default {
         hear: { text: 'Am, then C. A line that lands on A over Am, then on C when the chord changes.', sound: { seq: ['A:minor', P(2, 5), P(1, 5), 'C:major', P(1, 8), null], bpm: 70 } },
         learn: {
           cards: [
-            { text: 'Chord tones are the notes of the chord that is playing. Landing on one makes your line sound connected.', board: { view: [3, 10], dots: Am.all({ from: 5, to: 8 }) } },
-            { text: 'When the chord changes, aim for a note of the new chord. Over C, aim for C, E or G.', board: { view: [3, 10], dots: Cmaj.all({ from: 5, to: 8 }) } },
-            { text: 'Notes in both chords, here C and E, are safe bridges across the change.', board: { view: [3, 10], dots: Amp.all({ from: 5, to: 8, mode: 'note' }).filter(d => ['C', 'E'].includes(d.label)) } }
+            card('l6-2.1', { view: [3, 10], dots: Am.all({ from: 5, to: 8 }) }),
+            card('l6-2.2', { view: [3, 10], dots: Cmaj.all({ from: 5, to: 8 }) }),
+            card('l6-2.3', { view: [3, 10], dots: Amp.all({ from: 5, to: 8, mode: 'note' }).filter(d => ['C', 'E'].includes(d.label)) })
           ]
         },
         see: { text: 'Position 1: the Am chord tones light, then the C chord tones.', view: [3, 10], sequence: [ps(Am.all({ from: 5, to: 8 }).map(d => [d.string, d.fret])), ps(Cmaj.all({ from: 5, to: 8 }).map(d => [d.string, d.fret]))], dots: pos(1), bpm: 40, link: { key: 'A', scale: 'minor-pentatonic', labels: 'intervals', pos: '5-8' } },
@@ -117,9 +117,9 @@ export default {
         hear: { text: 'A short call, a pause, then an answer that ends on the root.', sound: { seq: [...ps(CALL), null, null, ...ps(RESPONSE)], bpm: 100 } },
         learn: {
           cards: [
-            { text: 'A phrase is a short musical sentence. Leave space between phrases, like taking a breath.', board: { view: [3, 10], dots: Amp.dots(CALL) } },
-            { text: 'Call and response: play a phrase, then answer it with a similar one that ends somewhere new.', board: { view: [3, 10], dots: Amp.dots(RESPONSE) } },
-            { text: 'Repeat a good idea two or three times before changing it. Repetition makes a solo stick.', board: { view: [3, 10], dots: Amp.dots(CALL) } }
+            card('l6-3.1', { view: [3, 10], dots: Amp.dots(CALL) }),
+            card('l6-3.2', { view: [3, 10], dots: Amp.dots(RESPONSE) }),
+            card('l6-3.3', { view: [3, 10], dots: Amp.dots(CALL) })
           ]
         },
         see: { text: 'The call, then the response.', view: [3, 10], sequence: [...Amp.dots(CALL), null, ...Amp.dots(RESPONSE)], dots: pos(1), bpm: 90, link: { key: 'A', scale: 'minor-pentatonic', labels: 'intervals', pos: '5-8' } },
@@ -156,7 +156,7 @@ export default {
           cards: [
             { text: 'A bend pushes the string sideways to raise the pitch. Bend the D at fret 7 up until it sounds like the E two frets higher.', board: { view: [3, 10], dots: Amp.dots([[3, 7], [3, 9]]) } },
             { text: 'A slide moves between frets without lifting your finger. Try fret 5 to 7 on the G string.', board: { view: [3, 10], dots: Amp.dots([[3, 5], [3, 7]]) } },
-            { text: 'Vibrato is a small, steady wobble on a held note. Use it on the last note of a phrase.', board: { view: [3, 10], dots: Amp.dots([[1, 5]]) } }
+            card('l6-4.3', { view: [3, 10], dots: Amp.dots([[1, 5]]) })
           ]
         },
         see: { text: 'The bend target, then the slide.', view: [3, 10], sequence: Amp.dots([[3, 7], [3, 9], [3, 5], [3, 7]]), bpm: 70, link: { key: 'A', scale: 'minor-pentatonic', labels: 'intervals', pos: '5-8' } },
@@ -191,9 +191,9 @@ export default {
         hear: { text: 'The A blues scale: the minor pentatonic plus one extra, gritty note.', sound: { seq: ps(BLUES1), bpm: 110 } },
         learn: {
           cards: [
-            { text: 'Add the b5 to the minor pentatonic and you have the blues scale.', board: { view: [3, 10], dots: Abl.dots(BLUES1) } },
-            { text: 'Over A7, the b3 (C) rubs against the chord\'s own 3rd (C#). That rub is the blues.', board: { view: [3, 10], dots: Ac.dots([[3, 5], [3, 6]]) } },
-            { text: 'The b7 (G) is also in A7, so it always sounds at home over the blues.', board: { view: [3, 10], dots: Abl.dots([[4, 5], [2, 8]]) } }
+            card('l6-5.1', { view: [3, 10], dots: Abl.dots(BLUES1) }),
+            card('l6-5.2', { view: [3, 10], dots: Ac.dots([[3, 5], [3, 6]]) }),
+            card('l6-5.3', { view: [3, 10], dots: Abl.dots([[4, 5], [2, 8]]) })
           ]
         },
         see: { text: 'The A blues scale in position 1.', view: [3, 10], sequence: Abl.dots(upDown(BLUES1)), bpm: 130, link: { key: 'A', scale: 'blues', labels: 'intervals', pos: '5-8' } },
@@ -228,9 +228,9 @@ export default {
         hear: { text: 'A Dorian over an A drone: minor, but with a hopeful lift.', sound: { seq: ps(DORIAN), bpm: 90, drone: 'A' } },
         learn: {
           cards: [
-            { text: 'A mode is a major scale started on a different note. Dorian is minor with a bright 6th: 1 2 b3 4 5 6 b7.', board: { view: [3, 10], dots: Ador.dots(DORIAN) } },
-            { text: 'Mixolydian is major with a b7: 1 2 3 4 5 6 b7. It is the sound of a dominant 7 chord.', board: { view: [3, 10], dots: Amix.dots(MIXO) } },
-            { text: 'Use Dorian over a minor 7 chord and Mixolydian over a dominant 7. The 6 and the 3 make the difference.', board: { view: [3, 10], dots: [Ador.dot(4, 4), Amix.dot(5, 4)] } }
+            card('l6-6.1', { view: [3, 10], dots: Ador.dots(DORIAN) }),
+            card('l6-6.2', { view: [3, 10], dots: Amix.dots(MIXO) }),
+            card('l6-6.3', { view: [3, 10], dots: [Ador.dot(4, 4), Amix.dot(5, 4)] })
           ]
         },
         see: { text: 'A Dorian over the drone. Listen for the 6th, F#.', view: [3, 10], sequence: Ador.dots(DORIAN), bpm: 80, drone: 'A', link: { key: 'A', scale: 'dorian', labels: 'intervals', pos: '4-9' } },
@@ -265,9 +265,9 @@ export default {
         hear: { text: 'Dm7, G7, Cmaj7, and a melody made only of each chord\'s 3rd: F, B, E.', sound: { seq: ['D:m7', P(4, 3), 'G:7', P(3, 4), 'C:maj7', P(2, 5)], bpm: 60 } },
         learn: {
           cards: [
-            { text: 'Over ii-V-I, aim for each chord\'s 3rd. In C that is F over Dm7, B over G7 and E over Cmaj7.', board: { view: [1, 7], dots: [Dm7.dot(4, 3), G7.dot(3, 4), Cmaj7.dot(2, 5)] } },
+            card('l6-7.1', { view: [1, 7], dots: [Dm7.dot(4, 3), G7.dot(3, 4), Cmaj7.dot(2, 5)] }),
             { text: 'The 3rds sit a fret or two apart. Join them and you have a line that spells out the changes.', board: { view: [1, 7], dots: [Dm7.dot(4, 3, 'note'), G7.dot(3, 4, 'note'), Cmaj7.dot(2, 5, 'note')] } },
-            { text: 'Fill the gaps with the C major scale. It fits all three chords.', board: { view: [1, 7], dots: Cs.all({ from: 2, to: 5 }) } }
+            card('l6-7.3', { view: [1, 7], dots: Cs.all({ from: 2, to: 5 }) })
           ]
         },
         see: { text: 'The three 3rds, one per chord.', view: [1, 7], sequence: [Dm7.dot(4, 3), G7.dot(3, 4), Cmaj7.dot(2, 5)], dots: Cs.all({ from: 2, to: 5 }), bpm: 50, link: { key: 'C', scale: 'major', labels: 'intervals', pos: '2-5' } },

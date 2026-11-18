@@ -1,6 +1,6 @@
 // Progress tab: the most useful numbers at the top, details further down.
 // All numbers come from js/stats.js; charts are plain SVG from js/charts.js.
-import { NOTES, midiAt, pcOf, TUNINGS } from '../theory.js';
+import { NOTES, midiAt, pcOf } from '../theory.js';
 import { Fretboard } from '../fretboard.js';
 import { exportData, readExport, importData, resetAll, seeMilestones, today, getSettings, setSetting, getDays, allTempos, INSTRUMENTS, getInstrument, setInstrument } from '../storage.js';
 import { storagePersisted, isStandalone } from '../pwa.js';
@@ -9,10 +9,11 @@ import { glance, dailyMinutes, weeklyAccuracy, calendar, weakest, noteStats, con
 import { bars, line, calendarGrid, spark } from '../charts.js';
 import { hashFor } from '../router.js';
 import { esc } from '../ui.js';
+import { tuningOf } from '../instruments.js';
 
 let el, fb, pending = null, resizeTimer = null;
 const $ = sel => el.querySelector(sel);
-const tuning = TUNINGS.standard;
+const tuning = tuningOf(getInstrument()); // the heat map is per instrument
 const noteItem = (s, f) => `note:${NOTES[pcOf(midiAt(s, f, tuning))]}@s${tuning.strings[s].num}`;
 const pct = x => Math.round(100 * x) + '%';
 const secs = ms => (ms / 1000).toFixed(1) + ' s';
