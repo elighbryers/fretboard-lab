@@ -205,8 +205,9 @@ function itemOk(kit, item, p, prompt = '', names = BASS_NAMES) {
   const degs = T.parseFormula(T.lookup(m[1] === 'degree' ? 'scale' : 'chord', m[3]).formula), d = degs.find(x => x.label === m[4]);
   return !!d && T.pcOf(T.parseNote(m[2]) + d.semi) === pc;
 }
-function validatePath(name, levels, kit, names) {
-  ok(levels.length === 6, `${name}: six levels`, levels.length);
+function validatePath(name, levels, kit, names, spec = null) {
+  const POS = spec?.pos || ((w, p, v) => checkFretted(kit, names, w, p, v)), PROMPT = spec?.prompt || ((w, pr, a) => checkFrettedPrompt(kit, names, w, pr, a)), ITEM = spec?.item || ((it, p, pr) => itemOk(kit, it, p, pr, names));
+  ok(levels.length === 6 || (name !== 'bass' && levels.length >= 1), `${name}: six levels`, levels.length);
   levels.forEach((lv, n) => {
     const L = lv.level, where0 = `${name} level ${n + 1}`;
     ok(L.lessons.length === 7, `${where0}: 7 lessons`, L.lessons.length);
@@ -220,32 +221,32 @@ function validatePath(name, levels, kit, names) {
       cards.forEach((c, k) => {
         ok(sentences(c.text) <= 2, `${id} card ${k + 1}: at most 2 sentences`, c.text);
         ok(c.board?.dots?.length > 0 || c.grid?.notes?.length > 0 || c.technique?.length === 3, `${id} card ${k + 1}: has a neck, a rhythm grid or a 3-item technique checklist`);
-        (c.board?.dots || []).forEach(d => checkFretted(kit, names, `${id} card ${k + 1}`, d, c.board.view));
+        (c.board?.dots || []).forEach(d => POS(`${id} card ${k + 1}`, d, c.board.view));
         if (c.grid) ok(c.grid.notes.every(i => i >= 0 && i < c.grid.beats * c.grid.sub), `${id} card ${k + 1}: grid steps inside the bar`);
         const shared = Object.entries(CARDS).find(([, x]) => x.text === c.text);
         if (shared) { let back = true; try { placeCard(shared[0], c.board, kit.pcAt); } catch (e) { back = e.message; } ok(back === true, `${id} card ${k + 1}: shared card ${shared[0]} placed correctly`, back); }
       });
       ok(st.see?.sequence?.length > 0, `${id}: See it has a sequence`);
-      st.see?.sequence?.flatMap(x => (x ? list(x) : [])).forEach(p => checkFretted(kit, names, `${id} see`, p, st.see.view));
+      st.see?.sequence?.flatMap(x => (x ? list(x) : [])).forEach(p => POS(`${id} see`, p, st.see.view));
       if (n > 0) ok(!!st.see?.link, `${id}: See it has Open in Fretboard`);
       ok(st.try?.tasks?.length === 3, `${id}: 3 Try tasks`, st.try?.tasks?.length);
       (st.try?.tasks || []).forEach((t, k) => {
         if (t.grid) { ok(t.grid.notes.length > 0 && !!t.item, `${id} try ${k + 1}: rhythm task with a review item`); return; }
-        list(t.answer).forEach(a => checkFretted(kit, names, `${id} try ${k + 1}`, a, t.view || st.try.view));
-        checkFrettedPrompt(kit, names, `${id} try ${k + 1}`, t.prompt, t.answer);
-        ok(itemOk(kit, t.item, list(t.answer)[0], t.prompt, names), `${id} try ${k + 1}: review item matches the position`, t.item);
+        list(t.answer).forEach(a => POS(`${id} try ${k + 1}`, a, t.view || st.try.view));
+        PROMPT(`${id} try ${k + 1}`, t.prompt, t.answer);
+        ok(ITEM(t.item, list(t.answer)[0], t.prompt), `${id} try ${k + 1}: review item matches the position`, t.item);
       });
       ok(st.play?.bpm >= 40 && st.play?.bpm <= 160, `${id}: Play it has a default bpm`, st.play?.bpm);
-      (st.play?.follow || []).flatMap(list).forEach(p => checkFretted(kit, names, `${id} play`, p, st.play.view));
+      (st.play?.follow || []).filter(Boolean).flatMap(list).filter(Boolean).forEach(p => POS(`${id} play`, p, st.play.view));
       const qs = st.check.questions;
       ok(qs.length === 4 && st.check.pass === 3, `${id}: 4 questions, pass 3`);
       ok(qs.filter(q => q.type === 'tap').length >= 2, `${id}: at least 2 of 4 questions are taps`);
       if (li >= 2) ok(qs.some(q => /^From (Lesson|Level) \d/.test(q.prompt)), `${id}: one question reviews an earlier lesson`);
       qs.forEach((q, k) => {
         if (q.type === 'tap') {
-          list(q.answer).forEach(a => checkFretted(kit, names, `${id} q${k + 1}`, a, q.view || st.check.view));
-          checkFrettedPrompt(kit, names, `${id} q${k + 1}`, q.prompt, q.answer);
-          ok(itemOk(kit, q.item, list(q.answer)[0], q.prompt, names), `${id} q${k + 1}: review item matches the position`, q.item);
+          list(q.answer).forEach(a => POS(`${id} q${k + 1}`, a, q.view || st.check.view));
+          PROMPT(`${id} q${k + 1}`, q.prompt, q.answer);
+          ok(ITEM(q.item, list(q.answer)[0], q.prompt), `${id} q${k + 1}: review item matches the position`, q.item);
         } else ok(q.options.includes(q.answer) && !!q.item, `${id} q${k + 1}: choice has its answer and a review item`);
       });
       ok(itemsOf(les).length >= 3, `${id}: registers review items`, itemsOf(les).length);
@@ -253,20 +254,51 @@ function validatePath(name, levels, kit, names) {
     const ch = L.challenge;
     ok(ch.flow?.length > 0 && ['check', 'timed'].includes(ch.flow[ch.flow.length - 1].type), `${where0}: challenge ends with something to pass`);
     ch.flow.filter(f => f.type === 'check').flatMap(f => f.questions.map(q => [q, f])).forEach(([q, f], k) => {
-      if (q.type === 'tap') { list(q.answer).forEach(a => checkFretted(kit, names, `${where0} challenge q${k + 1}`, a, q.view || f.view)); checkFrettedPrompt(kit, names, `${where0} challenge q${k + 1}`, q.prompt, q.answer); }
+      if (q.type === 'tap') { list(q.answer).forEach(a => POS(`${where0} challenge q${k + 1}`, a, q.view || f.view)); PROMPT(`${where0} challenge q${k + 1}`, q.prompt, q.answer); }
       else ok(q.options.includes(q.answer), `${where0} challenge q${k + 1}: has its answer`);
     });
     ch.flow.filter(f => f.type === 'kickroots').forEach(f => f.roots.forEach(r => {
       const m = /^([A-G][#b]?) on the (\w) string$/.exec(r.label);
       ok(m && T.pcOf(kit.midiOf(r.pos.string, r.pos.fret)) === T.parseNote(m[1]) && names[m[2]] === r.pos.string, `${where0} challenge: "${r.label}" is right`);
     }));
-    (L.placement || []).forEach((q, k) => { if (q.type === 'tap') { list(q.answer).forEach(a => checkFretted(kit, names, `${where0} placement ${k + 1}`, a)); checkFrettedPrompt(kit, names, `${where0} placement ${k + 1}`, q.prompt, q.answer); } });
+    (L.placement || []).forEach((q, k) => { if (q.type === 'tap') { list(q.answer).forEach(a => POS(`${where0} placement ${k + 1}`, a)); PROMPT(`${where0} placement ${k + 1}`, q.prompt, q.answer); } });
   });
   // Lesson ids are unique.
   const ids = levels.flatMap(l => nodesOf(l.level).map(x => x.id));
   ok(new Set(ids).size === ids.length, `${name}: lesson ids are unique`);
 }
 if (bassPaths.length) validatePath('bass', bassPaths, bass4, BASS_NAMES);
+
+/* ---------- piano: keys are { string: 0, fret: midi } ---------- */
+const pianoPaths = await import(R + 'piano/lessons/index.js').then(m => m.PIANO_LEVELS).catch(e => { ok(false, 'piano lessons load', e.message); return []; });
+const pianoKit = { pcAt: (s, f) => T.pcOf(f), midiOf: (s, f) => f };
+const nameMidi = n => midiOfName(n);
+const pianoSpec = {
+  pos: (where, p, view) => {
+    ok(p && p.string === 0 && Number.isInteger(p.fret) && p.fret >= 21 && p.fret <= 108 && (p.midi == null || p.midi === p.fret), `${where}: a real key`, JSON.stringify(p));
+    if (view && p) ok(p.fret >= view[0] && p.fret <= view[1], `${where}: key ${p.fret} inside view ${view}`, JSON.stringify(p));
+  },
+  prompt: (where, prompt, answers) => {
+    const m = /^(?:From (?:Lesson|Level) \d+: )?(?:Tap|Build) (?:the |a |an |any )?([A-G][#b]?)(\d)?(?![\w#])(?! (?:major|minor|chord))/.exec(prompt);
+    if (m) list(answers).forEach(a => ok(T.pcOf(a.fret) === T.parseNote(m[1]) && (!m[2] || Math.floor(a.fret / 12) - 1 === +m[2]), `${where}: "${m[0]}" matches the answer`, JSON.stringify(a)));
+    const st = /(half|whole) step above ([A-G][#b]?\d)/.exec(prompt);
+    if (st) list(answers).forEach(a => ok(a.fret - nameMidi(st[2]) === (st[1] === 'half' ? 1 : 2), `${where}: "${st[0]}" matches the answer`, JSON.stringify(a)));
+    const iv = /(minor 3rd|major 3rd|perfect 4th|perfect 5th|minor 6th|major 6th|minor 7th|major 7th|octave) above ([A-G][#b]?\d)/.exec(prompt);
+    if (iv) list(answers).forEach(a => ok(a.fret - nameMidi(iv[2]) === (iv[1] === 'octave' ? 12 : T.INTERVAL_NAMES.indexOf(iv[1])), `${where}: "${iv[0]}" matches the answer`, JSON.stringify(a)));
+  },
+  item: (item, p, prompt) => {
+    const m = p.fret, pc = T.pcOf(m);
+    if (item === `key:${T.preferredName(pc)}`) return true;
+    const st = /^staff:(treble|bass)@([A-G][#b]?\d)$/.exec(item || '');
+    if (st) return nameMidi(st[2]) === m;
+    const iv = /^interval:(\w+)$/.exec(item || '');
+    if (iv) { const r = /above ([A-G][#b]?\d)/.exec(prompt); return !!r && m - nameMidi(r[1]) === T.INTERVAL_IDS.indexOf(iv[1]); }
+    const dg = /^(degree|tone):([A-G][#b]?):([\w-]+):(R|bb?\d|#?\d)$/.exec(item || '');
+    if (dg) { const d = T.parseFormula(T.lookup(dg[1] === 'degree' ? 'scale' : 'chord', dg[3]).formula).find(x => x.label === dg[4]); return !!d && T.pcOf(T.parseNote(dg[2]) + d.semi) === pc; }
+    return /^(keysig|ear|inversion|fingering):/.test(item || '');
+  }
+};
+if (pianoPaths.length) validatePath('piano', pianoPaths, pianoKit, {}, pianoSpec);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exitCode = fail ? 1 : 0;

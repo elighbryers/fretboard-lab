@@ -27,3 +27,7 @@ if (sub) sub.textContent = 'See scales and chords on the keys. Tap any key to he
 import './routines.js';
 import pianoPlayalong from './playalong.js';
 register('tools', [pianoPlayalong]);
+import './steps.js';
+import { registerPath } from '../lessons/index.js';
+import { PIANO_LEVELS } from './lessons/index.js';
+registerPath('piano', PIANO_LEVELS);

@@ -34,9 +34,19 @@ export function gridCard(host, g) {
   return () => grid.stop();
 }
 
-export function techniqueCard(host, items, onAll) {
+// A still drawing of the hand idea (research-piano.md D9: one illustration plus a checklist).
+const HANDS = {
+  curve: '<path d="M30 92 Q34 52 40 40 M52 92 Q54 40 58 26 M72 92 Q72 36 76 22 M92 92 Q90 40 92 30 M110 92 Q104 60 104 50" stroke-width="9"/><path d="M20 96 H120" stroke-width="3"/>',
+  thumbUnder: '<path d="M40 92 Q44 52 50 40 M60 92 Q62 40 66 26 M80 92 Q80 36 84 22 M100 92 Q98 40 100 30" stroke-width="9"/><path d="M28 88 Q60 70 92 84" stroke-width="9" stroke-dasharray="4 5"/><path d="M20 96 H120" stroke-width="3"/>',
+  fiveKeys: '<rect x="14" y="40" width="22" height="56" rx="3" stroke-width="2"/><rect x="38" y="40" width="22" height="56" rx="3" stroke-width="2"/><rect x="62" y="40" width="22" height="56" rx="3" stroke-width="2"/><rect x="86" y="40" width="22" height="56" rx="3" stroke-width="2"/><rect x="110" y="40" width="22" height="56" rx="3" stroke-width="2"/><text x="25" y="32">1</text><text x="49" y="32">2</text><text x="73" y="32">3</text><text x="97" y="32">4</text><text x="121" y="32">5</text>',
+  grip: '<path d="M20 80 L120 40" stroke-width="7"/><circle cx="46" cy="70" r="9" stroke-width="3"/><path d="M40 76 Q60 96 80 72" stroke-width="5"/>',
+  pedal: '<path d="M30 90 H110 L100 70 H40 Z" stroke-width="3"/><path d="M50 70 Q60 40 90 36" stroke-width="7"/>'
+};
+export const handSVG = kind => HANDS[kind] ? `<svg class="hand-ill" viewBox="0 0 140 100" role="img" aria-label="Drawing: ${kind}"><g fill="none" stroke="currentColor" stroke-linecap="round">${HANDS[kind]}</g></svg>` : '';
+
+export function techniqueCard(host, items, onAll, image) {
   const done = new Set();
-  host.innerHTML = `<ul class="technique">${items.map((t, i) => `<li><label class="check"><input type="checkbox" data-t="${i}"> ${t}</label></li>`).join('')}</ul>
+  host.innerHTML = `${image ? handSVG(image) : ''}<ul class="technique">${items.map((t, i) => `<li><label class="check"><input type="checkbox" data-t="${i}"> ${t}</label></li>`).join('')}</ul>
     <p class="muted small">Try each one on your instrument, then tick it.</p>`;
   host.querySelectorAll('input').forEach(b => b.onchange = () => { b.checked ? done.add(b.dataset.t) : done.delete(b.dataset.t); if (done.size === items.length) onAll?.(); });
   return () => {};

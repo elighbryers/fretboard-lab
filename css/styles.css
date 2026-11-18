@@ -735,3 +735,4 @@ button.small { padding: 6px 10px; font-size: 13px; min-height: 36px }
 #pp-staff .now, #pp-staff .now path { fill: #1565C0 }
 .tempo-trainer { font-size: 18px; margin: 8px 0 }
 .piano-pa .toggles { flex-direction: column; align-items: flex-start }
+.hand-ill { width: 140px; height: 100px; color: var(--blue); display: block; margin: 4px 0 } .hand-ill text { fill: var(--text); stroke: none; font-size: 14px; text-anchor: middle }

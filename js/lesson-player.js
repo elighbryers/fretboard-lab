@@ -141,7 +141,9 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
     $('#ls-next').textContent = step.type === 'play' ? 'Done' : 'Next';
     card.innerHTML = `<div class="step-name">${step.name || NAMES[step.type] || ''}</div><h2>${lesson.title}</h2><div class="step-body"></div>`;
     setReady(true);
-    stepCleanup = RENDER[step.type](card.querySelector('.step-body'), step, last) || null;
+    // Instruments can add step types (piano timed key finding, drum grids): registered('steps').
+    const render = RENDER[step.type] || registered('steps')?.[step.type];
+    stepCleanup = render(card.querySelector('.step-body'), step, last, { setReady, complete, resultHTML, wireResult, lesson }) || null;
   }
 
   $('#ls-back').onclick = () => { if (stepNav?.back()) return; if (i > 0) show(i - 1); };
@@ -201,7 +203,7 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
         if (c.technique) {
           const host = document.createElement('div');
           body.querySelector('.st-board').before(host);
-          techniqueCard(host, c.technique, () => { ticked.add(k); setReady(true); });
+          techniqueCard(host, c.technique, () => { ticked.add(k); setReady(true); }, c.image);
           setReady(ticked.has(k));
         } else setReady(true);
       };
@@ -328,8 +330,8 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
         <p class="muted">Tap Done when you've played along.</p>`;
       const $b = s => body.querySelector(s);
       const fb = board($b('.st-board'), d.view || [0, 12], { labels: 'none' });
-      const follow = (d.follow || []).map(st => list(st).map(toSF));
-      fb.setDots(toDots(d.dots || (d.follow || []).flatMap(list)));
+      const follow = (d.follow || []).map(st => (st == null ? [] : list(st).map(toSF))); // null = a rest
+      fb.setDots(toDots(d.dots || (d.follow || []).filter(Boolean).flatMap(list)));
       const per = d.beatsPerStep || 1;
       const saved = { bpm: metronome.bpm, beats: metronome.beatsPerBar, subdiv: metronome.subdiv, group: metronome.group, running: metronome.running };
       let count = 0, timer = null, left = d.seconds || 0;
