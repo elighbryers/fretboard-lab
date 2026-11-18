@@ -4,6 +4,7 @@
 import { NOTES, midiAt, pcOf, preferredName, parseNote } from './theory.js';
 import { Fretboard } from './fretboard.js';
 import { context, metronome, droneStart, droneStop, backing } from './audio.js';
+import { groove, STYLES, MUTES } from './groove.js';
 import { volumeHTML, esc, clock } from './ui.js';
 import { recordAnswer, completeLesson, unlockLesson, addLog, getLesson, setLessonBpm, getTempo, recordClean, startBelow } from './storage.js';
 import { SpeedTrainer, trainerSetupHTML, trainerStatusHTML } from './speed.js';
@@ -265,7 +266,12 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
       let bpm = clamp(best ? startBelow(best.best) : (d.bpmKey ? null : getLesson(lesson.id).playBpm) ?? d.bpm ?? PLAY_BPM.default);
       let key = d.backing?.key || d.drone || null;
       const keys = d.backing?.keys || d.keys;
-      body.innerHTML = `<p>${d.text}</p>
+      // Bass (and drums) play over a drum loop instead of a click: the step's own style or the
+      // instrument's default. Guitar lessons only get drums when a step asks for them.
+      let style = d.groove || (d.drone ? null : registered('playGroove')) || null, mute = 'full';
+      const grooveHTML = style ? `<div class="row"><label>Drums<select id="st-style">${Object.entries(STYLES).map(([k, v]) => `<option value="${k}"${k === style ? ' selected' : ''}>${v.name}</option>`).join('')}</select></label>
+          <div class="seg" id="st-mute">${Object.entries(MUTES).map(([k, n]) => `<button data-v="${k}" aria-pressed="${k === mute}">${n}</button>`).join('')}</div></div>` : '';
+      body.innerHTML = `<p>${d.text}</p>${grooveHTML}
         ${keys ? `<label class="key-pick">Key<select id="st-key">${keys.map(k => `<option${k === key ? ' selected' : ''}>${k}</option>`).join('')}</select></label>` : ''}
         <div class="tempo">
           <button class="icon" id="st-slower" aria-label="Slower">−</button>
@@ -274,7 +280,7 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
           <output id="st-bpm-out"><b>${bpm}</b> bpm</output>
         </div>
         ${volumeHTML('metroVol', 'Click volume')}${d.drone ? volumeHTML('droneVol', 'Drone volume') : ''}
-        <div class="row"><button class="primary" id="st-metro">▶ ${d.backing ? 'Start backing track' : d.drone ? 'Start drone and click' : 'Start metronome'}</button>
+        <div class="row"><button class="primary" id="st-metro">▶ ${style ? (d.backing ? 'Start drums and chords' : 'Start drums') : d.backing ? 'Start backing track' : d.drone ? 'Start drone and click' : 'Start metronome'}</button>
           <span class="countdown" id="st-count"></span></div>
         <div class="row"><button id="st-clean" title="Played that cleanly? Save this tempo.">✓ Clean run</button>
           <button id="st-trainer" aria-expanded="false">Speed trainer</button></div>
@@ -367,12 +373,13 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
       $b('#st-slower').disabled = bpm <= PLAY_BPM.min;
       $b('#st-faster').disabled = bpm >= PLAY_BPM.max;
       const btn = $b('#st-metro'), label = btn.textContent;
-      const stopAll = () => { backing.stop(); metronome.stop(); if (d.drone) droneStop(); clearInterval(timer); fb.highlight([]); };
+      const stopAll = () => { groove.stop(); backing.stop(); metronome.stop(); if (d.drone) droneStop(); clearInterval(timer); fb.highlight([]); };
       const startAll = () => {
         stopAll();
         count = 0;
         if (d.drone) droneStart(parseNote(key || d.drone));
-        if (d.backing) backing.start(chords(), { bpm, beatsPerBar: d.beatsPerBar || 4 });
+        if (style) groove.start({ style, bpm, mute, chords: d.backing ? chords() : null });
+        else if (d.backing) backing.start(chords(), { bpm, beatsPerBar: d.beatsPerBar || 4 });
         else {
           metronome.setBpm(bpm);
           metronome.beatsPerBar = d.beatsPerBar || 4;
@@ -394,6 +401,13 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
       };
       btn.onclick = () => { if (metronome.running || backing.running) { stopAll(); btn.textContent = label; } else startAll(); };
       $b('#st-key')?.addEventListener('change', e => { key = e.target.value; if (metronome.running) startAll(); });
+      $b('#st-style')?.addEventListener('change', e => { style = e.target.value; if (metronome.running) startAll(); });
+      $b('#st-mute')?.addEventListener('click', e => {
+        const b = e.target.closest('button'); if (!b) return;
+        mute = b.dataset.v;
+        body.querySelectorAll('#st-mute button').forEach(x => x.setAttribute('aria-pressed', x === b));
+        if (groove.running) groove.set({ mute });
+      });
       setReady(false);
       return () => {
         skillCleanup?.();

@@ -621,3 +621,18 @@ header { padding-top: calc(20px + env(safe-area-inset-top)) }
 .instrument-pick label.soon { cursor: default; border-style: dashed; color: var(--muted) }
 .instrument-pick input { margin: 0 }
 .coming-soon h3 { margin: 0 0 6px }
+
+/* ---------- instruments: groove player ---------- */
+.mode-seg { margin: 0 auto 12px; max-width: 320px }
+.groove { display: grid; gap: 12px }
+.gv-display { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; text-align: center }
+.gv-display.dropping { border-color: var(--pink); background: var(--pink-tint) }
+.gv-beats { display: flex; justify-content: center; gap: 14px }
+.gv-beats i { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 700;
+  background: var(--panel2); border: 2px solid var(--line); color: var(--muted) }
+.gv-beats i.one { border-color: var(--pink) }
+.gv-beats i.pulse { animation: pulse .22s ease-out; background: var(--blue); color: var(--on-soft) }
+.gv-beats i.one.pulse { background: var(--pink) }
+.gv-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; margin-top: 10px; color: var(--muted) }
+.gv-drop { color: var(--pink); font-weight: 700 }
+button.small { padding: 6px 10px; font-size: 13px; min-height: 36px }

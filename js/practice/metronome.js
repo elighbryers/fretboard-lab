@@ -3,6 +3,7 @@
 import { metronome } from '../audio.js';
 import { getSettings, setSetting } from '../storage.js';
 import { volumeHTML } from '../ui.js';
+import { mountGroove } from './groove-ui.js';
 
 export const MIN_BPM = 30, MAX_BPM = 250;
 const SIGS = { '2/4': [2, 0], '3/4': [3, 0], '4/4': [4, 0], '6/8': [6, 3] }; // beats per bar, secondary accent group
@@ -19,7 +20,7 @@ export function applyMetronomeSettings(m = getSettings().metronome) {
 export default {
   id: 'metronome',
   title: 'Metronome',
-  blurb: 'Tempo, time signature, subdivisions',
+  blurb: 'Click or drum grooves, chord loops, tap tempo',
   icon: '<svg viewBox="0 0 24 24"><path d="M8 21h8l-3-17h-2zM12 14l5-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>',
 
   mount(el) {
@@ -28,12 +29,14 @@ export default {
     applyMetronomeSettings(m);
     el.innerHTML = `
       <div class="metro">
+        <div class="seg mode-seg" id="mt-mode" role="group" aria-label="Click or groove"><button data-m="click">Click</button><button data-m="groove">Groove</button></div>
         <div class="bpm-row">
           <button class="round" id="mt-minus" aria-label="Slower">−</button>
           <div class="bpm-big"><b id="mt-bpm"></b><span>bpm</span></div>
           <button class="round" id="mt-plus" aria-label="Faster">+</button>
         </div>
         <input type="range" id="mt-slider" min="${MIN_BPM}" max="${MAX_BPM}" aria-label="Tempo">
+        <div class="mt-click">
         <div class="beat-dots" id="mt-dots" aria-hidden="true"></div>
         <div class="row center">
           <button class="primary big" id="mt-go"></button>
@@ -45,6 +48,8 @@ export default {
           <div class="seg" id="mt-sub">${SUBDIVS.map(([n, name, sym]) => `<button data-v="${n}" aria-label="${name}"><span aria-hidden="true">${sym}</span> ${name}</button>`).join('')}</div></div>
         <label class="check"><input type="checkbox" id="mt-accent"> Accent beat 1</label>
         ${volumeHTML('metroVol', 'Volume')}
+        </div>
+        <div class="mt-groove" hidden></div>
       </div>`;
     const $ = s => el.querySelector(s);
 
@@ -60,7 +65,18 @@ export default {
       const n = (SIGS[m.sig] || SIGS['4/4'])[0];
       if ($('#mt-dots').children.length !== n) $('#mt-dots').innerHTML = Array.from({ length: n }, (_, i) => `<i data-b="${i}"${i === 0 ? ' class="one"' : ''}></i>`).join('');
     }
-    const setBpm = v => { m.bpm = Math.min(MAX_BPM, Math.max(MIN_BPM, Math.round(+v) || 80)); save(); };
+    const setBpm = v => { m.bpm = Math.min(MAX_BPM, Math.max(MIN_BPM, Math.round(+v) || 80)); save(); grooveUi?.setBpm(m.bpm); };
+    // Click or Groove (drums + chord pad on the same tempo). Remembered in settings.metroMode.
+    let grooveUi = null;
+    const setMode = mode => {
+      setSetting('metroMode', mode);
+      el.querySelectorAll('#mt-mode button').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === mode));
+      $('.mt-click').hidden = mode !== 'click';
+      $('.mt-groove').hidden = mode !== 'groove';
+      if (mode === 'groove' && !grooveUi) { metronome.stop(); paint(); grooveUi = mountGroove($('.mt-groove'), { bpm: () => m.bpm, onBpm: setBpm }); }
+      if (mode === 'click' && grooveUi) { grooveUi.stop(); grooveUi = null; $('.mt-groove').innerHTML = ''; applyMetronomeSettings(m); }
+    };
+    $('#mt-mode').onclick = e => { const b = e.target.closest('button'); if (b) setMode(b.dataset.m); };
 
     $('#mt-minus').onclick = () => setBpm(m.bpm - 1);
     $('#mt-plus').onclick = () => setBpm(m.bpm + 1);
@@ -89,9 +105,11 @@ export default {
       dot.classList.remove('pulse'); void dot.offsetWidth; dot.classList.add('pulse');
     });
     paint();
+    setMode(getSettings().metroMode === 'groove' ? 'groove' : 'click');
 
     return () => {
       off();
+      grooveUi?.stop();
       // Leaving the screen stops the click, unless a practice routine is using it.
       if (!document.body.classList.contains('routine-running')) metronome.stop();
     };
