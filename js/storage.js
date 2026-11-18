@@ -1,7 +1,7 @@
 // Saved progress in localStorage under one versioned key.
-// Shape (version 3):
+// Shape (version 4):
 // {
-//   version: 3,
+//   version: 4,
 //   instrument: 'guitar' | 'bass' | 'piano' | 'drums',   // the instrument being learned right now
 //   // ---- per instrument: progress that only means something on that instrument ----
 //   instruments: { [instrumentId]: {
@@ -34,10 +34,10 @@
 // The rest of the app calls getLesson, recordAnswer, allItems... as before: they read and
 // write the current instrument's part, or the shared part, as the item or record needs.
 
-import { schedule, isDue } from './review.js';
+import { schedule, isDue, usesFsrs, leitnerToFsrs } from './review.js';
 
 const KEY = 'fretboard-lab';
-export const VERSION = 3;
+export const VERSION = 4;
 
 // Instruments the app knows about. Only the ready ones can be picked in Settings.
 export const INSTRUMENTS = [
@@ -93,6 +93,16 @@ const MIGRATIONS = {
     d.instrument = 'guitar';
     d.log = (d.log || []).map(e => ({ instrument: 'guitar', ...e }));
     d.version = 3;
+    return d;
+  },
+  // Version 4 moved fact-like review items (notes, intervals, degrees, chord tones, facts,
+  // ear training) from Leitner boxes to FSRS, keeping each item's due day and answer history
+  // (js/review.js leitnerToFsrs). Chord shapes and rhythms stay on boxes.
+  3: d => {
+    const convert = items => { for (const [id, it] of Object.entries(items || {})) if (usesFsrs(id) && !it.fsrs) items[id] = leitnerToFsrs(it); };
+    convert(d.items);
+    for (const part of Object.values(d.instruments || {})) convert(part.items);
+    d.version = 4;
     return d;
   }
 };
@@ -189,7 +199,7 @@ export function updateFretboardPrefs(patch) { Object.assign(data.fretboard, patc
 const MAX_MS = 30000;
 
 // Record one answer from a lesson, drill or the daily review. Updates the
-// stats and the item's Leitner box (see js/review.js for the rules).
+// stats and the item's schedule: FSRS or Leitner box (see js/review.js for the rules).
 export function recordAnswer(itemId, correct, ms) {
   const t = Date.now();
   const store = itemsFor(itemId);
@@ -199,7 +209,7 @@ export function recordAnswer(itemId, correct, ms) {
   if (correct) it.correct++;
   it.avgMs = Math.round(it.avgMs + (ms - it.avgMs) / it.attempts);
   it.lastSeen = t;
-  Object.assign(it, schedule(it, correct, ms, t));
+  Object.assign(it, schedule(it, correct, ms, t, itemId));
   delete it.due; delete it.interval; // older schedule fields
   store[itemId] = it;
   touchStreak();

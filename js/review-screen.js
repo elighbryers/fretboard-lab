@@ -177,6 +177,8 @@ function chordEarRound(ui, id) {
   return { end() { ui.fb.wrap.hidden = false; } };
 }
 const days = n => n === 1 ? 'tomorrow' : `in ${n} days`;
+// Days from today until a 'YYYY-MM-DD' day (the item's real next review).
+const untilDay = day => Math.max(1, Math.round((new Date(day + 'T12:00') - new Date(today() + 'T12:00')) / 86400000));
 
 // A Check question from a lesson, asked again.
 function factRound(ui, id) {
@@ -244,7 +246,7 @@ export function runReview(el, { onExit }) {
       if (answered) return;
       answered = true;
       const id = r.queue[r.index], after = getItem(id);
-      r.results.push({ id, ok, from: before, to: after ? boxOf(after) : 1 });
+      r.results.push({ id, ok, from: before, to: after ? boxOf(after) : 1, next: after?.dueDay });
       r.seconds += Math.min(120, (performance.now() - shownAt) / 1000);
       r.index++;
       setReview(r);
@@ -314,7 +316,7 @@ export function runReview(el, { onExit }) {
         <div class="rv-check" aria-hidden="true">✓</div>
         <h3>Done for today, come back tomorrow.</h3>
         <div class="score-big">${score}<span>/${n}</span></div>
-        ${up.length ? `<h4>Moved up (${up.length})</h4>${list(up, x => `next ${days(GAPS[x.to - 1])}`)}` : ''}
+        ${up.length ? `<h4>Moved up (${up.length})</h4>${list(up, x => `next ${days(x.next ? untilDay(x.next) : GAPS[x.to - 1])}`)}` : ''}
         ${back.length ? `<h4>Coming back tomorrow (${back.length})</h4>${list(back)}` : ''}
         ${!up.length && !back.length ? '<p class="muted">Everything stays on schedule.</p>' : ''}
         <div class="row center"><button class="primary big" id="rv-home">Back to Learn</button><a class="button-link" href="#progress">See progress</a></div>

@@ -1,14 +1,31 @@
-// Spaced review, Leitner style. Pure logic: no storage, no DOM, and every
-// function takes the time (or day) it should use, so tests can fake the clock.
+// Spaced review. Pure logic: no storage, no DOM, and every function takes the time
+// (or day) it should use, so tests can fake the clock.
 //
-// Five boxes; an item in box n comes back GAPS[n - 1] days after its last answer.
+// Two schedulers:
+//  - FSRS (ts-fsrs, default parameters) for fact-like items: notes on the neck, intervals,
+//    scale degrees, chord tones and spellings, facts and every ear-training item. FSRS
+//    tracks each item's memory stability and difficulty and asks it again just before
+//    it would be forgotten (90% retention target).
+//  - Leitner boxes for chord shapes and rhythms, which are playing skills (their speed
+//    work lives on the clean-tempo ladder in js/storage.js).
+//
+// FSRS rules, matching the old boxes so the review feels the same:
+//   wrong -> Again, right but slow (QUICK_MS or more) -> Hard, right and quick -> Good.
+//   Only the first answer of a day counts, plus a first miss: drills that ask an item
+//   five times in a row don't make it look five days better. Every item comes back
+//   tomorrow at the earliest (no same-day "learning steps": the review is daily).
+//   `box` is still kept (1-5, from stability vs GAPS) for "moved up / back" feedback.
+// Schedule fields on an FSRS item: { fsrs: card, box, dueDay, reviewDay, missDay }.
+//
+// Leitner: five boxes; an item in box n comes back GAPS[n - 1] days after its last answer.
 //   correct and quick (under QUICK_MS)  -> up one box (at most once a day)
 //   correct but slow                    -> same box
 //   wrong                               -> box 1, due tomorrow
 // A miss sticks for the rest of that day: a later right answer the same day
 // (e.g. a second try in a drill) doesn't move the item up again.
 //
-// Schedule fields kept on each item in storage: { box, dueDay: 'YYYY-MM-DD', upDay, missDay }
+// Schedule fields kept on each Leitner item: { box, dueDay: 'YYYY-MM-DD', upDay, missDay }
+import { fsrs, generatorParameters, createEmptyCard, Rating, State } from './vendor/ts-fsrs.js';
 
 export const GAPS = [1, 3, 7, 14, 30];
 export const QUICK_MS = 3000;
@@ -26,13 +43,64 @@ export const boxOf = it => it.box || 1;
 export const dueDayOf = it => it.dueDay || addDays(dayOf(it.lastSeen || Date.now()), 1);
 export const isDue = (it, day) => dueDayOf(it) <= day;
 
-// The new schedule fields after one answer.
-export function schedule(it, correct, ms, now = Date.now()) {
+// The new schedule fields after one answer. With the item id, fact-like items use FSRS.
+export function schedule(it, correct, ms, now = Date.now(), id = null) {
+  if (id && usesFsrs(id)) return scheduleFsrs(it, correct, ms, now);
   const day = dayOf(now);
   let box = boxOf(it), { upDay = null, missDay = null } = it;
   if (!correct) { box = 1; missDay = day; }
   else if (ms < QUICK_MS && upDay !== day && missDay !== day) { box = Math.min(GAPS.length, box + 1); upDay = day; }
   return { box, dueDay: addDays(day, GAPS[box - 1]), upDay, missDay };
+}
+
+/* ---------- FSRS ---------- */
+export const FSRS_TYPES = ['note', 'interval', 'interval-ear', 'degree', 'tone', 'fact', 'ear', 'chord-ear', 'bass', 'dictation'];
+export const usesFsrs = id => FSRS_TYPES.includes(String(id).split(':')[0]);
+const scheduler = fsrs(generatorParameters({ learning_steps: [], relearning_steps: [], enable_short_term: false }));
+export const gradeOf = (correct, ms) => (!correct ? Rating.Again : ms < QUICK_MS ? Rating.Good : Rating.Hard);
+// A box (1-5) for a stability in days: the same boundaries as the Leitner gaps.
+export const boxForStability = stability => 1 + GAPS.slice(1).filter(g => stability >= g).length;
+
+// Cards are saved as JSON: dates as ISO strings.
+const saveCard = c => ({ ...c, due: new Date(c.due).toISOString(), last_review: c.last_review ? new Date(c.last_review).toISOString() : null });
+const loadCard = c => ({ ...c, due: new Date(c.due), last_review: c.last_review ? new Date(c.last_review) : undefined });
+const noon = day => new Date(day + 'T12:00');
+
+function scheduleFsrs(it, correct, ms, now) {
+  const day = dayOf(now);
+  let { reviewDay = null, missDay = null } = it;
+  if (it.fsrs && reviewDay === day && (correct || missDay === day)) {
+    // Already counted today: keep the schedule as it is.
+    return { fsrs: it.fsrs, box: it.box, dueDay: it.dueDay, reviewDay, missDay };
+  }
+  const card = it.fsrs ? loadCard(it.fsrs) : createEmptyCard(new Date(now));
+  const next = scheduler.next(card, new Date(now), gradeOf(correct, ms)).card;
+  if (!correct) missDay = day;
+  reviewDay = day;
+  // A miss always comes back tomorrow, as with the boxes; otherwise FSRS picks the day (tomorrow at the earliest).
+  const dueDay = correct ? [addDays(day, 1), dayOf(next.due.getTime())].sort()[1] : addDays(day, 1);
+  return { fsrs: saveCard(next), box: boxForStability(next.stability), dueDay, reviewDay, missDay };
+}
+
+// An item answered under the old Leitner boxes, moved to FSRS without losing anything:
+// its due day is kept, the box becomes a starting stability equal to that box's gap
+// (box 3 = 7 days), difficulty comes from its accuracy, and its answer counts stay.
+export function leitnerToFsrs(it, now = Date.now()) {
+  const box = boxOf(it), stability = GAPS[box - 1], dueDay = dueDayOf(it);
+  const acc = it.attempts ? it.correct / it.attempts : 1;
+  const out = { ...it };
+  delete out.upDay;
+  out.fsrs = saveCard({
+    due: noon(dueDay), stability, difficulty: acc >= 0.9 ? 4 : acc >= 0.75 ? 5.5 : 7,
+    elapsed_days: 0, scheduled_days: stability, learning_steps: 0,
+    reps: it.attempts || 0, lapses: Math.max(0, (it.attempts || 0) - (it.correct || 0)),
+    state: it.attempts ? State.Review : State.New, last_review: it.lastSeen ? new Date(it.lastSeen) : undefined
+  });
+  out.box = box;
+  out.dueDay = dueDay;
+  out.reviewDay = it.upDay || null;
+  out.missDay = it.missDay || null;
+  return out;
 }
 
 /* ---------- today's session ---------- */
