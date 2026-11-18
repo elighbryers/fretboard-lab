@@ -1,0 +1,8 @@
+// Bass: loaded only when Bass is the instrument (js/app.js). Registers the bass tools,
+// lessons, drills, play-alongs and sound with the shared screens (js/registry.js).
+import { register } from '../registry.js';
+import fretboardPanel from './fretboard-panel.js';
+
+register('fretboardPanel', fretboardPanel);
+const foot = document.querySelector('footer');
+if (foot) foot.textContent = 'Bass · 20 frets';

@@ -1,7 +1,7 @@
 // Saved progress in localStorage under one versioned key.
-// Shape (version 4):
+// Shape (version 5):
 // {
-//   version: 4,
+//   version: 5,
 //   instrument: 'guitar' | 'bass' | 'piano' | 'drums',   // the instrument being learned right now
 //   // ---- per instrument: progress that only means something on that instrument ----
 //   instruments: { [instrumentId]: {
@@ -12,6 +12,9 @@
 //               count, unit 'changes', for one-minute chord changes), best per day
 //     goals:    { [goalId]: { started: day, days: [day], checks: { [checkId]: day } } }  // multi-week goals
 //     review:   { day, queue: [itemId], index, results: [{ id, ok, from, to }], done, bonus, key, seconds } | null  // today's session
+//     tuning:   null | tuning id (bass: 'standard' | 'five' | 'dropD' | 'six'); null = the instrument's default
+//     timing:   [ { day, at, drill, bpm, n, bias, spread, hitRate } ]   // timing sessions (lock to the kick, drum
+//               scoring), for the timing chart; the newest 400 are kept
 //   } },
 //   // ---- shared, app-wide ----
 //   items:    { [itemId]: { attempts, correct, avgMs, lastSeen, ...schedule } }  // theory items (facts, degrees,
@@ -35,22 +38,27 @@
 // write the current instrument's part, or the shared part, as the item or record needs.
 
 import { schedule, isDue, usesFsrs, leitnerToFsrs } from './review.js';
+import { tuningOf } from './instruments.js';
+import { setDefaultTuning } from './theory.js';
 
 const KEY = 'fretboard-lab';
-export const VERSION = 4;
+export const VERSION = 5;
 
 // Instruments the app knows about. Only the ready ones can be picked in Settings.
 export const INSTRUMENTS = [
   { id: 'guitar', name: 'Guitar', ready: true },
-  { id: 'bass', name: 'Bass', ready: false },
+  { id: 'bass', name: 'Bass', ready: true },
   { id: 'piano', name: 'Piano', ready: false },
   { id: 'drums', name: 'Drums', ready: false }
 ];
-// Items tied to one instrument's neck or shapes; every other item is shared theory.
-const POSITION_ITEM = /^(note|chordshape):/;
+// Items tied to one instrument's neck, keys or sticks; every other item is shared theory.
+// note: a spot on a neck, chordshape: a guitar chord shape, key: a piano key, staff: a staff note
+// read onto the keys, fingering: a piano scale fingering, sticking: a drum sticking.
+const POSITION_ITEM = /^(note|chordshape|key|staff|fingering|sticking):/;
 export const isPositionItem = id => POSITION_ITEM.test(id);
 
-const blankInstrument = () => ({ lessons: {}, items: {}, placement: 0, tempos: {}, goals: {}, review: null });
+const blankInstrument = () => ({ lessons: {}, items: {}, placement: 0, tempos: {}, goals: {}, review: null, tuning: null, timing: [] });
+const MAX_TIMING = 400;
 
 const blank = () => ({
   version: VERSION,
@@ -63,7 +71,7 @@ const blank = () => ({
   confusions: {},
   milestones: {},
   settings: {
-    labels: 'notes', sound: true, metroVol: 0.7, droneVol: 0.5, tabVol: 0.8, tabClickVol: 0.6,
+    labels: 'notes', sound: true, mic: false, micPoly: false, midi: false, metroVol: 0.7, droneVol: 0.5, tabVol: 0.8, tabClickVol: 0.6,
     metronome: { bpm: 80, sig: '4/4', subdiv: 1, accent: true }
   },
   practice: { custom: null, drills: {}, tabTempo: {} },
@@ -103,6 +111,16 @@ const MIGRATIONS = {
     convert(d.items);
     for (const part of Object.values(d.instruments || {})) convert(part.items);
     d.version = 4;
+    return d;
+  },
+  // Version 5 added bass, piano and drums: each instrument part gets its own tuning choice
+  // (null = default) and a list of timing sessions for the timing chart. Nothing moves.
+  4: d => {
+    for (const part of Object.values(d.instruments || {})) {
+      if (!('tuning' in part)) part.tuning = null;
+      if (!Array.isArray(part.timing)) part.timing = [];
+    }
+    d.version = 5;
     return d;
   }
 };
@@ -174,12 +192,29 @@ const inst = () => data.instruments[data.instrument] || (data.instruments[data.i
 const itemsFor = id => (POSITION_ITEM.test(id) ? inst().items : data.items);
 
 export const getInstrument = () => data.instrument;
+// The neck of the current instrument (fretted instruments; others fall back to guitar).
+export const getTuningId = () => inst().tuning || null;
+export const activeTuning = () => tuningOf(data.instrument, inst().tuning);
+// Changing the tuning reloads the screens that draw a neck (the caller reloads the page).
+export function setTuningId(id) { inst().tuning = id || null; save(); setDefaultTuning(activeTuning()); }
 // Switch instruments. Shared progress (theory items, log, streak) is untouched; the
 // instrument's own lessons, positions, placement and tempos are kept until it's picked again.
 export function setInstrument(id) {
   if (!INSTRUMENTS.some(i => i.id === id) || id === data.instrument) return;
   data.instrument = id;
   inst();
+  save();
+}
+
+// Free-play helpers (midiAt with no tuning) use the current instrument's neck.
+setDefaultTuning(activeTuning());
+
+/* ---------- timing sessions (per instrument) ---------- */
+export const getTimingHistory = () => JSON.parse(JSON.stringify(inst().timing || []));
+export function addTimingSession(s) {
+  const part = inst();
+  part.timing = [...(part.timing || []), { day: today(), at: Date.now(), ...s }].slice(-MAX_TIMING);
+  touchStreak();
   save();
 }
 
@@ -412,6 +447,9 @@ function mergeInstrument(out, b) {
     t.history.forEach(h => days.set(h.day, Math.max(days.get(h.day) || 0, h.bpm)));
     out.tempos[id] = { ...m, best: Math.max(m.best, t.best), history: [...days].map(([day, bpm]) => ({ day, bpm })).sort((x, y) => x.day.localeCompare(y.day)) };
   }
+  const seen = new Set((out.timing || []).map(t => t.at + ':' + t.drill));
+  out.timing = [...(out.timing || []), ...(b.timing || []).filter(t => !seen.has(t.at + ':' + t.drill))].sort((x, y) => x.at - y.at).slice(-MAX_TIMING);
+  if (!out.tuning && b.tuning) out.tuning = b.tuning;
   // Today's review session stays as it is on this device.
 }
 
@@ -441,4 +479,4 @@ function merge(a, b) {
   return out;
 }
 
-export function resetAll() { data = blank(); save(); }
+export function resetAll() { data = blank(); save(); setDefaultTuning(activeTuning()); }

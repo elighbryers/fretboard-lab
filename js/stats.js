@@ -1,7 +1,7 @@
 // Numbers for the Progress tab, worked out from saved progress (js/storage.js).
 // Nothing here saves except checkMilestones(), which records newly earned badges.
 import { allItems, getLog, getStreak, getLesson, getConfusions, getMilestones, earnMilestones, getDays, today, shiftDay } from './storage.js';
-import { LEVELS, nodesOf } from './lessons/index.js';
+import { currentLevels, nodesOf } from './lessons/index.js';
 import { PLAYALONG } from './playalong/index.js';
 import { nextUp } from './path.js';
 
@@ -42,8 +42,8 @@ const minutesBy = log => log.reduce((m, e) => (m[e.date] = (m[e.date] || 0) + e.
 /* ---------- at a glance ---------- */
 export function learnPath() {
   const up = nextUp();
-  if (!up) return { level: LEVELS.length, text: 'All levels done' };
-  const L = LEVELS[up.levelIndex].level, n = up.levelIndex + 1;
+  if (!up) return { level: currentLevels().length, text: 'All levels done' };
+  const L = currentLevels()[up.levelIndex].level, n = up.levelIndex + 1;
   if (up.node.challenge) return { level: n, text: `Level ${n} · challenge next` };
   const done = L.lessons.filter(x => getLesson(x.id).completed).length;
   return { level: n, text: `Level ${n} · ${done} of ${L.lessons.length}` };
@@ -164,9 +164,9 @@ const notesFound = () => Object.entries(allItems()).filter(([id]) => /^(note|ear
 
 export const BADGES = [
   { id: 'first-lesson', glyph: '1', title: 'First lesson', how: 'Finish any lesson',
-    test: () => LEVELS.some(l => l.level && nodesOf(l.level).some(x => getLesson(x.id).completed)) },
+    test: () => currentLevels().some(l => l.level && nodesOf(l.level).some(x => getLesson(x.id).completed)) },
   { id: 'level-1', glyph: 'L1', title: 'Level 1 complete', how: 'Finish every Level 1 lesson and the challenge',
-    test: () => nodesOf(LEVELS[0].level).every(x => getLesson(x.id).completed) },
+    test: () => !!currentLevels()[0]?.level && nodesOf(currentLevels()[0].level).every(x => getLesson(x.id).completed) },
   { id: 'streak-3', glyph: '3', title: '3-day streak', how: 'Practice 3 days in a row', test: s => s.streak.best >= 3 },
   { id: 'streak-7', glyph: '7', title: '7-day streak', how: 'Practice 7 days in a row', test: s => s.streak.best >= 7 },
   { id: 'streak-30', glyph: '30', title: '30-day streak', how: 'Practice 30 days in a row', test: s => s.streak.best >= 30 },

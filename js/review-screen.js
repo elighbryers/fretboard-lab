@@ -2,7 +2,7 @@
 // Questions reuse the drill rounds (js/practice/drills.js) in one-try mode, so
 // answers land in the same stats and schedule as everything else. The session
 // is saved after every answer, so Pause (or a reload) resumes where you were.
-import { midiAt, pcOf, parseNote, lookup, parseFormula, spell, preferredName } from './theory.js';
+import { midiAt, pcOf, parseNote, lookup, parseFormula, spell, preferredName, getDefaultTuning } from './theory.js';
 import { playSound } from './sound.js';
 import { strum, voicing } from './audio.js';
 import { Fretboard } from './fretboard.js';
@@ -85,7 +85,7 @@ function degreeRound(ui, id) {
       ui.fb.mark(s, f, ok, ok ? x.name : preferredName(pc));
       if (!ok) {
         let best = null;
-        for (let ss = 0; ss < 6; ss++) for (let ff = ui.o.from; ff <= ui.o.to; ff++)
+        for (let ss = 0; ss < getDefaultTuning().strings.length; ss++) for (let ff = ui.o.from; ff <= ui.o.to; ff++)
           if (pcOf(midiAt(ss, ff)) === x.pc && (!best || Math.abs(ss - s) + Math.abs(ff - f) < Math.abs(best.s - s) + Math.abs(best.f - f))) best = { s: ss, f: ff };
         if (best) { ui.fb.mark(best.s, best.f, true, x.name, true); playSound({ seq: [null, midiAt(best.s, best.f)], bpm: 150 }); }
       }
@@ -232,7 +232,7 @@ export function runReview(el, { onExit }) {
       </div>
     </div>`;
   const $ = s => el.querySelector(s);
-  const o = { strings: [0, 1, 2, 3, 4, 5], from: 0, to: 12, key: r.key, scale: 'major', level: 'medium' };
+  const o = { strings: getDefaultTuning().strings.map((_, i) => i), from: 0, to: 12, key: r.key, scale: 'major', level: 'medium' };
   let current = null, shownAt = 0, answered = false, autoTimer = null, closed = false, before = null;
   const fb = new Fretboard($('#dr-board'), { view: [0, 12], mode: 'tap', labels: 'none', onTap: t => current?.tap?.(t) });
   const ui = {

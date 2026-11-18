@@ -5,11 +5,14 @@
 import { NOTES, KEY_NAMES, pcOf, midiAt, lookup, parseFormula, spell, preferredName, noteAbove } from '../theory.js';
 import { Fretboard } from '../fretboard.js';
 import { pluckAt, context, now, droneStart, droneStop, droneOn } from '../audio.js';
-import { recordAnswer, recordConfusion, addLog, getPracticePrefs, updatePracticePrefs, getInstrument } from '../storage.js';
+import { recordAnswer, recordConfusion, addLog, getPracticePrefs, updatePracticePrefs, getInstrument, activeTuning } from '../storage.js';
 import { volumeHTML, esc, pick, shuffle } from '../ui.js';
-import { tuningOf } from '../instruments.js';
+import { tuningOf, itemNum, indexOfNum } from '../instruments.js';
 
-const tuning = tuningOf(getInstrument()), ALL = [0, 1, 2, 3, 4, 5], MAX_FRET = 15;
+const tuning = activeTuning(), ALL = tuning.strings.map((_, i) => i), MAX_FRET = getInstrument() === 'bass' ? 20 : 15;
+const N = tuning.strings.length, LOW2 = [N - 2, N - 1]; // the two lowest strings (guitar: A and low E)
+// Drill options are remembered per instrument (guitar keeps its old key).
+const prefKey = id => (getInstrument() === 'guitar' ? id : `${getInstrument()}:${id}`);
 const ORD = { 1: 'root', 2: '2nd', 3: '3rd', 4: '4th', 5: '5th', 6: '6th', 7: '7th' };
 // "b3" -> "flat 3rd", "#4" -> "sharp 4th", "R" -> "root"
 const degreeWords = label => {
@@ -34,15 +37,20 @@ const HEAR_SCALES = { major: 'Major', 'minor-pentatonic': 'Minor pentatonic', mi
 
 export const DRILLS = [
   { id: 'notes', title: 'Note finder', blurb: 'Find a named note on the neck',
-    defaults: { strings: [4, 5], from: 0, to: 12, rounds: 10 } },
+    defaults: { strings: LOW2, from: 0, to: 12, rounds: 10 } },
   { id: 'hear', title: 'Hear it, find it', blurb: 'A drone sets the key; find the note you hear',
     defaults: { key: 7, scale: 'major', level: 'easy', strings: ALL, from: 0, to: 12, rounds: 10 } },
   { id: 'intervals', title: 'Interval trainer', blurb: 'Find or name intervals, confusable pairs together',
     defaults: { mode: 'find', set: 'm3-M3', strings: ALL, from: 0, to: 12, rounds: 10 } }
 ];
 
-const optsFor = d => ({ ...d.defaults, ...(getPracticePrefs().drills[d.id] || {}) });
-const saveOpts = (id, o) => updatePracticePrefs({ drills: { ...getPracticePrefs().drills, [id]: o } });
+const optsFor = d => {
+  const o = { ...d.defaults, ...(getPracticePrefs().drills[prefKey(d.id)] || {}) };
+  if (o.strings) { o.strings = o.strings.filter(s => s < N); if (!o.strings.length) o.strings = d.defaults.strings || ALL; }
+  o.to = Math.min(o.to ?? 12, MAX_FRET);
+  return o;
+};
+const saveOpts = (id, o) => updatePracticePrefs({ drills: { ...getPracticePrefs().drills, [prefKey(id)]: o } });
 const positions = o => o.strings.flatMap(s => Array.from({ length: o.to - o.from + 1 }, (_, k) => {
   const f = o.from + k, midi = midiAt(s, f);
   return { s, f, midi, pc: pcOf(midi) };
@@ -69,7 +77,7 @@ function setup(el, d, start) {
       <p class="muted">${d.blurb}.</p>
       ${extra}
       <div class="field"><span class="lbl">Strings</span>
-        <div class="seg strings" id="dr-strings">${[5, 4, 3, 2, 1, 0].map(s => `<button data-s="${s}" aria-pressed="${o.strings.includes(s)}">${tuning.strings[s].name}</button>`).join('')}</div></div>
+        <div class="seg strings" id="dr-strings">${ALL.slice().reverse().map(s => `<button data-s="${s}" aria-pressed="${o.strings.includes(s)}">${tuning.strings[s].name}</button>`).join('')}</div></div>
       <div class="row"><label>From fret<select id="dr-from">${fretOpts(o.from)}</select></label><label>To fret<select id="dr-to">${fretOpts(o.to)}</select></label></div>
       <div class="field"><span class="lbl">Rounds</span>${seg('dr-rounds', [[10, '10'], [20, '20']], o.rounds)}</div>
       <button class="primary big" id="dr-start">▶ Start</button>
@@ -116,7 +124,7 @@ function run(el, d, o, { onAgain, onOptions }) {
   let round = 0, score = 0, answered = 0, current = null, finished = false, autoTimer = null;
   const fb = new Fretboard($('#dr-board'), {
     view: [o.from, o.to], mode: 'tap', labels: 'none',
-    focus: o.strings.length < 6 ? { strings: o.strings } : null,
+    focus: o.strings.length < N ? { strings: o.strings } : null,
     onTap: t => current && current.tap && current.tap(t)
   });
   const ui = {
@@ -181,7 +189,7 @@ function run(el, d, o, { onAgain, onOptions }) {
 }
 
 /* ---------- 1. Note finder (the original note quiz, with range options) ---------- */
-DRILLS[0].summary = o => `${o.strings.length === 6 ? 'all strings' : o.strings.map(s => tuning.strings[s].name).reverse().join(' ')} · frets ${o.from}–${o.to}`;
+DRILLS[0].summary = o => `${o.strings.length === N ? 'all strings' : o.strings.map(s => tuning.strings[s].name).reverse().join(' ')} · frets ${o.from}–${o.to}`;
 let lastTarget = null;
 // want: { pc, s, once? } to ask for one note on one string (weak-spot review).
 // once: one try only; a miss shows and plays the answer (daily review).
@@ -200,7 +208,7 @@ DRILLS[0].round = (ui, want) => {
       if (solved) return;
       if (!focused) { ui.msg('Stick to the selected strings.', 'muted'); return; }
       const ok = pc === target;
-      recordAnswer(`note:${NOTES[target]}@s${string.num}`, ok, performance.now() - shownAt);
+      recordAnswer(`note:${NOTES[target]}@s${itemNum(tuning, s)}`, ok, performance.now() - shownAt);
       shownAt = performance.now();
       ui.fb.mark(s, f, ok, preferredName(pc));
       if (ok) {
@@ -344,13 +352,13 @@ DRILLS[2].round = (ui, want) => {
 /* ---------- weak-spot review: 10 rounds of chosen items ----------
    Started from the Progress tab with #practice?tool=drills&drill=review&items=note:G%23@s5,interval:m3
    Each round asks one item with the matching drill's round. */
-export const REVIEWABLE = /^(note:[A-G]#?@s[1-6]|ear:(R|b?[2-7]|#4)|interval(-ear)?:(m3|M3|P4|P5|m6|M6|m7|M7))$/;
+export const REVIEWABLE = /^(note:[A-G]#?@s[0-6]|ear:(R|b?[2-7]|#4)|interval(-ear)?:(m3|M3|P4|P5|m6|M6|m7|M7))$/;
 export const asRound = id => {
   if (!REVIEWABLE.test(id)) return null;
   const [kind, rest] = id.split(':');
   if (kind === 'note') {
     const [name, str] = rest.split('@s');
-    return { drill: DRILLS[0], want: { pc: NOTES.indexOf(name), s: tuning.strings.findIndex(x => x.num === +str) } };
+    return { drill: DRILLS[0], want: { pc: NOTES.indexOf(name), s: indexOfNum(tuning, +str) } };
   }
   if (kind === 'ear') return { drill: DRILLS[1], want: { label: rest } };
   return { drill: DRILLS[2], want: { id: rest, mode: kind === 'interval' ? 'find' : 'ear' } };

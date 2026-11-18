@@ -8,9 +8,9 @@
 import { midiAt, parseNote } from './theory.js';
 import { pluckAt, strumAt, voicing, context, now, droneStart, droneStop } from './audio.js';
 import { tuningOf } from './instruments.js';
-import { getInstrument } from './storage.js';
+import { getInstrument, activeTuning } from './storage.js';
 
-const tuning = tuningOf(getInstrument()); // the current instrument's neck (switching reloads the app)
+const tuning = tuningOf(getInstrument()); // the numbering lessons use for this instrument (4-string bass: string 4 = low E); pitch is the same on any tuning
 export const midiOfPos = ({ string, fret }) => midiAt(tuning.strings.findIndex(x => x.num === string), fret, tuning);
 // 'G:major' -> { root: 7, chord: 'major' }
 export const parseChord = str => { const [n, c = 'major'] = str.split(':'); return { root: parseNote(n), chord: c }; };

@@ -6,12 +6,17 @@ import { Fretboard, legendHTML } from '../fretboard.js';
 import { droneStart, droneStop, droneOn } from '../audio.js';
 import { volumeHTML } from '../ui.js';
 import { replaceParams } from '../router.js';
-import { getFretboardPrefs, updateFretboardPrefs, allItems, getInstrument } from '../storage.js';
-import { tuningOf } from '../instruments.js';
+import { getFretboardPrefs, updateFretboardPrefs, allItems, getInstrument, activeTuning } from '../storage.js';
+import { tuningOf, itemNum, instrumentDef } from '../instruments.js';
+import { registered } from '../registry.js';
 
-const FRETS = 15;
+// Guitar: 15 frets, whole neck. Bass: 20 frets, showing 0-12 until you widen it.
+const DEF = instrumentDef(getInstrument()), FRETS = DEF.frets || 15, START_TO = getInstrument() === 'bass' ? 12 : FRETS;
+// Extra tools for this instrument (js/bass/fretboard-panel.js): a More section and, when one of
+// its views is on, the dots to draw instead of the plain scale or chord.
+let panel = null; // set in mount(): instrument code registers after this module loads
 const DEFAULT = {
-  key: 9, kind: 'scale', id: 'minor-pentatonic', labels: 'notes', from: 0, to: FRETS,
+  key: 9, kind: 'scale', id: 'minor-pentatonic', labels: 'notes', from: 0, to: START_TO,
   overlayRoot: null, overlayChord: '', heat: false, leftHanded: false, playerView: false
 };
 // Chords offered for "scale over chord"
@@ -22,7 +27,9 @@ const $ = sel => el.querySelector(sel);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 const current = () => lookup(state.kind, state.id) || lookup('scale', 'minor-pentatonic');
-const wholeNeck = () => state.from === 0 && state.to === FRETS;
+const wholeNeck = () => state.from === 0 && state.to >= START_TO;
+// What an instrument's panel can see and do.
+const api = () => ({ el, fb, state, change, compute, FRETS, START_TO, wholeNeck: wholeNeck() });
 
 /* ---------- drawing ---------- */
 function compute() {
@@ -45,7 +52,7 @@ function compute() {
 
 function draw() {
   const { item, degs, sp, scale, chord } = compute();
-  const dots = [], tuning = tuningOf(getInstrument());
+  const dots = [], tuning = activeTuning();
   const label = info => (state.labels === 'notes' ? info.name : state.labels === 'intervals' ? info.label : '');
   tuning.strings.forEach((str, s) => {
     for (let f = 0; f <= FRETS; f++) {
@@ -59,7 +66,10 @@ function draw() {
       } else if (inScale) dots.push(state.labels === 'none' ? bare(inScale) : { s, f, role: inScale.role, label: label(inScale) });
     }
   });
+  const own = panel?.dots?.(api());
+  if (own) { dots.length = 0; dots.push(...own); }
   fb.set({
+    view: [0, Math.max(START_TO, state.to)],
     focus: wholeNeck() ? null : { frets: [state.from, state.to] },
     leftHanded: state.leftHanded, playerView: state.playerView
   });
@@ -72,12 +82,13 @@ function draw() {
   el.querySelectorAll('#fb-labels button').forEach(b => b.setAttribute('aria-pressed', b.dataset.l === state.labels));
   $('#fb-from').value = state.from;
   $('#fb-to').value = state.to;
-  $('#fb-whole').disabled = wholeNeck();
+  $('#fb-whole').disabled = state.from === 0 && state.to === FRETS;
   $('#fb-left').checked = state.leftHanded;
   $('#fb-player').checked = state.playerView;
   $('#fb-heat').checked = state.heat;
   paintOverlay(sp, degs);
   paintDrone(sp);
+  panel?.paint?.(api());
 
   const heatNote = state.heat && !hasQuizData() ? '<small>No quiz answers yet. Do a few rounds in Practice and your weak spots show up here.</small>' : '';
   $('#fb-heat-note').innerHTML = heatNote;
@@ -112,9 +123,9 @@ function paintDrone(sp) {
 /* ---------- weak spots (from Practice quiz answers) ---------- */
 const hasQuizData = () => Object.keys(allItems()).some(id => id.startsWith('note:'));
 function heatScore() {
-  const items = allItems(), tuning = tuningOf(getInstrument());
+  const items = allItems(), tuning = activeTuning();
   return (s, f) => {
-    const it = items[`note:${NOTES[pcOf(midiAt(s, f, tuning))]}@s${tuning.strings[s].num}`];
+    const it = items[`note:${NOTES[pcOf(midiAt(s, f, tuning))]}@s${itemNum(tuning, s)}`];
     return it ? it.correct / it.attempts : null;
   };
 }
@@ -208,7 +219,8 @@ function renderPicker() {
 
 /* ---------- Play it (same notes and timing as before; dots light as they sound) ---------- */
 function playIt() {
-  const degs = parseFormula(current().formula), base = 40 + ((state.key - 4 + 12) % 12), hand = base - 40;
+  if (panel?.playIt?.(api())) return;
+  const degs = parseFormula(current().formula), base = (getInstrument() === 'bass' ? 28 : 40) + ((state.key - 4 + 12) % 12), hand = base - (getInstrument() === 'bass' ? 28 : 40);
   if (state.kind === 'scale') {
     fb.playSequence([...degs.map(d => d.semi), 12].map(r => positionForMidi(base + r, hand)), { bpm: 60 / 0.32 });
   } else {
@@ -226,6 +238,7 @@ export default {
 
   mount(section) {
     el = section;
+    panel = registered('fretboardPanel') || null;
     const fretOpts = Array.from({ length: FRETS + 1 }, (_, f) => `<option value="${f}">${f}</option>`).join('');
     el.innerHTML = `
       <div class="controls fb-main">
@@ -259,6 +272,7 @@ export default {
         <section><h3>View</h3>
           <label class="check"><input type="checkbox" id="fb-left"> Left-handed</label>
           <label class="check"><input type="checkbox" id="fb-player"> Player's view (low E on top)</label></section>
+        ${panel ? panel.html() : ''}
         <section><h3>Save this setup</h3>
           <div class="row"><label class="grow">Name<input type="text" id="fb-save-name" maxlength="40" placeholder="e.g. Blues in A, position 5"></label>
           <button id="fb-save" class="primary">Save</button></div>
@@ -279,7 +293,7 @@ export default {
     const prefs = getFretboardPrefs();
     state = { ...DEFAULT, ...(prefs.last || {}) };
     if (!lookup(state.kind, state.id)) Object.assign(state, { kind: DEFAULT.kind, id: DEFAULT.id });
-    fb = new Fretboard($('#fb-board'), { mode: 'show', ariaLabel: 'Fretboard showing the selected scale or chord' });
+    fb = new Fretboard($('#fb-board'), { mode: 'show', view: [0, START_TO], ariaLabel: `${DEF.id === 'bass' ? 'Bass neck' : 'Fretboard'} showing the selected scale or chord` });
 
     const more = $('#fb-more-panel'), moreBtn = $('#fb-more');
     const setMore = open => { more.hidden = !open; moreBtn.setAttribute('aria-expanded', open); moreBtn.classList.toggle('on', open); };
@@ -292,6 +306,7 @@ export default {
     $('#fb-from').onchange = e => change({ from: +e.target.value });
     $('#fb-to').onchange = e => change({ to: +e.target.value });
     $('#fb-whole').onclick = () => change({ from: 0, to: FRETS });
+    panel?.mount?.(api());
     $('#fb-heat').onchange = e => change({ heat: e.target.checked });
     $('#fb-left').onchange = e => change({ leftHanded: e.target.checked });
     $('#fb-player').onchange = e => change({ playerView: e.target.checked });
@@ -339,12 +354,13 @@ export default {
     if (Object.keys(patch).length) {
       if (patch.key != null || patch.id) patch.overlayRoot = null;
       // A link sets the view it describes: whole neck and default labels unless it says otherwise.
-      change({ labels: 'notes', from: 0, to: FRETS, ...patch });
+      change({ labels: 'notes', from: 0, to: START_TO, ...patch });
     } else { draw(); syncUrl(); }
   },
 
   hide() {
     fb.stopSequence();
+    panel?.hide?.(api());
     if (startedDrone && droneOn()) droneStop();
     startedDrone = false;
     if (!$('#fb-picker').hidden) closePicker();

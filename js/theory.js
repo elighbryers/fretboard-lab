@@ -214,6 +214,13 @@ export const TUNINGS = {
   }
 };
 
+// The neck most helpers use when no tuning is passed: guitar standard until the app
+// picks another instrument's tuning at start-up (js/storage.js). Lesson code always
+// passes its own tuning, so this only changes free-play screens.
+let defaultTuning = TUNINGS.standard;
+export const setDefaultTuning = t => { defaultTuning = t || TUNINGS.standard; };
+export const getDefaultTuning = () => defaultTuning;
+
 export const pcOf = midi => ((midi % 12) + 12) % 12;
 export const noteName = pc => NOTES[pcOf(pc)];
 export const midiToFreq = midi => 440 * Math.pow(2, (midi - 69) / 12);
@@ -237,23 +244,23 @@ export function intervalBetween(a, b) {
 }
 
 // Frets (0..maxFret) where pitch class `pc` sits on string index `s`.
-export function fretsOf(pc, s, tuning = TUNINGS.standard, maxFret = 15) {
+export function fretsOf(pc, s, tuning = defaultTuning, maxFret = 15) {
   const out = [];
   for (let f = pcOf(pc - tuning.strings[s].midi); f <= maxFret; f += 12) out.push(f);
   return out;
 }
 
 // Every {s, f} position of pitch class `pc` on the neck.
-export function positionsOf(pc, tuning = TUNINGS.standard, maxFret = 15) {
+export function positionsOf(pc, tuning = defaultTuning, maxFret = 15) {
   return tuning.strings.flatMap((_, s) => fretsOf(pc, s, tuning, maxFret).map(f => ({ s, f })));
 }
 
-export const midiAt = (s, f, tuning = TUNINGS.standard) => tuning.strings[s].midi + f;
+export const midiAt = (s, f, tuning = defaultTuning) => tuning.strings[s].midi + f;
 
 // Where to play an exact MIDI note for a hand sitting at `nearFret` (used to light
 // up sequences). Prefers the lowest string inside the hand's reach (one fret
 // back, four forward), skipping strings in `avoid`; otherwise the closest fret.
-export function positionForMidi(midi, nearFret = 0, { tuning = TUNINGS.standard, maxFret = 15, avoid = new Set() } = {}) {
+export function positionForMidi(midi, nearFret = 0, { tuning = defaultTuning, maxFret = 15, avoid = new Set() } = {}) {
   const cands = tuning.strings
     .map((str, s) => ({ s, f: midi - str.midi }))
     .filter(p => p.f >= 0 && p.f <= maxFret && !avoid.has(p.s));

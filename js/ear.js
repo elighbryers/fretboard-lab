@@ -7,12 +7,12 @@
 // Every answer is recorded with recordAnswer, so it feeds the daily review.
 import { pcOf, midiAt, parseNote, spell, preferredName } from './theory.js';
 import { droneStart, droneStop, droneOn, voicing, strumAt, pluckAt, context, now } from './audio.js';
-import { recordAnswer, getSettings, setSetting, getInstrument } from './storage.js';
+import { recordAnswer, getSettings, setSetting, getInstrument, activeTuning } from './storage.js';
 import { chordOf } from './progressions.js';
 import { esc, pick } from './ui.js';
 import { tuningOf } from './instruments.js';
 
-const tuning = tuningOf(getInstrument()); // answers go on the current instrument's neck
+const tuning = activeTuning(); // answers go on the current instrument's neck
 const CHROMATIC = ['R', 'b2', '2', 'b3', '3', '4', '#4', '5', 'b6', '6', 'b7', '7'];
 const ORD = { 2: '2nd', 3: '3rd', 4: '4th', 5: '5th', 6: '6th', 7: '7th' };
 export const degreeWords = l => l === 'R' ? 'root' : (l[0] === 'b' ? 'flat ' : l[0] === '#' ? 'sharp ' : '') + ORD[l.replace(/\D/g, '')];
@@ -89,7 +89,7 @@ export function trackAnswer(id, ok) {
 
 /* ---------- shared helpers ---------- */
 // Positions in view holding pitch class pc (optionally only some strings).
-function spotsIn(ui, pc, strings = [0, 1, 2, 3, 4, 5]) {
+function spotsIn(ui, pc, strings = tuning.strings.map((_, i) => i)) {
   const out = [];
   strings.forEach(s => { for (let f = ui.o.from; f <= ui.o.to; f++) if (pcOf(midiAt(s, f)) === pcOf(pc)) out.push({ s, f, midi: midiAt(s, f) }); });
   return out;

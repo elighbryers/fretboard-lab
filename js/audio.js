@@ -44,6 +44,8 @@ export function setMuted(m) {
 }
 
 export const now = () => (ctx ? ctx.currentTime : 0);
+// The master output (after the mute switch), for other sound modules (drum kit, groove, samples).
+export const output = () => (context() ? master : null);
 
 /* ---------- plucked string (Karplus-Strong, no downloads) ---------- */
 const cache = {};

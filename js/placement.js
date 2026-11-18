@@ -2,7 +2,7 @@
 // next level; the first level with fewer than two right is where you start.
 // Questions live in each level's data as `placement: [question, x3]` (same
 // format as Check questions).
-import { LEVELS, nodesOf } from './lessons/index.js';
+import { currentLevels, nodesOf } from './lessons/index.js';
 import { renderQuestion } from './lesson-player.js';
 import { setPlacement, unlockLesson } from './storage.js';
 import { esc } from './ui.js';
@@ -10,7 +10,7 @@ import { esc } from './ui.js';
 const NEED = 2;
 
 export function runPlacement(el, { onExit }) {
-  const levels = LEVELS.map((L, i) => ({ ...L, n: i + 1 })).filter(L => L.level?.placement?.length);
+  const levels = currentLevels().map((L, i) => ({ ...L, n: i + 1 })).filter(L => L.level?.placement?.length);
   let li = 0, q = 0, right = 0, cleanup = null;
   el.innerHTML = `
     <div class="lesson">
@@ -25,6 +25,12 @@ export function runPlacement(el, { onExit }) {
   $('#pl-exit').onclick = onExit;
 
   function intro() {
+    if (!levels.length) {
+      $('#pl-card').innerHTML = `<div class="step-name">Placement quiz</div><h2>Coming soon</h2>
+        <div class="step-body"><p class="muted">This instrument's placement quiz isn't ready yet.</p><button id="pl-back">Back</button></div>`;
+      $('#pl-back').onclick = onExit;
+      return;
+    }
     $('#pl-card').innerHTML = `
       <div class="step-name">Placement quiz</div><h2>Find your level</h2>
       <div class="step-body"><p>A few questions per level, starting with the basics. We stop at the first level that's new to you, and open it for you.</p>

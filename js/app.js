@@ -1,6 +1,7 @@
 // App shell: builds the tab bar, routes #hash -> tab, wires global settings.
 import { unlock, setMuted, supported as audioSupported } from './audio.js';
-import { getSettings, setSetting, onSave } from './storage.js';
+import { getSettings, setSetting, onSave, getInstrument } from './storage.js';
+import { registered } from './registry.js';
 import { checkMilestones } from './stats.js';
 import { parseHash } from './router.js';
 import { applyVolumes } from './ui.js';
@@ -12,8 +13,17 @@ import practice from './tabs/practice.js';
 import progress from './tabs/progress.js';
 import ear from './tabs/ear.js';
 
+// Bass, piano and drums are downloaded only when picked: their code registers its lessons,
+// sounds, drills and views (js/registry.js) before the first screen is drawn.
+const INSTRUMENT = getInstrument();
+if (INSTRUMENT !== 'guitar') {
+  try { await import(`./${INSTRUMENT}/index.js`); }
+  catch (e) { console.warn(`Could not load the ${INSTRUMENT} files`, e); }
+}
+
 // Each tab: { id, title, icon, soon?, mount(el), show(params), hide() }
-const TABS = [learn, fretboard, practice, progress, ear];
+// An instrument without a neck (piano, drums) swaps the Fretboard tab for its own view.
+const TABS = [learn, registered('instrumentTab') || fretboard, practice, progress, ear];
 const HOME = 'learn';
 const $ = id => document.getElementById(id);
 

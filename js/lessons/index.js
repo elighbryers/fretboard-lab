@@ -8,6 +8,7 @@ import level5 from './level5.js';
 import level6 from './level6.js';
 import { NOTES, midiAt, pcOf } from '../theory.js';
 import { tuningOf } from '../instruments.js';
+import { getInstrument } from '../storage.js';
 
 export const LEVELS = [
   { title: 'The neck and note names', blurb: 'String names, the musical alphabet, natural notes on the E and A strings, octave shapes.', level: level1 },
@@ -18,23 +19,27 @@ export const LEVELS = [
   { title: 'Improvising', blurb: 'Pentatonic positions, landing on chord tones, phrasing and the blues.', level: level6 }
 ];
 
-// Each instrument's Learn path. LEVELS above is guitar's; bass, piano and drums get theirs
-// later, built from the same theory cards (js/lessons/cards.js) with their own See/Try/Play steps.
+// Each instrument's Learn path. LEVELS above is guitar's; bass, piano and drums register
+// theirs when their code loads (js/bass/index.js ...), built from the same theory cards
+// (js/lessons/cards.js) with their own See/Try/Play steps.
 const PATHS = { guitar: LEVELS };
 export const levelsFor = instrument => PATHS[instrument] || [];
+export const registerPath = (instrument, levels) => { PATHS[instrument] = levels; };
+// The current instrument's path (guitar in Node tools).
+export const currentLevels = () => levelsFor(getInstrument());
 
 // Lessons in unlock order for a level, with the challenge last.
 export const nodesOf = level => [...level.lessons, level.challenge];
 
 // A lesson (or challenge) by id, with the node after it: the next lesson in its
 // level, or after a challenge the first lesson of the next level with content.
-export function findLesson(id) {
-  for (let li = 0; li < LEVELS.length; li++) {
-    const l = LEVELS[li];
+export function findLesson(id, levels = currentLevels()) {
+  for (let li = 0; li < levels.length; li++) {
+    const l = levels[li];
     if (!l.level) continue;
     const nodes = nodesOf(l.level), i = nodes.findIndex(n => n.id === id);
     if (i < 0) continue;
-    const after = LEVELS.slice(li + 1).find(x => x.level);
+    const after = levels.slice(li + 1).find(x => x.level);
     return { lesson: nodes[i], next: nodes[i + 1] || (after ? nodesOf(after.level)[0] : null), level: l.level, levelIndex: li };
   }
   return null;
@@ -58,12 +63,14 @@ export function itemsOf(lesson) {
 }
 
 // Ids from the lessons a learner has finished. isDone(id) -> bool.
-export const finishedLessonItems = isDone =>
-  LEVELS.filter(l => l.level).flatMap(l => nodesOf(l.level)).filter(n => isDone(n.id)).flatMap(itemsOf);
+export const finishedLessonItems = (isDone, levels = currentLevels()) =>
+  levels.filter(l => l.level).flatMap(l => nodesOf(l.level)).filter(n => isDone(n.id)).flatMap(itemsOf);
 
 // The Check question behind a "fact:" item, for asking it again in review.
-export function factQuestion(id) {
-  for (const l of LEVELS) if (l.level) for (const n of nodesOf(l.level)) {
+export function factQuestion(id, levels = null) {
+  // Facts are shared theory: look in the current path first, then every registered path.
+  const paths = levels ? [levels] : [currentLevels(), ...Object.values(PATHS)];
+  for (const lv of paths) for (const l of lv) if (l.level) for (const n of nodesOf(l.level)) {
     const steps = n.flow || Object.values(n.steps || {});
     const q = steps.flatMap(st => st.questions || []).find(q => q.type === 'choice' && q.item === id);
     if (q) return q;

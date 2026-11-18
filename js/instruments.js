@@ -46,3 +46,11 @@ export function tuningOf(id, tuningId) {
   if (def.kind !== 'fretted') return TUNINGS.standard;
   return def.tunings[tuningId || def.defaultTuning];
 }
+
+// The string number used in review item ids ("note:G@s4") and lesson positions. It is the
+// instrument's usual number, except on a 6-string bass, where the strings are counted from
+// the high C (C = 6 ... B = 1 would clash with 4-string lessons), so we shift by one:
+// G = 1, D = 2, A = 3, E = 4, B = 5 on every bass, and the high C is 0.
+export const itemNum = (tuning, s) => (tuning === INSTRUMENT_DEFS.bass.tunings.six ? tuning.strings[s].num - 1 : tuning.strings[s].num);
+// The board index of the string with that item number (or -1).
+export const indexOfNum = (tuning, num) => tuning.strings.findIndex((_, s) => itemNum(tuning, s) === num);

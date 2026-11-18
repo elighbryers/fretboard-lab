@@ -1,7 +1,7 @@
 // Learn tab (home): today's review, the path map, the lesson player at
 // #learn?lesson=<id>, the daily review at #learn?review=1 and the placement
 // quiz at #learn?placement=1.
-import { LEVELS, nodesOf, findLesson, levelsFor } from '../lessons/index.js';
+import { currentLevels, nodesOf, findLesson, levelsFor } from '../lessons/index.js';
 import { runLesson } from '../lesson-player.js';
 import { runPlacement } from '../placement.js';
 import { getLesson, getInstrument, INSTRUMENTS } from '../storage.js';
@@ -29,18 +29,18 @@ function renderComingSoon() {
 function renderMap() {
   if (!levelsFor(getInstrument()).length) return renderComingSoon();
   const up = nextUp();
-  const anyDone = LEVELS.some(L => L.level && nodesOf(L.level).some(n => getLesson(n.id).completed));
+  const anyDone = currentLevels().some(L => L.level && nodesOf(L.level).some(n => getLesson(n.id).completed));
   const label = (L, n) => (n.challenge ? n.title : `Lesson ${nodesOf(L.level).indexOf(n) + 1}`);
   el.innerHTML = `
     ${planCardHTML()}
     ${reviewCardHTML()}
-    ${up ? (() => { const L = LEVELS[up.levelIndex]; return `<a class="continue" href="#learn?lesson=${up.node.id}">
+    ${up ? (() => { const L = currentLevels()[up.levelIndex]; return `<a class="continue" href="#learn?lesson=${up.node.id}">
       <span class="muted">${anyDone ? 'Continue' : 'Start here'} · Level ${up.levelIndex + 1}</span>
       <b>${label(L, up.node)}: ${esc(up.node.title)}</b>
       <span class="go">▶</span></a>`; })() : ''}
     ${!anyDone ? '<a class="link placement-link" href="#learn?placement=1">Already play? Take the placement quiz →</a>' : ''}
     <h2>Your path</h2>
-    <ol class="path">${LEVELS.map((L, li) => {
+    <ol class="path">${currentLevels().map((L, li) => {
       if (!L.level) return `
       <li class="level locked">
         <div class="level-head"><div class="num">${li + 1}</div><div><h3>${L.title}</h3><p>${L.blurb}</p>

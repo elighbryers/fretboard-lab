@@ -11,21 +11,43 @@ import { findSkill, renderSkill } from './skills.js';
 import { fretboardLink } from './router.js';
 import { playSound, parseChord } from './sound.js';
 import { chordOf } from './progressions.js';
-import { tuningOf } from './instruments.js';
+import { tuningOf, itemNum, indexOfNum } from './instruments.js';
+import { getInstrument, activeTuning } from './storage.js';
+import { registered } from './registry.js';
 
 const STEPS = [
   ['hear', 'Hear it'], ['learn', 'Learn it'], ['see', 'See it'],
   ['try', 'Try it'], ['play', 'Play it'], ['check', 'Check it']
 ];
 const NAMES = Object.fromEntries(STEPS);
-const tuning = tuningOf('guitar'); // guitar content: positions are in guitar numbering
 const PLAY_BPM = { min: 40, max: 160, default: 60 }; // Play it tempo range for every lesson
-
-// Guitar numbering in lesson data -> board indexes.
-const toSF = ({ string, fret }) => ({ s: tuning.strings.findIndex(x => x.num === string), f: fret });
-const describe = (s, f) => `string ${tuning.strings[s].num}, ${f === 0 ? 'open' : 'fret ' + f}`;
-const noteItem = ({ s, f }) => `note:${NOTES[pcOf(midiAt(s, f))]}@s${tuning.strings[s].num}`;
 const list = a => (Array.isArray(a) ? a : [a]);
+
+// How the player draws an instrument and reads taps. Lesson positions are written in the
+// instrument's lesson numbering (guitar: string 6 = low E; bass: string 4 = low E, as in
+// js/instruments.js) and shown on the neck the learner picked (5-string bass, drop D ...):
+// each position moves to the string with the same item number, at the same pitch.
+// Piano and drums register their own adapter (a keyboard or a step grid) with the same shape.
+export function frettedAdapter(lessonTuning, boardTuning) {
+  const midiOfPos = ({ string, fret }) => lessonTuning.strings.find(x => x.num === string).midi + fret;
+  const toSF = p => {
+    const s = indexOfNum(boardTuning, p.string);
+    return { s, f: midiOfPos(p) - boardTuning.strings[s].midi };
+  };
+  return {
+    toSF,
+    board: (host, view, opts) => new Fretboard(host, { view, labels: 'none', tuning: boardTuning, ...opts }),
+    describe: (s, f) => `string ${boardTuning.strings[s].num}, ${f === 0 ? 'open' : 'fret ' + f}`,
+    noteItem: ({ s, f }) => `note:${NOTES[pcOf(midiAt(s, f, boardTuning))]}@s${itemNum(boardTuning, s)}`,
+    nameAt: (s, f) => preferredName(midiAt(s, f, boardTuning)),
+    tuning: boardTuning
+  };
+}
+// Chosen on first use: instrument code registers its adapter after this module loads.
+let A = null;
+const ad = () => A || (A = registered('lessonAdapter') || frettedAdapter(tuningOf(getInstrument()), activeTuning()));
+const toSF = p => ad().toSF(p), describe = (s, f) => ad().describe(s, f), noteItem = p => ad().noteItem(p);
+const tuningNow = () => ad().tuning || tuningOf('guitar'); // the timed challenge (fretted instruments only)
 // Dots in lesson data ({ string, fret, label, role, quiet }) -> board dots.
 // No role = the neutral 'other' color; the fretboard labels every dot (note name if no label is given).
 const toDots = dots => (dots || []).map(d => ({ ...toSF(d), label: d.label, role: d.role, quiet: d.quiet }));
@@ -61,8 +83,8 @@ export function renderQuestion(host, x, { view = [0, 12], onAnswer }) {
     });
   } else {
     const answers = list(x.answer).map(toSF);
-    const fb = new Fretboard(body, {
-      view: x.view || view, labels: 'none', mode: 'tap',
+    const fb = ad().board(body, x.view || view, {
+      mode: 'tap',
       onTap: ({ s, f }) => {
         if (done) return;
         const hit = answers.find(a => a.s === s && a.f === f), ok = !!hit;
@@ -122,7 +144,7 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
   $('#ls-next').onclick = () => { if (!ready) return; if (stepNav?.next()) return; if (i < flow.length - 1) show(i + 1); };
   $('#ls-exit').onclick = onExit;
 
-  const board = (host, view, opts = {}) => new Fretboard(host, { view, labels: 'none', ...opts });
+  const board = (host, view, opts = {}) => ad().board(host, view, opts);
 
   // A passed check (or timed round) finishes the lesson when it's the last step.
   function complete(score, total) {
@@ -220,8 +242,8 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
           recordAnswer(task.item || noteItem(hit || answers[0]), !!hit, performance.now() - shownAt);
           shownAt = performance.now();
           fb.mark(s, f, !!hit, hit && task.label ? task.label : undefined);
-          if (!hit) { msg(task.hint ? `${task.hint} Try again.` : `That's ${describe(s, f)} (${preferredName(midiAt(s, f))}). Try again.`, 'bad'); return; }
-          msg(task.explain || `Yes! ${describe(s, f)} is ${preferredName(midiAt(s, f))}.`, 'good');
+          if (!hit) { msg(task.hint ? `${task.hint} Try again.` : `That's ${describe(s, f)} (${ad().nameAt(s, f)}). Try again.`, 'bad'); return; }
+          msg(task.explain || `Yes! ${describe(s, f)} is ${ad().nameAt(s, f)}.`, 'good');
           t++;
           if (t < d.tasks.length) timer = setTimeout(() => { ask(); msg(''); }, 900);
           else { setReady(true); body.querySelector('#st-prompt').textContent = 'All done. Tap Next.'; }
@@ -428,7 +450,7 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
 
     // Level 1 challenge: the app names a note; play it, then tap it within the time limit.
     timed(body, d, last) {
-      const strings = d.strings || [6, 5, 4, 3, 2, 1], [from, to] = d.frets || [0, 12];
+      const tuning = tuningNow(), strings = d.strings || [6, 5, 4, 3, 2, 1], [from, to] = d.frets || [0, 12];
       let round = 0, score = 0, target = null, deadline = 0, raf = null, timer = null, shownAt = 0, lastKey = '';
       const pass = d.pass ?? 8;
       body.innerHTML = `<p>${d.text}</p><button class="primary big" id="st-go">▶ Start</button>`;
@@ -437,7 +459,7 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
         do {
           s = toSF({ string: strings[Math.floor(Math.random() * strings.length)], fret: 0 }).s;
           const f = from + Math.floor(Math.random() * (to - from + 1));
-          pc = pcOf(midiAt(s, f));
+          pc = pcOf(midiAt(s, f, tuning));
           key = s + ':' + pc;
         } while (key === lastKey);
         lastKey = key;
@@ -456,7 +478,7 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
             const ms = performance.now() - shownAt, ok = pc === target.pc, inTime = ms <= d.seconds * 1000;
             target.done = true;
             cancelAnimationFrame(raf);
-            recordAnswer(`note:${NOTES[target.pc]}@s${tuning.strings[s].num}`, ok && inTime, ms);
+            recordAnswer(`note:${NOTES[target.pc]}@s${itemNum(tuning, s)}`, ok && inTime, ms);
             if (ok && inTime) score++;
             fb.mark(s, f, ok, preferredName(pc));
             const m = body.querySelector('#st-msg');

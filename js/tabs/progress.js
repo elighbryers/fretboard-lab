@@ -2,19 +2,19 @@
 // All numbers come from js/stats.js; charts are plain SVG from js/charts.js.
 import { NOTES, midiAt, pcOf } from '../theory.js';
 import { Fretboard } from '../fretboard.js';
-import { exportData, readExport, importData, resetAll, seeMilestones, today, getSettings, setSetting, getDays, allTempos, INSTRUMENTS, getInstrument, setInstrument } from '../storage.js';
+import { exportData, readExport, importData, resetAll, seeMilestones, today, getSettings, setSetting, getDays, allTempos, INSTRUMENTS, getInstrument, setInstrument, activeTuning } from '../storage.js';
 import { storagePersisted, isStandalone } from '../pwa.js';
 import { glance, dailyMinutes, weeklyAccuracy, calendar, weakest, noteStats, confusedPairs, drillStats, tabStats,
   checkMilestones, fmtMin, fmtDay } from '../stats.js';
 import { bars, line, calendarGrid, spark } from '../charts.js';
 import { hashFor } from '../router.js';
 import { esc } from '../ui.js';
-import { tuningOf } from '../instruments.js';
+import { tuningOf, itemNum } from '../instruments.js';
 
 let el, fb, pending = null, resizeTimer = null;
 const $ = sel => el.querySelector(sel);
-const tuning = tuningOf(getInstrument()); // the heat map is per instrument
-const noteItem = (s, f) => `note:${NOTES[pcOf(midiAt(s, f, tuning))]}@s${tuning.strings[s].num}`;
+const tuning = activeTuning(); // the heat map is per instrument
+const noteItem = (s, f) => `note:${NOTES[pcOf(midiAt(s, f, tuning))]}@s${itemNum(tuning, s)}`;
 const pct = x => Math.round(100 * x) + '%';
 const secs = ms => (ms / 1000).toFixed(1) + ' s';
 // Calendar shading: practiced days get 1-4 by minutes.
