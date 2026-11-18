@@ -2,7 +2,7 @@
 // All numbers come from js/stats.js; charts are plain SVG from js/charts.js.
 import { NOTES, midiAt, pcOf } from '../theory.js';
 import { Fretboard } from '../fretboard.js';
-import { exportData, readExport, importData, resetAll, seeMilestones, today, getSettings, setSetting, getDays, allTempos, INSTRUMENTS, getInstrument, setInstrument, activeTuning } from '../storage.js';
+import { exportData, readExport, importData, resetAll, seeMilestones, today, getSettings, setSetting, getDays, allTempos, INSTRUMENTS, getInstrument, activeTuning } from '../storage.js';
 import { storagePersisted, isStandalone } from '../pwa.js';
 import { glance, dailyMinutes, weeklyAccuracy, calendar, weakest, noteStats, confusedPairs, drillStats, tabStats,
   checkMilestones, fmtMin, fmtDay } from '../stats.js';
@@ -10,6 +10,7 @@ import { bars, line, calendarGrid, spark } from '../charts.js';
 import { hashFor } from '../router.js';
 import { esc } from '../ui.js';
 import { tuningOf, itemNum } from '../instruments.js';
+import { switchInstrument } from '../switcher.js';
 import { micSettingsHTML, wireMicSettings } from '../mic.js';
 import { registeredList, registered } from '../registry.js';
 import { midiSettingsHTML, wireMidiSettings } from '../midi.js';
@@ -100,7 +101,7 @@ export default {
     el.addEventListener('mouseover', tip);
 
     // Switching instruments swaps which lessons, heat map and tempos every tab shows, so reload them all.
-    el.querySelector('.instrument-pick').onchange = e => { setInstrument(e.target.value); location.reload(); };
+    el.querySelector('.instrument-pick').onchange = e => switchInstrument(e.target.value);
     wireMicSettings(el);
     wireMidiSettings(el);
     $('#p-export').onclick = () => this.exportNow();

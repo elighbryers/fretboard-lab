@@ -31,6 +31,24 @@ header { padding-top: 20px; display: flex; flex-wrap: wrap; align-items: center;
 header .title { flex: 1 1 auto }
 h1 { margin: 0; font-size: 24px }
 header p { margin: 4px 0 0; color: var(--muted) }
+.head-actions { display: flex; align-items: center; gap: 8px }
+
+/* ---------- instrument switcher (js/switcher.js) ---------- */
+.inst-switch { position: relative }
+#inst-btn { display: inline-flex; align-items: center; gap: 6px }
+#inst-btn svg, .inst-menu svg { width: 20px; height: 20px; flex: none }
+#inst-btn .chev { width: 14px; height: 14px; color: var(--muted); transition: transform .15s }
+#inst-btn[aria-expanded="true"] .chev { transform: rotate(180deg) }
+.inst-menu { position: absolute; left: 0; top: calc(100% + 6px); z-index: 30; min-width: 180px; display: grid; padding: 6px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); animation: menu-in .14s ease-out }
+.inst-menu button { display: flex; align-items: center; gap: 10px; width: 100%; border: 0; background: none; text-align: left; min-height: 44px; padding: 8px 10px }
+.inst-menu button:hover { background: var(--panel2) }
+.inst-menu button[aria-checked="true"] { color: var(--accent) }
+.inst-menu button b { margin-left: auto }
+@keyframes menu-in { from { opacity: 0; transform: translateY(-4px) } }
+html.fade-in body, html.fade-out body { opacity: 0 }
+body { transition: opacity .16s ease }
+@media (prefers-reduced-motion: reduce) { body { transition: none } .inst-menu { animation: none } }
 h2 { font-size: 20px; margin: 20px 0 10px }
 h3 { font-size: 16px; margin: 18px 0 8px }
 .muted { color: var(--muted) }
@@ -444,7 +462,13 @@ button.round { width: 64px; height: 64px; border-radius: 50%; font-size: 30px; p
 .toggles { margin-top: 8px; align-items: center }
 .vols { margin-top: 8px }
 @media (max-height: 500px) and (orientation: landscape) {
-  header { display: none }
+  /* phones on their side: a slim header (instrument and sound only), none at all while a play-along is open */
+  header { padding-top: calc(6px + env(safe-area-inset-top)) }
+  header .title { display: none }
+  header .head-actions button { min-height: 38px; padding-top: 4px; padding-bottom: 4px }
+  .tabs { margin-top: 6px }
+  header .head-actions { margin-left: auto }
+  body:has(#views > section:not([hidden]) .pa) header { display: none }
   .pa #pa-board { display: none }
   .tabview { height: 178px }
 }

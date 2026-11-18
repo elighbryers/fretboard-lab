@@ -14,6 +14,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="stylesheet" href="css/styles.css">
 <script>
+  // Just switched instrument (js/switcher.js): start hidden so the new instrument fades in.
+  try { if (sessionStorage.getItem('switching-instrument') === '1') document.documentElement.classList.add('fade-in'); } catch (e) {}
   // If the app ever fails to start (a module didn't load), show a way out instead of a blank page.
   // js/app.js sets window.__appStarted when it has drawn the first tab.
   window.addEventListener('load', function () {
@@ -41,7 +43,10 @@
     <h1>Fretboard Lab</h1>
     <p>See scales and chords on the neck. Tap any note to hear it.</p>
   </div>
-  <button id="sound" aria-pressed="true">🔊 Sound on</button>
+  <div class="head-actions">
+    <div id="inst-switch"></div>
+    <button id="sound" aria-pressed="true">🔊 Sound on</button>
+  </div>
 </header>
 <div id="install-hint" hidden></div>
 <div class="load-error" id="load-error" hidden role="alert">
