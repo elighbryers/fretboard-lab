@@ -184,7 +184,7 @@ function validatePath(name, levels, kit, names) {
     L.lessons.forEach((les, li) => {
       const st = les.steps, id = les.id;
       for (const k of ['hear', 'learn', 'see', 'try', 'play', 'check']) ok(!!st[k], `${id}: has ${k}`);
-      ok(st.hear?.sound?.seq?.length > 0, `${id}: Hear it has a sound`);
+      ok(st.hear?.sound?.seq?.length > 0 || st.hear?.sound?.prog?.length > 0, `${id}: Hear it has a sound`);
       const cards = st.learn?.cards || [];
       ok(cards.length >= 2 && cards.length <= 3, `${id}: 2-3 Learn cards`, cards.length);
       cards.forEach((c, k) => {

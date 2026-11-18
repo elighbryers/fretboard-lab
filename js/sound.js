@@ -38,13 +38,19 @@ export function playSound(spec, { onStep, onEnd } = {}) {
   }));
   // pad: 'C:major' holds a soft chord under the whole sequence (a chord with a bass note on top).
   if (spec.pad) import('./groove.js').then(({ pad }) => { const c = parseChord(spec.pad); pad(c.root, c.chord, t0, Math.max(1.2, (spec.seq || []).length * beat)); });
+  // prog: ['C:major', 'G:major', ...] plays each chord as a pad with its root in the bass, `per` beats each.
+  if (spec.prog) import('./groove.js').then(({ pad }) => spec.prog.forEach((name, k) => {
+    const c = parseChord(name), t = t0 + k * (spec.per || 2) * beat;
+    pad(c.root, c.chord, t, (spec.per || 2) * beat * 0.95);
+    pluckAt(28 + ((c.root - 4 + 12) % 12) + (spec.bassUp ? 12 : 0), t, 0.9);
+  }));
   (spec.seq || []).forEach((step, i) => {
     const t = t0 + i * beat, midis = stepMidis(step);
     if (midis.length > 1) strumAt(midis, t, { volume: 0.7 });
     else if (midis.length) pluckAt(midis[0], t);
     if (onStep) timers.push(setTimeout(() => onStep(i), (t - now()) * 1000));
   });
-  const end = (lead + (spec.seq || []).length * beat + 0.6) * 1000;
+  const end = (lead + Math.max((spec.seq || []).length, (spec.prog || []).length * (spec.per || 2)) * beat + 0.6) * 1000;
   timers.push(setTimeout(() => { if (spec.drone && !spec.keepDrone) droneStop(); onEnd?.(); }, end));
   return () => { timers.forEach(clearTimeout); if (spec.drone) droneStop(); };
 }
