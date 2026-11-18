@@ -1,7 +1,6 @@
 # Overnight report: bass, piano and drums
 
-Branch: `instruments` (from `main` at f6d7ccd). 44 commits, 146 files changed. Pull request into `main`:
-see the PR (not merged).
+Branch: `instruments` (from `main` at f6d7ccd). 44 commits, 146 files changed. Pull request into `main` is open and not merged.
 
 Note: the very first test push (before any work) was refused with HTTP 403 ("Claude doesn't have
 GitHub access"), but pushes worked from the first real commit on, so every section was pushed as it
@@ -247,8 +246,9 @@ All run at the end of the job, on the final commit:
   voicing/voice leading/LH patterns/fingering/tempo trainer, drum notation, scoring and drills.
 - **Headless browser check** (`tools/smoke.mjs`): 76 screens across the four instruments, 0 console errors,
   no empty screens, no sideways page scroll at 390 px.
-- **End-to-end lesson walks** in Chromium: every bass, piano and drum lesson and challenge, and the guitar
-  lessons again at the end (results below).
+- **End-to-end lesson walks** in Chromium: every bass, piano and drum lesson and challenge (48 each), and all
+  49 guitar lessons and challenges again at the end: every step opened and every check finished, with no
+  console errors. (The walker answers checks at random, so it tests the flow, not the scores.)
 - **Other browser checks:** mic end to end with Chromium's fake microphone fed a generated 55 Hz bass A
   (Note finder accepted it); MIDI notes routed into the piano key finder; Lock to the kick with simulated taps
   (12/12 within ±60, bias −21 ms reported); drum timing +20 ms read as +20 ms at 60 and 120 bpm; piano on phone
