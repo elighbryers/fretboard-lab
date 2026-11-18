@@ -159,8 +159,16 @@ function checkFrettedPrompt(kit, names, where, prompt, answers) {
   list(answers).forEach(a => ok(a.string === s && T.pcOf(kit.midiOf(a.string, a.fret)) === pc, `${where}: "${m[0]}" matches the answer`, JSON.stringify(a)));
 }
 // A tap's review item: the note at that spot, or a degree / chord tone that sounds there.
-function itemOk(kit, item, p) {
+function itemOk(kit, item, p, prompt = '', names = BASS_NAMES) {
   const pc = T.pcOf(kit.midiOf(p.string, p.fret));
+  // "Tap a major 3rd above G (G is on the E string, fret 3)": the answer must be that interval above that spot.
+  const iv = /^interval:(\w+)$/.exec(item || '');
+  if (iv) {
+    const m = /above ([A-G][#b]?) \(\1 is on the (\w) string, fret (\d+)\)/.exec(prompt), semis = T.INTERVAL_IDS.indexOf(iv[1]);
+    if (!m || semis < 0) return false;
+    const root = kit.midiOf(names[m[2]], +m[3]);
+    return T.pcOf(root) === T.parseNote(m[1]) && kit.midiOf(p.string, p.fret) - root === semis;
+  }
   if (item === `note:${T.NOTES[pc]}@s${p.string}`) return true;
   const m = /^(degree|tone):([A-G][#b]?):([\w-]+):(R|bb?\d|#?\d)$/.exec(item || '');
   if (!m) return false;
@@ -195,7 +203,7 @@ function validatePath(name, levels, kit, names) {
         if (t.grid) { ok(t.grid.notes.length > 0 && !!t.item, `${id} try ${k + 1}: rhythm task with a review item`); return; }
         list(t.answer).forEach(a => checkFretted(kit, names, `${id} try ${k + 1}`, a, t.view || st.try.view));
         checkFrettedPrompt(kit, names, `${id} try ${k + 1}`, t.prompt, t.answer);
-        ok(itemOk(kit, t.item, list(t.answer)[0]), `${id} try ${k + 1}: review item matches the position`, t.item);
+        ok(itemOk(kit, t.item, list(t.answer)[0], t.prompt, names), `${id} try ${k + 1}: review item matches the position`, t.item);
       });
       ok(st.play?.bpm >= 40 && st.play?.bpm <= 160, `${id}: Play it has a default bpm`, st.play?.bpm);
       (st.play?.follow || []).flatMap(list).forEach(p => checkFretted(kit, names, `${id} play`, p, st.play.view));
@@ -207,7 +215,7 @@ function validatePath(name, levels, kit, names) {
         if (q.type === 'tap') {
           list(q.answer).forEach(a => checkFretted(kit, names, `${id} q${k + 1}`, a, q.view || st.check.view));
           checkFrettedPrompt(kit, names, `${id} q${k + 1}`, q.prompt, q.answer);
-          ok(itemOk(kit, q.item, list(q.answer)[0]), `${id} q${k + 1}: review item matches the position`, q.item);
+          ok(itemOk(kit, q.item, list(q.answer)[0], q.prompt, names), `${id} q${k + 1}: review item matches the position`, q.item);
         } else ok(q.options.includes(q.answer) && !!q.item, `${id} q${k + 1}: choice has its answer and a review item`);
       });
       ok(itemsOf(les).length >= 3, `${id}: registers review items`, itemsOf(les).length);

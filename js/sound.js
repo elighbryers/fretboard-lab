@@ -36,6 +36,8 @@ export function playSound(spec, { onStep, onEnd } = {}) {
     const t = t0 + i * beat;
     hit(i % 2 ? 'snare' : 'kick', t, 0.55); hit('hat', t, 0.35); hit('hat', t + beat / 2, 0.25);
   }));
+  // pad: 'C:major' holds a soft chord under the whole sequence (a chord with a bass note on top).
+  if (spec.pad) import('./groove.js').then(({ pad }) => { const c = parseChord(spec.pad); pad(c.root, c.chord, t0, Math.max(1.2, (spec.seq || []).length * beat)); });
   (spec.seq || []).forEach((step, i) => {
     const t = t0 + i * beat, midis = stepMidis(step);
     if (midis.length > 1) strumAt(midis, t, { volume: 0.7 });
