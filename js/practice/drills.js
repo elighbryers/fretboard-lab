@@ -9,6 +9,7 @@ import { recordMic, recordAnswer, recordConfusion, addLog, getPracticePrefs, upd
 import { volumeHTML, esc, pick, shuffle } from '../ui.js';
 import { tuningOf, itemNum, indexOfNum } from '../instruments.js';
 import { micOn, listenNotes } from '../mic.js';
+import { registered } from '../registry.js';
 
 const tuning = activeTuning(), ALL = tuning.strings.map((_, i) => i), MAX_FRET = getInstrument() === 'bass' ? 20 : 15;
 const N = tuning.strings.length, LOW2 = [N - 2, N - 1]; // the two lowest strings (guitar: A and low E)
@@ -420,7 +421,9 @@ export default {
       return d.mount(el, params);
     }
     if (!d) {
-      el.innerHTML = `<div class="cards">${DRILLS.map(x => `
+      // Piano and drums show only their own drills (the neck drills don't apply there).
+      const shown = registered('ownDrillsOnly') ? DRILLS.filter(x => x.own) : DRILLS;
+      el.innerHTML = `<div class="cards">${shown.map(x => `
         <a class="card-link" href="#practice?tool=drills&drill=${x.id}"><span><b>${x.title}</b><small>${x.blurb}</small></span></a>`).join('')}</div>`;
       return;
     }
