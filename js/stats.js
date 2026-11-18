@@ -1,6 +1,7 @@
 // Numbers for the Progress tab, worked out from saved progress (js/storage.js).
 // Nothing here saves except checkMilestones(), which records newly earned badges.
 import { allItems, getLog, getStreak, getLesson, getConfusions, getMilestones, earnMilestones, getDays, today, shiftDay } from './storage.js';
+import { registeredList } from './registry.js';
 import { currentLevels, nodesOf } from './lessons/index.js';
 import { PLAYALONG } from './playalong/index.js';
 import { nextUp } from './path.js';
@@ -160,6 +161,9 @@ export function tabStats() {
 }
 
 /* ---------- milestones ---------- */
+// Instruments add their own badges (registered from js/bass/ etc.); a badge with `earnedElsewhere`
+// is earned by the drill or lesson that knows (earnMilestones) and its test is never true here.
+const allBadges = () => [...BADGES, ...registeredList('badges')];
 const notesFound = () => Object.entries(allItems()).filter(([id]) => /^(note|ear):/.test(id)).reduce((a, [, it]) => a + it.correct, 0);
 
 export const BADGES = [
@@ -178,6 +182,7 @@ export const BADGES = [
 
 // Earned badges with dates; records any newly earned ones. Returns [{ ...badge, earned, at, fresh }].
 export function checkMilestones() {
+  const BADGES = allBadges();
   const log = getLog();
   const s = { streak: getStreak(), notes: notesFound(), tabs: entries().filter(e => e.tab).length, minutes: log.reduce((a, e) => a + e.minutes, 0) };
   earnMilestones(BADGES.filter(b => b.test(s)).map(b => b.id));

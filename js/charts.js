@@ -86,3 +86,24 @@ export function spark(values, { width = 120, height = 32, label }) {
   const last = values.length - 1;
   return svg(width, height, `${values.length > 1 ? `<path class="ch-line thin" d="${d}"/>` : ''}<circle class="ch-dot" cx="${x(last)}" cy="${y(values[last])}" r="3.5"/>`, label);
 }
+
+// Timing sessions: one column per session, the dot is the average offset (bias: below the
+// zero line = early, above = late) and the bar around it is the spread (± one standard
+// deviation). rows: [{ bias, spread, label?, tip }]. range: ± ms shown.
+export function timingChart(rows, { width, height = 180, label, range = 100, band = 30 }) {
+  const L = 44, R = 12, T = 14, B = 24, pw = width - L - R, ph = height - T - B, mid = T + ph / 2;
+  const step = pw / Math.max(rows.length, 1), x = i => L + step * (i + 0.5);
+  const y = v => mid + Math.max(-range, Math.min(range, v)) / range * (ph / 2);
+  let out = `<rect class="ch-band" x="${L}" y="${y(-band)}" width="${pw}" height="${y(band) - y(-band)}"/>`;
+  [-range, 0, range].forEach(v => {
+    out += `<line class="ch-grid${v ? '' : ' base'}" x1="${L}" x2="${width - R}" y1="${y(v)}" y2="${y(v)}"/>`;
+    out += `<text class="ch-axis" x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v === 0 ? '0' : v < 0 ? `${-v} early` : `${v} late`}</text>`;
+  });
+  rows.forEach((r, i) => {
+    out += `<line class="ch-spread" x1="${x(i)}" x2="${x(i)}" y1="${y(r.bias - r.spread)}" y2="${y(r.bias + r.spread)}"/>`;
+    out += `<circle class="ch-dot" cx="${x(i)}" cy="${y(r.bias)}" r="4"/>`;
+    if (r.label) out += `<text class="ch-axis" x="${x(i)}" y="${height - 6}" text-anchor="${anchorAt(i, rows.length)}">${esc(r.label)}</text>`;
+    out += `<rect class="ch-hit" x="${L + i * step}" y="${T}" width="${step}" height="${ph}" data-tip="${esc(r.tip)}"/>`;
+  });
+  return svg(width, height, out, label);
+}

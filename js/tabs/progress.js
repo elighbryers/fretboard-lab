@@ -11,6 +11,7 @@ import { hashFor } from '../router.js';
 import { esc } from '../ui.js';
 import { tuningOf, itemNum } from '../instruments.js';
 import { micSettingsHTML, wireMicSettings } from '../mic.js';
+import { registeredList } from '../registry.js';
 import { midiSettingsHTML, wireMidiSettings } from '../midi.js';
 
 let el, fb, pending = null, resizeTimer = null;
@@ -52,6 +53,7 @@ export default {
       <section class="p-card"><h3>Drills</h3><div id="p-drills"></div></section>
       <section class="p-card"><h3>Play-along tabs</h3><div id="p-tabs"></div></section>
       <section class="p-card"><h3>Clean tempo and chord changes</h3><p class="muted sub">The fastest you've played each exercise cleanly (next time it starts a little below this), and your best one-minute chord changes.</p><div id="p-tempos"></div></section>
+      ${registeredList('progress').map(x => section(x.id, x.title, x.sub)).join('')}
       <section class="p-card"><h3>Milestones</h3><div class="badges" id="p-badges"></div></section>
       <section class="p-card" id="p-settings"><h3>Settings</h3>
         <fieldset class="instrument-pick"><legend>Instrument</legend>
@@ -133,6 +135,8 @@ export default {
 
     this.tiles();
     this.charts();
+    const w = Math.min(760, (el.querySelector('.p-card')?.clientWidth || 360) - 32);
+    registeredList('progress').forEach(x => x.render(el.querySelector(`#${x.id} .p-body`), w));
     this.weakSpots();
     this.tables();
     $('#p-badges').innerHTML = badges.map(b => `

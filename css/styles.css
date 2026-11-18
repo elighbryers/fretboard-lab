@@ -679,3 +679,5 @@ button.small { padding: 6px 10px; font-size: 13px; min-height: 36px }
 .rg-counts span.now { color: var(--blue) }
 .technique { padding-left: 0; list-style: none; display: grid; gap: 6px }
 .target-big { font-size: 22px; text-align: center; min-height: 30px }
+.ch-band { fill: var(--blue-tint) }
+.ch-spread { stroke: var(--blue); stroke-width: 6; stroke-linecap: round; opacity: .7 }
