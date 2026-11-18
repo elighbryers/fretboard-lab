@@ -1,0 +1,164 @@
+{
+ "name": "Pastabass",
+ "about": "Squier Bass VI: six strings, a lighter tone",
+ "source": "Karoryfer Samples",
+ "licence": "CC0 1.0 (public domain dedication)",
+ "instrument": "bass",
+ "id": "pastabass",
+ "layers": [
+  80,
+  118
+ ],
+ "files": [
+  {
+   "midi": 25,
+   "layer": 0,
+   "file": "n25-0.mp3"
+  },
+  {
+   "midi": 25,
+   "layer": 1,
+   "file": "n25-1.mp3"
+  },
+  {
+   "midi": 28,
+   "layer": 0,
+   "file": "n28-0.mp3"
+  },
+  {
+   "midi": 28,
+   "layer": 1,
+   "file": "n28-1.mp3"
+  },
+  {
+   "midi": 31,
+   "layer": 0,
+   "file": "n31-0.mp3"
+  },
+  {
+   "midi": 31,
+   "layer": 1,
+   "file": "n31-1.mp3"
+  },
+  {
+   "midi": 34,
+   "layer": 0,
+   "file": "n34-0.mp3"
+  },
+  {
+   "midi": 34,
+   "layer": 1,
+   "file": "n34-1.mp3"
+  },
+  {
+   "midi": 37,
+   "layer": 0,
+   "file": "n37-0.mp3"
+  },
+  {
+   "midi": 37,
+   "layer": 1,
+   "file": "n37-1.mp3"
+  },
+  {
+   "midi": 40,
+   "layer": 0,
+   "file": "n40-0.mp3"
+  },
+  {
+   "midi": 40,
+   "layer": 1,
+   "file": "n40-1.mp3"
+  },
+  {
+   "midi": 43,
+   "layer": 0,
+   "file": "n43-0.mp3"
+  },
+  {
+   "midi": 43,
+   "layer": 1,
+   "file": "n43-1.mp3"
+  },
+  {
+   "midi": 46,
+   "layer": 0,
+   "file": "n46-0.mp3"
+  },
+  {
+   "midi": 46,
+   "layer": 1,
+   "file": "n46-1.mp3"
+  },
+  {
+   "midi": 49,
+   "layer": 0,
+   "file": "n49-0.mp3"
+  },
+  {
+   "midi": 49,
+   "layer": 1,
+   "file": "n49-1.mp3"
+  },
+  {
+   "midi": 52,
+   "layer": 0,
+   "file": "n52-0.mp3"
+  },
+  {
+   "midi": 52,
+   "layer": 1,
+   "file": "n52-1.mp3"
+  },
+  {
+   "midi": 55,
+   "layer": 0,
+   "file": "n55-0.mp3"
+  },
+  {
+   "midi": 55,
+   "layer": 1,
+   "file": "n55-1.mp3"
+  },
+  {
+   "midi": 58,
+   "layer": 0,
+   "file": "n58-0.mp3"
+  },
+  {
+   "midi": 58,
+   "layer": 1,
+   "file": "n58-1.mp3"
+  },
+  {
+   "midi": 61,
+   "layer": 0,
+   "file": "n61-0.mp3"
+  },
+  {
+   "midi": 61,
+   "layer": 1,
+   "file": "n61-1.mp3"
+  },
+  {
+   "midi": 64,
+   "layer": 0,
+   "file": "n64-0.mp3"
+  },
+  {
+   "midi": 64,
+   "layer": 1,
+   "file": "n64-1.mp3"
+  },
+  {
+   "midi": 67,
+   "layer": 0,
+   "file": "n67-0.mp3"
+  },
+  {
+   "midi": 67,
+   "layer": 1,
+   "file": "n67-1.mp3"
+  }
+ ]
+}

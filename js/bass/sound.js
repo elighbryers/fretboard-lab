@@ -1,9 +1,9 @@
 // The bass sound: a Karplus-Strong pluck retuned for bass (docs/research-bass.md F1):
 // a darker excitation (fingers, not a pick), plucked nearer the bridge, a slower decay and a
-// low-pass after it. No downloads, so it plays instantly. The CC0 Growlybass samples the plan
-// named could not be downloaded in the build environment (see docs/overnight-report.md), so
-// this synth is the bass sound for now; a sample set can be added through setVoice later.
+// low-pass after it. No downloads, so it plays instantly, and it plays while a chosen sample set
+// (Growlybass, Fashionbass ... in sounds/bass/, js/sound-library.js) downloads.
 import { context, setVoice } from '../audio.js';
+import { wireSound, noteVoice } from '../sound-library.js';
 import { midiToFreq } from '../theory.js';
 
 const cache = {};
@@ -53,4 +53,7 @@ export function bassVoice(midi, t, volume, out) {
   return t;
 }
 
-export function useBassSound() { setVoice(bassVoice); }
+export function useBassSound() {
+  setVoice(bassVoice);
+  wireSound('bass', { apply: set => setVoice(set ? noteVoice(set, 1) : bassVoice) });
+}

@@ -9,6 +9,7 @@ import { replaceParams } from '../router.js';
 import { getFretboardPrefs, updateFretboardPrefs, allItems, getInstrument, activeTuning } from '../storage.js';
 import { tuningOf, itemNum, instrumentDef } from '../instruments.js';
 import { registered } from '../registry.js';
+import { hasSoundChoice, soundPickerHTML, paintSoundStatus } from '../sound-library.js';
 
 // Guitar: 15 frets, whole neck. Bass: 20 frets, showing 0-12 until you widen it.
 const DEF = instrumentDef(getInstrument()), FRETS = DEF.frets || 15, START_TO = getInstrument() === 'bass' ? 12 : FRETS;
@@ -273,6 +274,7 @@ export default {
           <label class="check"><input type="checkbox" id="fb-left"> Left-handed</label>
           <label class="check"><input type="checkbox" id="fb-player"> Player's view (low E on top)</label></section>
         ${panel ? panel.html() : ''}
+        ${hasSoundChoice(getInstrument()) ? `<section><h3>Sound</h3><div class="row">${soundPickerHTML(getInstrument())}</div></section>` : ''}
         <section><h3>Save this setup</h3>
           <div class="row"><label class="grow">Name<input type="text" id="fb-save-name" maxlength="40" placeholder="e.g. Blues in A, position 5"></label>
           <button id="fb-save" class="primary">Save</button></div>
@@ -295,6 +297,7 @@ export default {
     if (!lookup(state.kind, state.id)) Object.assign(state, { kind: DEFAULT.kind, id: DEFAULT.id });
     fb = new Fretboard($('#fb-board'), { mode: 'show', view: [0, START_TO], ariaLabel: `${DEF.id === 'bass' ? 'Bass neck' : 'Fretboard'} showing the selected scale or chord` });
 
+    paintSoundStatus(getInstrument());
     const more = $('#fb-more-panel'), moreBtn = $('#fb-more');
     const setMore = open => { more.hidden = !open; moreBtn.setAttribute('aria-expanded', open); moreBtn.classList.toggle('on', open); };
     setMore(prefs.moreOpen);

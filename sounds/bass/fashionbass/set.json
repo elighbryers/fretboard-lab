@@ -1,0 +1,174 @@
+{
+ "name": "Fashionbass",
+ "about": "A Jazz bass in an odd body: classic and punchy",
+ "source": "Karoryfer Samples",
+ "licence": "CC0 1.0 (public domain dedication)",
+ "instrument": "bass",
+ "id": "fashionbass",
+ "layers": [
+  80,
+  118
+ ],
+ "files": [
+  {
+   "midi": 24,
+   "layer": 0,
+   "file": "n24-0.mp3"
+  },
+  {
+   "midi": 24,
+   "layer": 1,
+   "file": "n24-1.mp3"
+  },
+  {
+   "midi": 26,
+   "layer": 0,
+   "file": "n26-0.mp3"
+  },
+  {
+   "midi": 26,
+   "layer": 1,
+   "file": "n26-1.mp3"
+  },
+  {
+   "midi": 29,
+   "layer": 0,
+   "file": "n29-0.mp3"
+  },
+  {
+   "midi": 29,
+   "layer": 1,
+   "file": "n29-1.mp3"
+  },
+  {
+   "midi": 32,
+   "layer": 0,
+   "file": "n32-0.mp3"
+  },
+  {
+   "midi": 32,
+   "layer": 1,
+   "file": "n32-1.mp3"
+  },
+  {
+   "midi": 35,
+   "layer": 0,
+   "file": "n35-0.mp3"
+  },
+  {
+   "midi": 35,
+   "layer": 1,
+   "file": "n35-1.mp3"
+  },
+  {
+   "midi": 38,
+   "layer": 0,
+   "file": "n38-0.mp3"
+  },
+  {
+   "midi": 38,
+   "layer": 1,
+   "file": "n38-1.mp3"
+  },
+  {
+   "midi": 41,
+   "layer": 0,
+   "file": "n41-0.mp3"
+  },
+  {
+   "midi": 41,
+   "layer": 1,
+   "file": "n41-1.mp3"
+  },
+  {
+   "midi": 44,
+   "layer": 0,
+   "file": "n44-0.mp3"
+  },
+  {
+   "midi": 44,
+   "layer": 1,
+   "file": "n44-1.mp3"
+  },
+  {
+   "midi": 47,
+   "layer": 0,
+   "file": "n47-0.mp3"
+  },
+  {
+   "midi": 47,
+   "layer": 1,
+   "file": "n47-1.mp3"
+  },
+  {
+   "midi": 50,
+   "layer": 0,
+   "file": "n50-0.mp3"
+  },
+  {
+   "midi": 50,
+   "layer": 1,
+   "file": "n50-1.mp3"
+  },
+  {
+   "midi": 53,
+   "layer": 0,
+   "file": "n53-0.mp3"
+  },
+  {
+   "midi": 53,
+   "layer": 1,
+   "file": "n53-1.mp3"
+  },
+  {
+   "midi": 56,
+   "layer": 0,
+   "file": "n56-0.mp3"
+  },
+  {
+   "midi": 56,
+   "layer": 1,
+   "file": "n56-1.mp3"
+  },
+  {
+   "midi": 59,
+   "layer": 0,
+   "file": "n59-0.mp3"
+  },
+  {
+   "midi": 59,
+   "layer": 1,
+   "file": "n59-1.mp3"
+  },
+  {
+   "midi": 62,
+   "layer": 0,
+   "file": "n62-0.mp3"
+  },
+  {
+   "midi": 62,
+   "layer": 1,
+   "file": "n62-1.mp3"
+  },
+  {
+   "midi": 65,
+   "layer": 0,
+   "file": "n65-0.mp3"
+  },
+  {
+   "midi": 65,
+   "layer": 1,
+   "file": "n65-1.mp3"
+  },
+  {
+   "midi": 68,
+   "layer": 0,
+   "file": "n68-0.mp3"
+  },
+  {
+   "midi": 68,
+   "layer": 1,
+   "file": "n68-1.mp3"
+  }
+ ]
+}

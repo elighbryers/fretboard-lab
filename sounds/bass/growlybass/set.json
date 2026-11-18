@@ -1,0 +1,144 @@
+{
+ "name": "Growlybass",
+ "about": "Squier Jazz bass, both pickups, bright and round",
+ "source": "Karoryfer Samples",
+ "licence": "CC0 1.0 (public domain dedication)",
+ "instrument": "bass",
+ "id": "growlybass",
+ "layers": [
+  80,
+  118
+ ],
+ "files": [
+  {
+   "midi": 25,
+   "layer": 0,
+   "file": "n25-0.mp3"
+  },
+  {
+   "midi": 25,
+   "layer": 1,
+   "file": "n25-1.mp3"
+  },
+  {
+   "midi": 30,
+   "layer": 0,
+   "file": "n30-0.mp3"
+  },
+  {
+   "midi": 30,
+   "layer": 1,
+   "file": "n30-1.mp3"
+  },
+  {
+   "midi": 33,
+   "layer": 0,
+   "file": "n33-0.mp3"
+  },
+  {
+   "midi": 33,
+   "layer": 1,
+   "file": "n33-1.mp3"
+  },
+  {
+   "midi": 36,
+   "layer": 0,
+   "file": "n36-0.mp3"
+  },
+  {
+   "midi": 36,
+   "layer": 1,
+   "file": "n36-1.mp3"
+  },
+  {
+   "midi": 39,
+   "layer": 0,
+   "file": "n39-0.mp3"
+  },
+  {
+   "midi": 39,
+   "layer": 1,
+   "file": "n39-1.mp3"
+  },
+  {
+   "midi": 42,
+   "layer": 0,
+   "file": "n42-0.mp3"
+  },
+  {
+   "midi": 42,
+   "layer": 1,
+   "file": "n42-1.mp3"
+  },
+  {
+   "midi": 45,
+   "layer": 0,
+   "file": "n45-0.mp3"
+  },
+  {
+   "midi": 45,
+   "layer": 1,
+   "file": "n45-1.mp3"
+  },
+  {
+   "midi": 47,
+   "layer": 0,
+   "file": "n47-0.mp3"
+  },
+  {
+   "midi": 47,
+   "layer": 1,
+   "file": "n47-1.mp3"
+  },
+  {
+   "midi": 51,
+   "layer": 0,
+   "file": "n51-0.mp3"
+  },
+  {
+   "midi": 51,
+   "layer": 1,
+   "file": "n51-1.mp3"
+  },
+  {
+   "midi": 54,
+   "layer": 0,
+   "file": "n54-0.mp3"
+  },
+  {
+   "midi": 54,
+   "layer": 1,
+   "file": "n54-1.mp3"
+  },
+  {
+   "midi": 57,
+   "layer": 0,
+   "file": "n57-0.mp3"
+  },
+  {
+   "midi": 57,
+   "layer": 1,
+   "file": "n57-1.mp3"
+  },
+  {
+   "midi": 60,
+   "layer": 0,
+   "file": "n60-0.mp3"
+  },
+  {
+   "midi": 60,
+   "layer": 1,
+   "file": "n60-1.mp3"
+  },
+  {
+   "midi": 63,
+   "layer": 0,
+   "file": "n63-0.mp3"
+  },
+  {
+   "midi": 63,
+   "layer": 1,
+   "file": "n63-1.mp3"
+  }
+ ]
+}

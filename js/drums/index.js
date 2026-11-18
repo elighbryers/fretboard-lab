@@ -11,6 +11,10 @@ const sub = document.querySelector('header .title p');
 if (sub) sub.textContent = 'See grooves on the grid and the staff. Tap any drum to hear it.';
 import './drills.js';
 import './routines.js';
+// The kit's sound: the synth, or a recorded CC0 kit chosen under Kit or Settings (js/sound-library.js).
+import { useSamples } from '../drumkit.js';
+import { wireSound, kitVoice } from '../sound-library.js';
+wireSound('drums', { apply: set => useSamples(set ? kitVoice(set) : null) });
 import drumPlayalong from './playalong.js';
 register('tools', [drumPlayalong]);
 import { PadBoard, padIndex } from './board.js';

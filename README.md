@@ -161,7 +161,10 @@ screen; that file registers what the instrument adds through `js/registry.js`:
 js/registry.js         where instrument code plugs into the shared screens (lessonAdapter, instrumentTab,
                        tools, drills, review rounds, progress sections, badges, routines, step types, earTab)
 js/groove.js           the groove player engine: original drum patterns, mutes, drop-out bars, chord pad
-js/drumkit.js          the synthesized drum kit (no downloads)
+js/drumkit.js          the synthesized drum kit (no downloads); a recorded kit can take over (useSamples)
+js/sound-library.js    the Sound choice per instrument: synth or a sample set, loaded only when picked
+js/sound-sets.js       the list of sets in sounds/ (written by tools/sounds/build.py)
+js/switcher.js         the instrument switcher in the header (and Settings): reloads on the same tab
 js/practice/groove-ui.js  the Groove mode of the Metronome
 js/pitch.js, js/mic.js the optional microphone: YIN pitch detection, any-octave grading, "I played it"
 js/midi.js             optional Web MIDI (keyboards, e-kits), hidden where unsupported
@@ -181,12 +184,27 @@ drum pads `{ string: 0, fret: index in js/drums/kit.js }`. Write them with each 
 `lessons/kit.js`. `node tools/validate-lessons.mjs` checks every instrument's lessons and play-alongs
 against `theory.js`. Saved data is version 5 (per-instrument `tuning`, `timing`, `mic`).
 
+**Piano on a phone held sideways** (`js/piano/keyboard.js` `full88`, `js/piano/playalong.js`): all 88 keys
+across the width, pinch or ctrl+wheel to zoom, two fingers to drag; tap tasks zoom to their keys (about 44 px).
+Play-along fills the screen: the grand staff on one line with the current bar highlighted, falling-note bars
+(length = note length, name inside) and keys that light in their note's color. Color by hand (LH blue, RH
+green) or by chord tone; Menu brings back the header and controls. Upright phones get two stacked rows for
+two-hand pieces (RH on top, LH below) and a "turn your phone sideways" tip.
+
+**Sounds** (`sounds/<instrument>/<id>/`): each set has `set.json` (files and their real pitch), mono 96 kbps
+MP3s and `LICENSE.txt`. They are made from raw SFZ libraries kept outside the repo (`~/sound-samples`) by
+`python3 tools/sounds/build.py [id ...]` (needs macOS `afconvert`, `lame` and Python 3.9–3.12). Only CC0 or
+public-domain libraries are used; add a set to `SETS` in that file. One sample every 3 semitones (2 velocity
+layers for bass, 1 for piano), drums one soft and one hard hit per kit piece. Never commit the raw WAV/FLAC.
+
 **Tests:** `tools/test-all.sh` runs the validator, `node --test tests/*.test.mjs` and
-`tools/smoke.mjs` (every tab for every instrument in headless Chromium; extra screens in
-`tools/smoke-routes.mjs`).
+`tools/smoke.mjs` twice, upright (390 x 844) and sideways (`--landscape`, 844 x 390): every tab for every
+instrument in headless Chromium; extra screens in `tools/smoke-routes.mjs`. Playwright isn't a project
+dependency: install it anywhere and point `NODE_PATH` at its `node_modules`.
 
 **Credits:** abcjs and smplr (MIT), ts-fsrs (MIT), Salamander Grand Piano by Alexander Holm (CC BY 3.0),
-listed on Progress → About and in `js/vendor/README.md`.
+listed on Progress → About and in `js/vendor/README.md`. The CC0 and public-domain sound sets (Karoryfer
+Samples, Versilian Studios VSCO 2 CE, AKAI's Splendid Grand) are listed on Progress → About too.
 
 ## Play-along tabs
 

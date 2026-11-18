@@ -4,9 +4,9 @@
 //   hit('kick', t, 1)   // piece, audio-clock time, velocity 0..1
 // Pieces: kick, snare, rim (cross-stick), hat (closed), ohat (open), phat (pedal),
 // ride, bell, crash, tom1 (high), tom2 (mid), tom3 (floor). Used by the groove player
-// (js/groove.js) and the drums instrument. The plan's optional CC0 Karoryfer samples could not be
-// downloaded in the build environment (docs/overnight-report.md), so the synth is the drum sound;
-// useSamples(fn) lets a sample player take over later.
+// (js/groove.js) and the drums instrument. With Drums as the instrument a recorded CC0 kit can
+// take over (sounds/drums/, js/sound-library.js, registered through useSamples); pieces a kit
+// doesn't have, and every hit while it downloads, stay synthesized.
 import { context, output } from './audio.js';
 
 export const PIECES = ['crash', 'ride', 'bell', 'ohat', 'hat', 'tom1', 'tom2', 'snare', 'rim', 'tom3', 'kick', 'phat'];
@@ -84,7 +84,7 @@ export function hit(piece, t, velocity = 1) {
   const c = ensure();
   if (!c || !VOICES[piece] || velocity <= 0) return 0;
   const at = t ?? c.currentTime + 0.01;
-  // Samples can replace the synth (js/drums/samples.js registers them); synth otherwise.
+  // A recorded kit can replace the synth (js/drums/index.js registers it); synth otherwise.
   if (samplePlayer && samplePlayer(piece, at, velocity, bus)) return at;
   VOICES[piece](c, at, Math.min(1.2, velocity));
   return at;

@@ -1,0 +1,134 @@
+{
+ "name": "Big Rusty",
+ "about": "Oversized 1980s Polish kit",
+ "source": "Karoryfer Samples",
+ "licence": "CC0 1.0 (public domain dedication)",
+ "instrument": "drums",
+ "id": "big-rusty",
+ "layers": [
+  85,
+  120
+ ],
+ "files": [
+  {
+   "piece": "kick",
+   "layer": 0,
+   "file": "kick-0.mp3"
+  },
+  {
+   "piece": "kick",
+   "layer": 1,
+   "file": "kick-1.mp3"
+  },
+  {
+   "piece": "rim",
+   "layer": 0,
+   "file": "rim-0.mp3"
+  },
+  {
+   "piece": "rim",
+   "layer": 1,
+   "file": "rim-1.mp3"
+  },
+  {
+   "piece": "snare",
+   "layer": 0,
+   "file": "snare-0.mp3"
+  },
+  {
+   "piece": "snare",
+   "layer": 1,
+   "file": "snare-1.mp3"
+  },
+  {
+   "piece": "hat",
+   "layer": 0,
+   "file": "hat-0.mp3"
+  },
+  {
+   "piece": "hat",
+   "layer": 1,
+   "file": "hat-1.mp3"
+  },
+  {
+   "piece": "phat",
+   "layer": 0,
+   "file": "phat-0.mp3"
+  },
+  {
+   "piece": "phat",
+   "layer": 1,
+   "file": "phat-1.mp3"
+  },
+  {
+   "piece": "ohat",
+   "layer": 0,
+   "file": "ohat-0.mp3"
+  },
+  {
+   "piece": "ohat",
+   "layer": 1,
+   "file": "ohat-1.mp3"
+  },
+  {
+   "piece": "crash",
+   "layer": 0,
+   "file": "crash-0.mp3"
+  },
+  {
+   "piece": "crash",
+   "layer": 1,
+   "file": "crash-1.mp3"
+  },
+  {
+   "piece": "ride",
+   "layer": 0,
+   "file": "ride-0.mp3"
+  },
+  {
+   "piece": "ride",
+   "layer": 1,
+   "file": "ride-1.mp3"
+  },
+  {
+   "piece": "bell",
+   "layer": 0,
+   "file": "bell-0.mp3"
+  },
+  {
+   "piece": "bell",
+   "layer": 1,
+   "file": "bell-1.mp3"
+  },
+  {
+   "piece": "tom1",
+   "layer": 0,
+   "file": "tom1-0.mp3"
+  },
+  {
+   "piece": "tom1",
+   "layer": 1,
+   "file": "tom1-1.mp3"
+  },
+  {
+   "piece": "tom2",
+   "layer": 0,
+   "file": "tom2-0.mp3"
+  },
+  {
+   "piece": "tom2",
+   "layer": 1,
+   "file": "tom2-1.mp3"
+  },
+  {
+   "piece": "tom3",
+   "layer": 0,
+   "file": "tom3-0.mp3"
+  },
+  {
+   "piece": "tom3",
+   "layer": 1,
+   "file": "tom3-1.mp3"
+  }
+ ]
+}

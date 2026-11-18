@@ -11,6 +11,7 @@ import { renderAbc } from '../notation.js';
 import { midiOn, listenMidi } from '../midi.js';
 import { getFretboardPrefs, updateFretboardPrefs } from '../storage.js';
 import { esc } from '../ui.js';
+import { soundPickerHTML, paintSoundStatus } from '../sound-library.js';
 
 // Pads laid out roughly like a kit seen from the stool.
 const LAYOUT = [['crash', 'ride'], ['hat', 'ohat', 'tom1', 'tom2'], ['snare', 'tom3'], ['phat', 'kick']];
@@ -76,7 +77,8 @@ export default {
       <div class="seg" id="dk-mode" role="group" aria-label="View"><button data-m="kit">Kit</button><button data-m="grid">Grid and notation</button></div>
       <div id="dk-kit"><p class="muted small">Tap a drum to hear it. Letters show the keyboard keys; an e-drum kit works too (Progress → Settings → MIDI).
         The tag on each pad is the limb that usually plays it: R right hand, L left hand, RF right foot, LF left foot.</p>
-        ${padsHTML(st.left)}<label class="check"><input type="checkbox" id="dk-left"${st.left ? ' checked' : ''}> Left-handed kit (mirrored)</label></div>
+        ${padsHTML(st.left)}<label class="check"><input type="checkbox" id="dk-left"${st.left ? ' checked' : ''}> Left-handed kit (mirrored)</label>
+        <div class="row">${soundPickerHTML('drums')}</div></div>
       <div id="dk-gridview" hidden>
         <div class="row"><label>Start from<select id="dk-style">${Object.entries(STYLES).map(([k, v]) => `<option value="${k}"${k === st.style ? ' selected' : ''}>${esc(v.name)}</option>`).join('')}</select></label>
           <button id="dk-clear">Clear</button></div>
@@ -99,6 +101,7 @@ export default {
     $('#dk-click').onchange = e => { st.click = e.target.checked; save(); metronome.setVolume(st.click ? 0.5 : 0); };
     $('#dk-go').onclick = play;
     setMode(st.mode || 'kit');
+    paintSoundStatus('drums');
   },
   show() {},
   hide() { if (off) play(); }

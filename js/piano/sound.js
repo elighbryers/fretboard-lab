@@ -1,9 +1,12 @@
-// The piano sound (docs/research-piano.md F1): the Salamander Grand Piano 30-note MP3 web subset
-// (Alexander Holm, CC BY 3.0 — credited under Progress → About), self-hosted in sounds/piano/,
-// played with smplr 1.2.0 (MIT, vendored in js/vendor/). A short synth piano plays straight
-// away; the lesson's range (C3–C6) loads first, the rest in the background. The service worker
-// keeps the files for offline use.
+// The piano sound (docs/research-piano.md F1), chosen under Keyboard → More or Settings:
+// - Salamander Grand (the default): the 30-note MP3 web subset (Alexander Holm, CC BY 3.0, credited
+//   under Progress → About), self-hosted in sounds/piano/, played with smplr 1.2.0 (MIT, vendored
+//   in js/vendor/). The lesson's range (C3–C6) loads first, the rest in the background.
+// - Splendid Grand or Upright piano: public-domain / CC0 sets in sounds/piano/<id>/ (js/sound-library.js).
+// - Synth: a short synth piano, which also plays straight away while samples download.
+// The service worker keeps the files for offline use.
 import { context, output, setVoice } from '../audio.js';
+import { wireSound, noteVoice, chosenSound } from '../sound-library.js';
 import { midiToFreq } from '../theory.js';
 
 // Samples every minor third from A0 to C8, named as in the source set (Ds = D#, Fs = F#).
@@ -54,7 +57,11 @@ function synthPiano(midi, t, volume, out) {
   return t;
 }
 
+let setVoiceFn = null; // a sample set from sounds/piano/<id>/ once it has loaded
 export function pianoVoice(midi, t, volume, out) {
+  const id = chosenSound('piano');
+  if (id === 'synth') return synthPiano(midi, t, volume, out);
+  if (id !== 'salamander') return setVoiceFn ? setVoiceFn(midi, t, volume, out) : synthPiano(midi, t, volume, out);
   const inNear = midi >= NEAR[0] && midi <= NEAR[1];
   const s = inNear && nearReady ? near : !inNear && farReady ? far : null;
   if (s) { s.start({ note: midi, time: t, velocity: Math.round(40 + 70 * Math.min(1, volume)), duration: 2.5 }); return t; }
@@ -63,8 +70,6 @@ export function pianoVoice(midi, t, volume, out) {
 
 export function usePianoSound() {
   setVoice(pianoVoice);
-  // Start loading after the first tap (the AudioContext needs a gesture).
-  const go = () => { loadPiano(); window.removeEventListener('pointerdown', go, true); window.removeEventListener('keydown', go, true); };
-  window.addEventListener('pointerdown', go, true);
-  window.addEventListener('keydown', go, true);
+  // Loads after the first tap (the AudioContext needs a gesture); Salamander uses smplr.
+  wireSound('piano', { apply: set => { setVoiceFn = set ? noteVoice(set, 0.8) : null; }, special: { salamander: loadPiano } });
 }

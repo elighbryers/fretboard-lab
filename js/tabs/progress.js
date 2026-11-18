@@ -11,6 +11,7 @@ import { hashFor } from '../router.js';
 import { esc } from '../ui.js';
 import { tuningOf, itemNum } from '../instruments.js';
 import { switchInstrument } from '../switcher.js';
+import { hasSoundChoice, soundPickerHTML, paintSoundStatus, soundCreditsHTML } from '../sound-library.js';
 import { micSettingsHTML, wireMicSettings } from '../mic.js';
 import { registeredList, registered } from '../registry.js';
 import { midiSettingsHTML, wireMidiSettings } from '../midi.js';
@@ -64,13 +65,16 @@ export default {
         </fieldset>
         <p class="muted small">Lessons, the fretboard heat map, placement and clean tempos are kept separately for each
           instrument. The theory you've learned, your streak and the practice log are shared.</p>
+        ${hasSoundChoice(getInstrument()) ? `<div class="row">${soundPickerHTML(getInstrument())}</div><p class="muted small">Recorded sounds download only when picked (under 1 MB each) and then work offline. Each instrument remembers its own.</p>` : ''}
         ${micSettingsHTML()}
         ${midiSettingsHTML()}
       </section>
       <section class="p-card" id="p-about"><h3>About</h3>
         <p class="small">Fretboard Lab is built with: <b>ts-fsrs</b> (MIT), <b>abcjs</b> (MIT) for notation and <b>smplr</b> (MIT) for the piano sampler.
-        Piano sound: <b>Salamander Grand Piano by Alexander Holm, CC BY 3.0</b>. Drums and bass are synthesized in the browser.
-        Every melody is original or a public-domain tune arranged for this app.</p></section>
+        Every melody is original or a public-domain tune arranged for this app.</p>
+        <p class="small">Recorded sounds (pick one under Settings → Sound; the synth is made in the browser). Each folder in
+          <code>sounds/</code> keeps its licence file. Thank you to everyone who released these for free:</p>
+        ${soundCreditsHTML()}</section>
       <section class="p-card"><h3>Your data</h3>
         <p class="muted sub">Progress is saved in this browser only. Export it to keep a copy or move it to another device.</p>
         <p class="export-status" id="p-export-status"></p>
@@ -102,6 +106,7 @@ export default {
 
     // Switching instruments swaps which lessons, heat map and tempos every tab shows, so reload them all.
     el.querySelector('.instrument-pick').onchange = e => switchInstrument(e.target.value);
+    paintSoundStatus(getInstrument());
     wireMicSettings(el);
     wireMidiSettings(el);
     $('#p-export').onclick = () => this.exportNow();

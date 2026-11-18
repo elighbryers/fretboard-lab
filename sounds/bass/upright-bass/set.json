@@ -1,0 +1,124 @@
+{
+ "name": "Upright bass (pizzicato)",
+ "about": "Solo double bass, plucked",
+ "source": "Versilian Studios, VSCO 2 Community Edition",
+ "licence": "CC0 1.0 (public domain dedication)",
+ "instrument": "bass",
+ "id": "upright-bass",
+ "layers": [
+  80,
+  118
+ ],
+ "files": [
+  {
+   "midi": 28,
+   "layer": 0,
+   "file": "n28-0.mp3"
+  },
+  {
+   "midi": 28,
+   "layer": 1,
+   "file": "n28-1.mp3"
+  },
+  {
+   "midi": 30,
+   "layer": 0,
+   "file": "n30-0.mp3"
+  },
+  {
+   "midi": 30,
+   "layer": 1,
+   "file": "n30-1.mp3"
+  },
+  {
+   "midi": 31,
+   "layer": 0,
+   "file": "n31-0.mp3"
+  },
+  {
+   "midi": 31,
+   "layer": 1,
+   "file": "n31-1.mp3"
+  },
+  {
+   "midi": 36,
+   "layer": 0,
+   "file": "n36-0.mp3"
+  },
+  {
+   "midi": 36,
+   "layer": 1,
+   "file": "n36-1.mp3"
+  },
+  {
+   "midi": 38,
+   "layer": 0,
+   "file": "n38-0.mp3"
+  },
+  {
+   "midi": 38,
+   "layer": 1,
+   "file": "n38-1.mp3"
+  },
+  {
+   "midi": 42,
+   "layer": 0,
+   "file": "n42-0.mp3"
+  },
+  {
+   "midi": 42,
+   "layer": 1,
+   "file": "n42-1.mp3"
+  },
+  {
+   "midi": 44,
+   "layer": 0,
+   "file": "n44-0.mp3"
+  },
+  {
+   "midi": 44,
+   "layer": 1,
+   "file": "n44-1.mp3"
+  },
+  {
+   "midi": 49,
+   "layer": 0,
+   "file": "n49-0.mp3"
+  },
+  {
+   "midi": 49,
+   "layer": 1,
+   "file": "n49-1.mp3"
+  },
+  {
+   "midi": 52,
+   "layer": 0,
+   "file": "n52-0.mp3"
+  },
+  {
+   "midi": 52,
+   "layer": 1,
+   "file": "n52-1.mp3"
+  },
+  {
+   "midi": 56,
+   "layer": 0,
+   "file": "n56-0.mp3"
+  },
+  {
+   "midi": 56,
+   "layer": 1,
+   "file": "n56-1.mp3"
+  },
+  {
+   "midi": 59,
+   "layer": 0,
+   "file": "n59-0.mp3"
+  },
+  {
+   "midi": 59,
+   "layer": 1,
+   "file": "n59-1.mp3"
+  }
+ ]
+}

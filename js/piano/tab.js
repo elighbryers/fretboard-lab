@@ -14,6 +14,7 @@ import { inversions, voiceLead, moves, LH_PATTERNS, lhBar } from './voicing.js';
 import { scaleFingering } from './fingering.js';
 import { chordOf } from '../progressions.js';
 import { micOn, polyOn, listenNotes } from '../mic.js';
+import { soundPickerHTML, paintSoundStatus } from '../sound-library.js';
 
 const DEFAULT = { key: 0, kind: 'scale', id: 'major', labels: 'intervals', range: 'auto', steps: false, hands: 'none', heat: false, lh: 'broken', overlayChord: '' };
 let el, kb, st, voiceTimer = [], lhOff = null, startedDrone = false, stopPoly = null;
@@ -155,7 +156,9 @@ export default {
         <section><h3>Scale over chord</h3><div class="row"><label>Chord on the root<select id="kt-ov">${opt('', 'Off', '')}${['major', 'minor', '7', 'maj7', 'm7'].map(c => opt(c, lookup('chord', c).name, '')).join('')}</select></label></div></section>
         <section><h3>Drone</h3><div class="row"><button id="kt-drone">▶ Drone on the key</button>${volumeHTML('droneVol', 'Drone volume')}</div></section>
         <section><h3>Weak spots</h3><label class="check"><input type="checkbox" id="kt-heat"> Show my key finder weak spots</label></section>
+        <section><h3>Sound</h3><div class="row">${soundPickerHTML('piano')}</div></section>
       </div>`;
+    paintSoundStatus('piano');
     kb = new Keyboard($('#kt-board'), { view: range(), labels: st.labels, full88: true, ariaLabel: 'Piano keyboard showing the selected scale or chord' });
     miniMap($('#kt-board'), kb);
     onLandscapeChange(() => draw());
