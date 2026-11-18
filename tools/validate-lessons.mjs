@@ -207,7 +207,7 @@ function itemOk(kit, item, p, prompt = '', names = BASS_NAMES) {
 }
 function validatePath(name, levels, kit, names, spec = null) {
   const POS = spec?.pos || ((w, p, v) => checkFretted(kit, names, w, p, v)), PROMPT = spec?.prompt || ((w, pr, a) => checkFrettedPrompt(kit, names, w, pr, a)), ITEM = spec?.item || ((it, p, pr) => itemOk(kit, it, p, pr, names));
-  ok(levels.length === 6 || (name !== 'bass' && levels.length >= 1), `${name}: six levels`, levels.length);
+  ok(levels.length === 6 || (name === 'drums' && levels.length >= 1), `${name}: six levels`, levels.length);
   levels.forEach((lv, n) => {
     const L = lv.level, where0 = `${name} level ${n + 1}`;
     ok(L.lessons.length === 7, `${where0}: 7 lessons`, L.lessons.length);
