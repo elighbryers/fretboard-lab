@@ -22,3 +22,18 @@ test('notation: kick bottom space, snare third space, x noteheads, eighth notes 
   assert.equal((tri.abc.match(/\(3/g) || []).length, 4);
   assert.equal(tri.index[11], 11);
 });
+test('drum scores: windows, caps, bias vs spread, right drum', async () => {
+  const S = await import('../js/drums/score.js');
+  assert.equal(S.capWindow(50, 125), 50);       // 16ths at 120 bpm are 125 ms apart: 50 fits under 62
+  assert.equal(S.capWindow(50, 60), 29);         // very fast notes: capped below half the gap
+  const exp = [0, 0.5, 1, 1.5].map(t => ({ t, piece: 'snare' }));
+  const late = S.scoreHits(exp, exp.map(e => ({ t: e.t + 0.03, piece: 'snare' })), { level: 'easy' });
+  assert.deepEqual([late.inTime, late.tight, late.bias, late.spread, late.lean], [4, 0, 30, 0, 'late']);
+  assert.equal(S.scoreHits(exp, exp.map(e => ({ t: e.t + 0.03, piece: 'snare' })), { level: 'strict' }).inTime, 0);
+  assert.equal(S.scoreHits(exp, exp.map(e => ({ t: e.t + 0.03, piece: 'snare' })), { offsetMs: 30, level: 'strict' }).tight, 4, 'calibration removes a steady delay');
+  const wrong = S.scoreHits(exp, exp.map(e => ({ t: e.t, piece: 'kick' })));
+  assert.equal(wrong.played, 0, 'the wrong drum does not count');
+  assert.equal(S.scoreHits(exp, exp.map(e => ({ t: e.t, piece: 'kick' })), { samePiece: false }).inTime, 4);
+  const jitter = S.scoreHits(exp, [0.02, 0.48, 1.02, 1.48].map(t => ({ t, piece: 'snare' })));
+  assert.equal(jitter.bias, 0); assert.ok(jitter.spread > 15, 'spread shows inconsistency even with no bias');
+});

@@ -16,13 +16,14 @@ export const getWindow = () => timingSettings().window;
 export const setWindow = w => saveTiming({ window: w });
 
 // The calibration for the current output, or null. stale = the device list changed since.
-export function currentCalibration() {
+// key: a device key; 'midi' for an e-kit or MIDI keyboard (MIDI has its own, usually small, offset).
+export function currentCalibration(key) {
   const ctx = context();
   if (!ctx) return null;
-  const c = timingSettings().calibrations[deviceKey(ctx)];
+  const c = timingSettings().calibrations[key || deviceKey(ctx)];
   return c ? { ...c, stale: deviceChanged } : null;
 }
-export const offsetMs = () => currentCalibration()?.offsetMs || 0;
+export const offsetMs = key => currentCalibration(key)?.offsetMs || 0;
 
 // A big pad that reports tap times on the audio clock. Touch, mouse, Space or Enter.
 // onTap(audioTime). Returns a detach function.
@@ -70,7 +71,7 @@ export function calibrationLine() {
 }
 
 // The calibration screen: 4 clicks to listen, then tap along with the next 8.
-export function runCalibration(host, { onDone, bpm = 90 } = {}) {
+export function runCalibration(host, { onDone, bpm = 90, key = null, input = null } = {}) {
   let detach = null, timer = null;
   host.innerHTML = `
     <div class="calib">
@@ -92,13 +93,16 @@ export function runCalibration(host, { onDone, bpm = 90 } = {}) {
     const dots = host.querySelectorAll('.calib-dots i');
     times.forEach((t, i) => setTimeout(() => { dots[i]?.classList.add('on'); if (i === 4) $('#calib-msg').textContent = 'Tap along now!'; }, Math.max(0, (t - now()) * 1000)));
     detach = tapPad($('#calib-pad'), t => taps.push(t));
+    // A MIDI kit or keyboard calibrates with its own hits (input(push) returns a stop function).
+    const stopInput = input ? input(t => taps.push(t)) : null;
+    if (stopInput) { const d0 = detach; detach = () => { d0(); stopInput(); }; }
     timer = setTimeout(() => {
       stop();
       dots.forEach(d => d.classList.remove('on'));
       const r = calibrate(clicks, taps.filter(t => t > clicks[0] - 0.4));
       if (!r.ok) { $('#calib-msg').textContent = `Only ${r.n} taps matched the clicks. Try again: tap right on each click.`; $('#calib-msg').className = 'msg bad'; return; }
       const ctx = context(), cal = { offsetMs: r.offsetMs, spreadMs: r.spreadMs, bluetooth: r.bluetooth, at: Date.now() };
-      saveTiming({ calibrations: { ...timingSettings().calibrations, [deviceKey(ctx)]: cal } });
+      saveTiming({ calibrations: { ...timingSettings().calibrations, [key || deviceKey(ctx)]: cal } });
       deviceChanged = false;
       $('#calib-msg').innerHTML = `Done: your taps land <b>${r.offsetMs} ms</b> after the click here. Scores will correct for it.` +
         (r.bluetooth ? '<br><span class="warn">That is a big delay, which usually means Bluetooth headphones. Wired or the speaker is more accurate.</span>' : '');

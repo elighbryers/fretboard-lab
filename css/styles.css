@@ -755,3 +755,6 @@ button.small { padding: 6px 10px; font-size: 13px; min-height: 36px }
 .limb-R { color: var(--blue) } .limb-L { color: var(--pink) } .limb-RF { color: var(--deg-fifth) } .limb-LF { color: var(--grey-text) }
 #dk-staff .now, #dk-staff .now path { fill: #1565C0 }
 .legend-box { margin: 8px 0 } .legend-box ul { margin: 6px 0; padding-left: 18px; font-size: 14px }
+.drum-run { display: grid; gap: 8px }
+.lk-hits .hit.tight { background: var(--blue); color: var(--on-soft); border-color: var(--blue) }
+.ds-pads .kit { margin: 4px 0 }
