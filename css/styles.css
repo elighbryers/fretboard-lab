@@ -645,3 +645,14 @@ button.small { padding: 6px 10px; font-size: 13px; min-height: 36px }
 .mic-level i { display: block; height: 100%; width: 0; background: var(--blue) }
 .mic-settings, .midi-settings { border: 1px solid var(--line); border-radius: 10px; margin-top: 12px }
 .small { font-size: 13px }
+
+/* ---------- bass drills ---------- */
+.chip-q { display: inline-block; min-width: 34px; text-align: center; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted) }
+.chip-q.now { border-color: var(--blue); color: var(--text) }
+.chip-q.ok { background: var(--blue-tint); color: var(--text) }
+.lock { display: grid; gap: 10px }
+.lk-hits { display: flex; flex-wrap: wrap; gap: 6px }
+.lk-hits .hit { padding: 4px 8px; border-radius: 6px; font-variant-numeric: tabular-nums; border: 1px solid var(--line) }
+.lk-hits .hit.in { background: var(--blue-tint); border-color: var(--blue) }
+.lk-hits .hit.out { color: var(--bad-text); border-color: var(--bad) }
+.lk-hits .hit.miss { color: var(--muted) }

@@ -45,6 +45,11 @@ export const DRILLS = [
     defaults: { mode: 'find', set: 'm3-M3', strings: ALL, from: 0, to: 12, rounds: 10 } }
 ];
 
+// Instruments add their own drills (js/bass/drills.js). A drill with `mount(el)` runs its own screen;
+// one with `round(ui)` uses the shared shell below. `noBoard` hides the neck; `frets: false` hides
+// the string and fret options.
+export const registerDrill = d => { if (!DRILLS.some(x => x.id === d.id)) DRILLS.push(d); };
+
 const optsFor = d => {
   const o = { ...d.defaults, ...(getPracticePrefs().drills[prefKey(d.id)] || {}) };
   if (o.strings) { o.strings = o.strings.filter(s => s < N); if (!o.strings.length) o.strings = d.defaults.strings || ALL; }
@@ -77,9 +82,11 @@ function setup(el, d, start) {
     <div class="drill-setup">
       <p class="muted">${d.blurb}.</p>
       ${extra}
+      <div${d.frets === false ? ' hidden' : ''}>
       <div class="field"><span class="lbl">Strings</span>
         <div class="seg strings" id="dr-strings">${ALL.slice().reverse().map(s => `<button data-s="${s}" aria-pressed="${o.strings.includes(s)}">${tuning.strings[s].name}</button>`).join('')}</div></div>
       <div class="row"><label>From fret<select id="dr-from">${fretOpts(o.from)}</select></label><label>To fret<select id="dr-to">${fretOpts(o.to)}</select></label></div>
+      </div>${d.setupHTML ? d.setupHTML(o) : ''}
       <div class="field"><span class="lbl">Rounds</span>${seg('dr-rounds', [[10, '10'], [20, '20']], o.rounds)}</div>
       <button class="primary big" id="dr-start">▶ Start</button>
     </div>`;
@@ -103,6 +110,7 @@ function setup(el, d, start) {
     n.rounds = +val('dr-rounds');
     if (d.id === 'hear') Object.assign(n, { key: +$('#dr-key').value, scale: val('dr-scale'), level: val('dr-level') });
     if (d.id === 'intervals') Object.assign(n, { mode: val('dr-mode'), set: val('dr-set') });
+    if (d.readSetup) Object.assign(n, d.readSetup(el, val));
     saveOpts(d.id, n);
     start(n);
   };
@@ -123,6 +131,7 @@ function run(el, d, o, { onAgain, onOptions }) {
   const $ = s => el.querySelector(s);
   const startedAt = Date.now();
   let round = 0, score = 0, answered = 0, current = null, finished = false, autoTimer = null;
+  if (d.noBoard) $('#dr-board').hidden = true;
   const fb = new Fretboard($('#dr-board'), {
     view: [o.from, o.to], mode: 'tap', labels: 'none',
     focus: o.strings.length < N ? { strings: o.strings } : null,
@@ -405,6 +414,11 @@ export default {
   mount(el, params) {
     if (params.get('drill') === 'review') return review(el, params);
     const d = DRILLS.find(x => x.id === params.get('drill'));
+    if (d?.mount) {
+      const head = el.closest('.tool-body')?.previousElementSibling?.querySelector('h2');
+      if (head) head.textContent = d.title;
+      return d.mount(el, params);
+    }
     if (!d) {
       el.innerHTML = `<div class="cards">${DRILLS.map(x => `
         <a class="card-link" href="#practice?tool=drills&drill=${x.id}"><span><b>${x.title}</b><small>${x.blurb}</small></span></a>`).join('')}</div>`;

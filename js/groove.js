@@ -59,7 +59,7 @@ export const kickBeats = style => hitsIn(STYLES[style].parts.kick).filter(h => h
 
 /* ---------- the chord pad: a soft sustained chord per bar ---------- */
 let padBus = null, padLevel = 0.5;
-function pad(rootPc, chordId, t, dur) {
+export function pad(rootPc, chordId, t, dur) {
   const c = context();
   if (!c) return;
   if (!padBus) { padBus = c.createGain(); padBus.gain.value = padLevel; padBus.connect(output()); }
