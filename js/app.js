@@ -23,7 +23,7 @@ if (INSTRUMENT !== 'guitar') {
 
 // Each tab: { id, title, icon, soon?, mount(el), show(params), hide() }
 // An instrument without a neck (piano, drums) swaps the Fretboard tab for its own view.
-const TABS = [learn, registered('instrumentTab') || fretboard, practice, progress, ear];
+const TABS = [learn, registered('instrumentTab') || fretboard, practice, progress, registered('earTab') || ear];
 const HOME = 'learn';
 const $ = id => document.getElementById(id);
 

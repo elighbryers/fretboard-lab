@@ -33,3 +33,5 @@ import { PIANO_LEVELS } from './lessons/index.js';
 registerPath('piano', PIANO_LEVELS);
 import './review.js';
 import './progress.js';
+import pianoEar from './ear.js';
+register('earTab', pianoEar);
