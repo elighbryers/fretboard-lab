@@ -1,6 +1,6 @@
 # fretboard-lab
 
-A web app for learning music theory on the guitar fretboard. Plain HTML, CSS and
+A web app for learning music theory on guitar, bass, piano and drums. Plain HTML, CSS and
 ES modules: no framework and no build step. Vercel (or any static host) serves the
 files as they are.
 
@@ -150,6 +150,43 @@ they feed the heat map), placement, clean tempos, goals and today's review under
 rhythms), the log (each entry tagged with its `instrument`), practice days, the streak and
 badges are shared. `getLesson`, `recordAnswer`, `allItems` and the rest read and write the
 right part on their own.
+
+## Bass, piano and drums
+
+Each instrument besides guitar lives in its own folder and is downloaded only when it is picked
+(Progress → Settings → Instrument). `js/app.js` imports `js/<instrument>/index.js` before the first
+screen; that file registers what the instrument adds through `js/registry.js`:
+
+```
+js/registry.js         where instrument code plugs into the shared screens (lessonAdapter, instrumentTab,
+                       tools, drills, review rounds, progress sections, badges, routines, step types, earTab)
+js/groove.js           the groove player engine: original drum patterns, mutes, drop-out bars, chord pad
+js/drumkit.js          the synthesized drum kit (no downloads)
+js/practice/groove-ui.js  the Groove mode of the Metronome
+js/pitch.js, js/mic.js the optional microphone: YIN pitch detection, any-octave grading, "I played it"
+js/midi.js             optional Web MIDI (keyboards, e-kits), hidden where unsupported
+js/notation.js         abcjs (vendored, MIT) loaded on demand: bass clef, grand staff, drum staff
+js/rhythm-grid.js      the one-bar step grid (bass rhythm cards, drum grids)
+js/lesson-extras.js    rhythm-grid cards and tasks, technique cards with drawings, roots-on-the-kick step
+js/timing-progress.js  the timing chart on Progress (bias and spread per session)
+js/bass/               neck tools, bass sound, drills, play-alongs (tabs/), lessons/ (6 levels), review, progress
+js/piano/              keyboard view and Keyboard tab, sampler (Salamander, sounds/piano), drills, tempo trainer,
+                       pieces and the four-view play-along, lessons/ (6 levels), review, progress, ear page
+js/drums/              Kit tab (pads, grid, notation), scoring, drills, songs and play-along, lessons/, review
+```
+
+Lessons for every instrument use the same lesson shape and player. Positions are each
+instrument's own: bass `{ string, fret }` with string 4 = low E, piano keys `{ string: 0, fret: midi }`,
+drum pads `{ string: 0, fret: index in js/drums/kit.js }`. Write them with each instrument's
+`lessons/kit.js`. `node tools/validate-lessons.mjs` checks every instrument's lessons and play-alongs
+against `theory.js`. Saved data is version 5 (per-instrument `tuning`, `timing`, `mic`).
+
+**Tests:** `tools/test-all.sh` runs the validator, `node --test tests/*.test.mjs` and
+`tools/smoke.mjs` (every tab for every instrument in headless Chromium; extra screens in
+`tools/smoke-routes.mjs`).
+
+**Credits:** abcjs and smplr (MIT), ts-fsrs (MIT), Salamander Grand Piano by Alexander Holm (CC BY 3.0),
+listed on Progress → About and in `js/vendor/README.md`.
 
 ## Play-along tabs
 

@@ -78,6 +78,20 @@ test('instruments keep separate positions, lessons, tuning and timing', () => {
   assert.equal(d.instruments.guitar.items['note:C@s3'].attempts, 1);
 });
 
+test('all four instruments keep their own progress; theory stays shared', () => {
+  const pos = { guitar: 'note:E@s1', bass: 'note:G@s1', piano: 'key:F#', drums: 'pad:snare' };
+  for (const [inst, id] of Object.entries(pos)) { S.setInstrument(inst); S.recordAnswer(id, true, 900); S.completeLesson(inst[0] + '-test', 4); S.recordAnswer('interval:P5', true, 900); }
+  for (const [inst, id] of Object.entries(pos)) {
+    S.setInstrument(inst);
+    assert.ok(S.getItem(id), `${inst} sees its own ${id}`);
+    Object.entries(pos).filter(([i]) => i !== inst).forEach(([, other]) => { if (other !== id) assert.equal(S.getItem(other)?.attempts ?? 0, other.startsWith('note:') && id.startsWith('note:') ? (S.getItem(other)?.attempts ?? 0) : 0, `${inst} does not see ${other}`); });
+    assert.ok(S.getLesson(inst[0] + '-test').completed);
+    Object.keys(pos).filter(i => i !== inst).forEach(i => assert.equal(S.getLesson(i[0] + '-test').completed, false, `${inst} does not see ${i}'s lesson`));
+    assert.equal(S.getItem('interval:P5').attempts >= 4, true, 'shared theory item counted on every instrument');
+  }
+  S.setInstrument('guitar');
+});
+
 test('export then replace-import round-trips', () => {
   const before = JSON.stringify(S.exportData().data);
   S.importData(S.exportData(), 'replace');
