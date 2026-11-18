@@ -142,6 +142,36 @@ for (const tab of BASS_TABS) {
   ok(tab.source && !/happy birthday/i.test(tab.title), `${where}: has a source and isn't Happy Birthday`);
 }
 
+/* ---------- piano pieces: bar lengths per hand, ranges, chord symbols, notes in the key ---------- */
+const { PIECES, midiOfName, pieceEvents } = await import(R + 'piano/pieces.js');
+const { lhBar } = await import(R + 'piano/voicing.js');
+for (const pc of PIECES) {
+  const where = `piano piece ${pc.id}`, bar = pc.time[0] * 4 / pc.time[1], bars = pc.chords.length;
+  ok(pc.chords.every(c => parseChordName(c)), `${where}: chord symbols parse`, pc.chords.join(' '));
+  for (const [hand, list] of [['RH', pc.rh], ['LH', pc.lh]]) {
+    if (!list) continue;
+    const total = list.reduce((a, x) => a + x[1], 0);
+    ok(Math.abs(total - bar * bars) < 1e-6, `${where} ${hand}: ${bars} bars of ${pc.time.join('/')}`, `${total} beats`);
+    let pos = 0, crossed = false;
+    list.forEach(([, b]) => { const inBar = pos % bar; if (inBar + b > bar + 1e-6) crossed = true; pos += b; });
+    ok(!crossed, `${where} ${hand}: no note crosses a bar line`);
+  }
+  const minor = /m$/.test(pc.key), keyName = pc.key.replace(/m$/, ''), scale = pc.scale || (minor ? 'minor' : 'major');
+  const inKey = new Set(T.parseFormula(T.lookup('scale', scale).formula).map(d => T.pcOf(T.parseNote(keyName) + d.semi)));
+  pc.rh.filter(x => x[0]).forEach(([note]) => {
+    const m = midiOfName(note);
+    ok(m >= 36 && m <= 96, `${where}: ${note} in a comfortable range`);
+    ok(inKey.has(T.pcOf(m)) || (pc.chromatic || []).includes(note), `${where}: ${note} is in ${pc.key} ${scale} (or listed as chromatic)`);
+  });
+  const ev = pieceEvents(pc, (pat, c, beats) => { const x = parseChordName(c); return lhBar(pat, x.root, x.chord, beats); });
+  ok(ev.some(e => e.hand === 'L') && ev.some(e => e.hand === 'R'), `${where}: both hands have notes`);
+  ev.filter(e => e.hand === 'L' && pc.lh).forEach(e => {
+    const c = parseChordName(pc.chords[e.bar]), tones = T.parseFormula(T.lookup('chord', c.chord).formula).map(d => T.pcOf(c.root + d.semi));
+    ok(e.midis.every(m => tones.includes(T.pcOf(m))), `${where} bar ${e.bar + 1}: written left hand plays tones of ${pc.chords[e.bar]}`);
+  });
+  ok(!/happy birthday/i.test(pc.title) && /public domain|Original/.test(pc.source), `${where}: public domain or original`);
+}
+
 /* ---------- other instruments' paths: bass (and later piano, drums) ---------- */
 // Positions are checked against each instrument's own numbering and js/theory.js: every tap
 // answer must sound the note its prompt names, and every review item must match its position.

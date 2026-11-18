@@ -24,3 +24,6 @@ usePianoSound();
 import './drills.js';
 const sub = document.querySelector('header .title p');
 if (sub) sub.textContent = 'See scales and chords on the keys. Tap any key to hear it.';
+import './routines.js';
+import pianoPlayalong from './playalong.js';
+register('tools', [pianoPlayalong]);

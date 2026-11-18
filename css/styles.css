@@ -709,3 +709,29 @@ button.small { padding: 6px 10px; font-size: 13px; min-height: 36px }
 .kb-mini .win { position: absolute; top: 0; bottom: 0; border: 2px solid var(--blue); border-radius: 4px; z-index: 2 }
 .kt-invs { display: flex; flex-wrap: wrap; gap: 10px }
 .kt-inv { display: grid; gap: 4px; cursor: pointer }
+
+/* ---------- piano play-along ---------- */
+.pp-stage { margin: 8px 0 }
+.pp-roll { overflow-x: auto; background: var(--board); border: 1px solid var(--line); border-radius: 12px }
+.pp-roll svg { display: block }
+.pr-note rect { stroke-width: 2 }
+.pr-note.rh rect { fill: var(--deg-other); stroke: var(--deg-other) }
+.pr-note.lh rect { fill: none; stroke: var(--deg-other) }
+.pr-note.role-root.rh rect { fill: var(--deg-root); stroke: var(--deg-root) } .pr-note.role-root.lh rect { stroke: var(--deg-root) }
+.pr-note.role-third.rh rect { fill: var(--deg-third); stroke: var(--deg-third) } .pr-note.role-third.lh rect { stroke: var(--deg-third) }
+.pr-note.role-fifth.rh rect { fill: var(--deg-fifth); stroke: var(--deg-fifth) } .pr-note.role-fifth.lh rect { stroke: var(--deg-fifth) }
+.pr-note text { font-size: 9px; fill: var(--on-soft); pointer-events: none }
+.pr-note.lh text { fill: var(--text) }
+.pp-head { stroke: var(--text); stroke-width: 2 }
+.pp-fall { overflow: hidden; background: var(--board); border-radius: 12px 12px 0 0; height: 220px }
+.pf-note.rh { fill: var(--deg-other) } .pf-note.lh { fill: none; stroke: var(--deg-other); stroke-width: 2 }
+.pf-note.rh.role-root { fill: var(--deg-root) } .pf-note.rh.role-third { fill: var(--deg-third) } .pf-note.rh.role-fifth { fill: var(--deg-fifth) }
+.pf-note.lh.role-root { stroke: var(--deg-root) } .pf-note.lh.role-third { stroke: var(--deg-third) } .pf-note.lh.role-fifth { stroke: var(--deg-fifth) }
+.pp-chart { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px }
+.pp-bar { min-height: 56px; display: grid; place-items: center; border-radius: 8px }
+.pp-bar small { color: var(--muted) }
+.pp-bar.now { background: var(--blue); color: var(--on-soft) }
+.pp-bar.looped { outline: 2px dashed var(--lavender) }
+#pp-staff .now, #pp-staff .now path { fill: #1565C0 }
+.tempo-trainer { font-size: 18px; margin: 8px 0 }
+.piano-pa .toggles { flex-direction: column; align-items: flex-start }
