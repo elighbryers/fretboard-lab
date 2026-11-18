@@ -49,7 +49,7 @@ export const VERSION = 5;
 export const INSTRUMENTS = [
   { id: 'guitar', name: 'Guitar', ready: true },
   { id: 'bass', name: 'Bass', ready: true },
-  { id: 'piano', name: 'Piano', ready: false },
+  { id: 'piano', name: 'Piano', ready: true },
   { id: 'drums', name: 'Drums', ready: false }
 ];
 // Items tied to one instrument's neck, keys or sticks; every other item is shared theory.

@@ -681,3 +681,31 @@ button.small { padding: 6px 10px; font-size: 13px; min-height: 36px }
 .target-big { font-size: 22px; text-align: center; min-height: 30px }
 .ch-band { fill: var(--blue-tint) }
 .ch-spread { stroke: var(--blue); stroke-width: 6; stroke-linecap: round; opacity: .7 }
+
+/* ---------- piano keyboard ---------- */
+.kb-wrap { overflow-x: auto; overflow-y: hidden; touch-action: pan-x; border-radius: 12px; background: var(--board); border: 1px solid var(--line); padding: 4px 0; -webkit-overflow-scrolling: touch }
+.kb-wrap.locked { overflow-x: hidden }
+.kb-wrap svg { display: block; touch-action: none; user-select: none; -webkit-user-select: none }
+.kb-white { fill: #F4F4F8; stroke: #3A3A46; stroke-width: 1 }
+.kb-black { fill: #15151B; stroke: #000 }
+.kb-white.dim { fill: #8A8A96 }
+.kb-black.dim { fill: #2A2A33 }
+.kb-white.lit, .kb-white.down { fill: var(--blue) }
+.kb-black.lit, .kb-black.down { fill: #3D6F86 }
+.kb-heat-none { opacity: .7 }
+.kb-mid { fill: var(--pink); font-size: 11px; font-weight: 700 }
+.kb-mid-dot { fill: var(--pink) }
+.kb-finger { fill: var(--text); font-size: 12px; font-weight: 700 }
+.kb-finger.lh { fill: var(--text) }
+.kb-step { fill: var(--muted); font-size: 11px }
+.kb-bracket { fill: none; stroke: var(--text); stroke-width: 2 }
+.kb-ghost { fill: var(--lavender); opacity: .9 }
+.fb-dot.on-black circle { stroke: #fff; stroke-width: 2 }
+.kb-mini { position: relative; height: 18px; margin: 0 0 6px; background: var(--panel2); border-radius: 4px; overflow: hidden; touch-action: none; cursor: pointer }
+.kb-mini i { position: absolute; top: 0; bottom: 0 }
+.kb-mini i.w { border-right: 1px solid var(--line) }
+.kb-mini i.w.c4 { background: var(--pink-tint) }
+.kb-mini i.b { width: .6%; height: 60%; background: #000; z-index: 1 }
+.kb-mini .win { position: absolute; top: 0; bottom: 0; border: 2px solid var(--blue); border-radius: 4px; z-index: 2 }
+.kt-invs { display: flex; flex-wrap: wrap; gap: 10px }
+.kt-inv { display: grid; gap: 4px; cursor: pointer }

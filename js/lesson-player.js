@@ -43,6 +43,7 @@ export function frettedAdapter(lessonTuning, boardTuning) {
     describe: (s, f) => `string ${boardTuning.strings[s].num}, ${f === 0 ? 'open' : 'fret ' + f}`,
     noteItem: ({ s, f }) => `note:${NOTES[pcOf(midiAt(s, f, boardTuning))]}@s${itemNum(boardTuning, s)}`,
     nameAt: (s, f) => preferredName(midiAt(s, f, boardTuning)),
+    midiOf: (s, f) => midiAt(s, f, boardTuning),
     tuning: boardTuning
   };
 }
@@ -193,7 +194,7 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
           <div class="st-board"></div>
           ${cards.length > 1 ? `<div class="card-dots" aria-label="Card ${k + 1} of ${cards.length}">${cards.map((_, j) => `<i${j === k ? ' class="on"' : ''}></i>`).join('')}</div>` : ''}`;
         if (c.board) {
-          const fb = board(body.querySelector('.st-board'), c.board.view, { focus: c.board.focus ? { strings: c.board.focus.strings?.map(n => toSF({ string: n, fret: 0 }).s), frets: c.board.focus.frets } : null });
+          const fb = board(body.querySelector('.st-board'), c.board.view, { ...(c.board.opts || {}), focus: c.board.focus ? { strings: c.board.focus.strings?.map(n => toSF({ string: n, fret: 0 }).s), frets: c.board.focus.frets } : null });
           fb.setDots(toDots(c.board.dots));
         }
         if (c.grid) cardStop = gridCard(body.querySelector('.st-board'), c.grid);
@@ -346,7 +347,7 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
       }, { onError: msg => { const m = $b('#st-mic'); if (m) m.textContent = msg; } }) : () => {};
       const off = metronome.listen((beat, t, bar) => {
         if (trainer && count > 0 && count % passBeats() === 0) onPass();
-        if (follow.length && count % per === 0) { fb.highlight(follow[(count / per) % follow.length]); litPcs = follow[(count / per) % follow.length].map(p => pcOf(midiAt(p.s, p.f, tuningNow()))); }
+        if (follow.length && count % per === 0) { fb.highlight(follow[(count / per) % follow.length]); litPcs = follow[(count / per) % follow.length].map(p => pcOf(ad().midiOf(p.s, p.f))); }
         if (d.backing && beat === 0) {
           const list2 = chords(), c = list2[bar % list2.length];
           $b('#st-chord').innerHTML = `Now: <b>${esc(c.name || '')}</b>${d.backing.progression ? ` <span class="muted">(${esc(c.roman.replace(/b(?=[IV])/g, '♭'))})</span>` : ''}`;
