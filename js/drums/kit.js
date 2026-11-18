@@ -8,7 +8,8 @@ export const KIT = [
   { id: 'ohat', name: 'Open hi-hat', limb: 'R', gm: [46], staff: { pitch: 'g', x: true, open: true }, key: 'k' },
   { id: 'tom1', name: 'High tom', limb: 'R', gm: [48, 50], staff: { pitch: 'e' }, key: 'y' },
   { id: 'tom2', name: 'Mid tom', limb: 'L', gm: [45, 47], staff: { pitch: 'd' }, key: 't' },
-  { id: 'snare', name: 'Snare', limb: 'L', gm: [38, 40, 37], staff: { pitch: 'c' }, key: 'f' },
+  { id: 'snare', name: 'Snare', limb: 'L', gm: [38, 40], staff: { pitch: 'c' }, key: 'f' },
+  { id: 'rim', name: 'Cross-stick', limb: 'L', gm: [37], staff: { pitch: 'c', x: true }, key: 'r' },
   { id: 'tom3', name: 'Floor tom', limb: 'R', gm: [41, 43], staff: { pitch: 'A' }, key: 'g' },
   { id: 'kick', name: 'Kick', limb: 'RF', gm: [36, 35], staff: { pitch: 'F' }, key: ' ' },
   { id: 'phat', name: 'Hi-hat foot', limb: 'LF', gm: [44], staff: { pitch: 'D', x: true }, key: 'v' }

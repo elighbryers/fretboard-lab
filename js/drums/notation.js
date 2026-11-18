@@ -41,4 +41,4 @@ export function grooveAbcMap(g, { title = '', perLine = 2 } = {}) {
 }
 export const grooveAbc = (g, opts) => grooveAbcMap(g, opts).abc;
 // The legend under the staff.
-export const LEGEND = KIT.filter(p => p.id !== 'ohat').map(p => ({ id: p.id, name: p.name, where: { F: 'bottom space', A: 'second space', c: 'third space', d: 'fourth line', e: 'fourth space', f: 'top line', g: 'space above, x', a: 'ledger line above, x', D: 'below the staff, x' }[p.staff.pitch] || '' }));
+export const LEGEND = KIT.filter(p => !['ohat', 'rim'].includes(p.id)).map(p => ({ id: p.id, name: p.name, where: { F: 'bottom space', A: 'second space', c: 'third space', d: 'fourth line', e: 'fourth space', f: 'top line', g: 'space above, x', a: 'ledger line above, x', D: 'below the staff, x' }[p.staff.pitch] || '' }));
