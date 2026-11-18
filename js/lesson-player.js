@@ -16,6 +16,7 @@ import { tuningOf, itemNum, indexOfNum } from './instruments.js';
 import { getInstrument, activeTuning } from './storage.js';
 import { registered } from './registry.js';
 import { micOn, listenNotes } from './mic.js';
+import { gridCard, techniqueCard, gridTask, kickRootsStep } from './lesson-extras.js';
 
 const STEPS = [
   ['hear', 'Hear it'], ['learn', 'Learn it'], ['see', 'See it'],
@@ -183,8 +184,10 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
     // 2-3 cards, one idea each, each with a small neck. Next/Back move between cards first.
     learn(body, d) {
       const cards = d.cards || [{ text: d.text, points: d.points, board: d.board }];
-      let k = 0;
+      let k = 0, cardStop = null;
+      const ticked = new Set();
       const paint = () => {
+        cardStop?.(); cardStop = null;
         const c = cards[k];
         body.innerHTML = `<p>${c.text}</p>${c.points ? `<ul class="points">${c.points.map(p => `<li>${p}</li>`).join('')}</ul>` : ''}
           <div class="st-board"></div>
@@ -193,12 +196,20 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
           const fb = board(body.querySelector('.st-board'), c.board.view, { focus: c.board.focus ? { strings: c.board.focus.strings?.map(n => toSF({ string: n, fret: 0 }).s), frets: c.board.focus.frets } : null });
           fb.setDots(toDots(c.board.dots));
         }
+        if (c.grid) cardStop = gridCard(body.querySelector('.st-board'), c.grid);
+        if (c.technique) {
+          const host = document.createElement('div');
+          body.querySelector('.st-board').before(host);
+          techniqueCard(host, c.technique, () => { ticked.add(k); setReady(true); });
+          setReady(ticked.has(k));
+        } else setReady(true);
       };
       stepNav = {
         next: () => { if (k < cards.length - 1) { k++; paint(); return true; } return false; },
         back: () => { if (k > 0) { k--; paint(); return true; } return false; }
       };
       paint();
+      return () => cardStop?.();
     },
 
     see(body, d) {
@@ -222,9 +233,29 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
       body.innerHTML = `<p class="prompt" id="st-prompt"></p><div class="row" id="st-tools"></div><div class="st-board"></div><div class="msg" id="st-msg"></div>`;
       const msg = (text, kind = '') => { const m = body.querySelector('#st-msg'); m.textContent = text; m.className = 'msg ' + kind; };
       let shownAt = performance.now(), fb;
+      let gridStop = null;
       const ask = () => {
         const task = d.tasks[t];
+        gridStop?.(); gridStop = null;
         body.querySelector('#st-prompt').innerHTML = `${task.prompt} <span class="muted">${t + 1} of ${d.tasks.length}</span>`;
+        body.querySelector('.st-board').hidden = !!task.grid;
+        if (task.grid) {
+          let host = body.querySelector('.st-grid');
+          if (!host) { host = document.createElement('div'); host.className = 'st-grid'; body.querySelector('.st-board').before(host); }
+          host.hidden = false;
+          body.querySelector('#st-tools').innerHTML = '';
+          gridStop = gridTask(host, task, {
+            onWrong: text => msg(text, 'bad'),
+            onRight: () => {
+              msg(task.explain || 'Yes! That\'s the rhythm.', 'good');
+              t++;
+              if (t < d.tasks.length) timer = setTimeout(() => { host.hidden = true; ask(); msg(''); }, 1100);
+              else { setReady(true); body.querySelector('#st-prompt').textContent = 'All done. Tap Next.'; }
+            }
+          });
+          return;
+        }
+        if (body.querySelector('.st-grid')) body.querySelector('.st-grid').hidden = true;
         fb.o.view = task.view || d.view;
         fb.clearMarks();
         fb.setDots(toDots(task.dots));
@@ -253,7 +284,7 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
       });
       setReady(false);
       ask();
-      return () => { clearTimeout(timer); stop(); };
+      return () => { clearTimeout(timer); stop(); gridStop?.(); };
     },
 
     // Play on the real guitar: metronome (lights follow the beat), optional drone,
@@ -471,6 +502,12 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
       setReady(false);
       ask();
       return () => cleanup?.();
+    },
+
+    // Bass Level 1 challenge: roots on beat 1 with the kick; timing shown, never blocking.
+    kickroots(body, d) {
+      setReady(false);
+      return kickRootsStep(body, d, { setReady });
     },
 
     // Level 1 challenge: the app names a note; play it, then tap it within the time limit.

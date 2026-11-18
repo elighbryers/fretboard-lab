@@ -30,6 +30,12 @@ export function playSound(spec, { onStep, onEnd } = {}) {
   if (!spec || !context()) return () => {};
   const beat = 60 / (spec.bpm || 90), lead = spec.drone ? 0.8 : 0.05, t0 = now() + lead;
   if (spec.drone) droneStart(parseNote(spec.drone));
+  // drums: true adds a light kit under the notes (kick on 1 and 3, snare on 2 and 4, hats on 8ths),
+  // so bass sounds are always heard against the beat.
+  if (spec.drums) import('./drumkit.js').then(({ hit }) => (spec.seq || []).forEach((_, i) => {
+    const t = t0 + i * beat;
+    hit(i % 2 ? 'snare' : 'kick', t, 0.55); hit('hat', t, 0.35); hit('hat', t + beat / 2, 0.25);
+  }));
   (spec.seq || []).forEach((step, i) => {
     const t = t0 + i * beat, midis = stepMidis(step);
     if (midis.length > 1) strumAt(midis, t, { volume: 0.7 });

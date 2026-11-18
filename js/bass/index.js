@@ -14,3 +14,6 @@ import './drills.js';
 import bassPlayalong from './playalong.js';
 import { register as reg3 } from '../registry.js';
 reg3('tools', [bassPlayalong]);
+import { registerPath } from '../lessons/index.js';
+import { BASS_LEVELS } from './lessons/index.js';
+registerPath('bass', BASS_LEVELS);

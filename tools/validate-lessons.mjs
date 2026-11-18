@@ -142,5 +142,85 @@ for (const tab of BASS_TABS) {
   ok(tab.source && !/happy birthday/i.test(tab.title), `${where}: has a source and isn't Happy Birthday`);
 }
 
+/* ---------- other instruments' paths: bass (and later piano, drums) ---------- */
+// Positions are checked against each instrument's own numbering and js/theory.js: every tap
+// answer must sound the note its prompt names, and every review item must match its position.
+const BASS_NAMES = { E: 4, A: 3, D: 2, G: 1 };
+const bassPaths = await import(R + 'bass/lessons/index.js').then(m => m.BASS_LEVELS).catch(e => { ok(false, 'bass lessons load', e.message); return []; });
+function checkFretted(kit, names, where, p, view) {
+  const strings = kit.ALL;
+  ok(p && strings.includes(p.string) && Number.isInteger(p.fret) && p.fret >= 0 && p.fret <= 20, `${where}: a real position`, JSON.stringify(p));
+  if (view && p) ok(p.fret >= view[0] && p.fret <= view[1], `${where}: fret ${p.fret} inside view ${view}`, JSON.stringify(p));
+}
+function checkFrettedPrompt(kit, names, where, prompt, answers) {
+  const m = new RegExp(`(?:Tap|tap) (?:any )?([A-G][#b]?) on the (${Object.keys(names).join('|')}) string`).exec(prompt);
+  if (!m) return;
+  const pc = T.parseNote(m[1]), s = names[m[2]];
+  list(answers).forEach(a => ok(a.string === s && T.pcOf(kit.midiOf(a.string, a.fret)) === pc, `${where}: "${m[0]}" matches the answer`, JSON.stringify(a)));
+}
+const itemOk = (kit, item, p) => item === `note:${T.NOTES[T.pcOf(kit.midiOf(p.string, p.fret))]}@s${p.string}`;
+function validatePath(name, levels, kit, names) {
+  ok(levels.length >= 1 && levels.length <= 6, `${name}: up to six levels`, levels.length); // set to === 6 once all six are written
+  levels.forEach((lv, n) => {
+    const L = lv.level, where0 = `${name} level ${n + 1}`;
+    ok(L.lessons.length === 7, `${where0}: 7 lessons`, L.lessons.length);
+    ok(L.placement?.length === 3, `${where0}: 3 placement questions`);
+    L.lessons.forEach((les, li) => {
+      const st = les.steps, id = les.id;
+      for (const k of ['hear', 'learn', 'see', 'try', 'play', 'check']) ok(!!st[k], `${id}: has ${k}`);
+      ok(st.hear?.sound?.seq?.length > 0, `${id}: Hear it has a sound`);
+      const cards = st.learn?.cards || [];
+      ok(cards.length >= 2 && cards.length <= 3, `${id}: 2-3 Learn cards`, cards.length);
+      cards.forEach((c, k) => {
+        ok(sentences(c.text) <= 2, `${id} card ${k + 1}: at most 2 sentences`, c.text);
+        ok(c.board?.dots?.length > 0 || c.grid?.notes?.length > 0 || c.technique?.length === 3, `${id} card ${k + 1}: has a neck, a rhythm grid or a 3-item technique checklist`);
+        (c.board?.dots || []).forEach(d => checkFretted(kit, names, `${id} card ${k + 1}`, d, c.board.view));
+        if (c.grid) ok(c.grid.notes.every(i => i >= 0 && i < c.grid.beats * c.grid.sub), `${id} card ${k + 1}: grid steps inside the bar`);
+        const shared = Object.entries(CARDS).find(([, x]) => x.text === c.text);
+        if (shared) { let back = true; try { placeCard(shared[0], c.board, kit.pcAt); } catch (e) { back = e.message; } ok(back === true, `${id} card ${k + 1}: shared card ${shared[0]} placed correctly`, back); }
+      });
+      ok(st.see?.sequence?.length > 0, `${id}: See it has a sequence`);
+      st.see?.sequence?.flatMap(x => (x ? list(x) : [])).forEach(p => checkFretted(kit, names, `${id} see`, p, st.see.view));
+      if (n > 0) ok(!!st.see?.link, `${id}: See it has Open in Fretboard`);
+      ok(st.try?.tasks?.length === 3, `${id}: 3 Try tasks`, st.try?.tasks?.length);
+      (st.try?.tasks || []).forEach((t, k) => {
+        if (t.grid) { ok(t.grid.notes.length > 0 && !!t.item, `${id} try ${k + 1}: rhythm task with a review item`); return; }
+        list(t.answer).forEach(a => checkFretted(kit, names, `${id} try ${k + 1}`, a, t.view || st.try.view));
+        checkFrettedPrompt(kit, names, `${id} try ${k + 1}`, t.prompt, t.answer);
+        ok(itemOk(kit, t.item, list(t.answer)[0]), `${id} try ${k + 1}: review item matches the position`, t.item);
+      });
+      ok(st.play?.bpm >= 40 && st.play?.bpm <= 160, `${id}: Play it has a default bpm`, st.play?.bpm);
+      (st.play?.follow || []).flatMap(list).forEach(p => checkFretted(kit, names, `${id} play`, p, st.play.view));
+      const qs = st.check.questions;
+      ok(qs.length === 4 && st.check.pass === 3, `${id}: 4 questions, pass 3`);
+      ok(qs.filter(q => q.type === 'tap').length >= 2, `${id}: at least 2 of 4 questions are taps`);
+      if (li >= 2) ok(qs.some(q => /^From (Lesson|Level) \d/.test(q.prompt)), `${id}: one question reviews an earlier lesson`);
+      qs.forEach((q, k) => {
+        if (q.type === 'tap') {
+          list(q.answer).forEach(a => checkFretted(kit, names, `${id} q${k + 1}`, a, q.view || st.check.view));
+          checkFrettedPrompt(kit, names, `${id} q${k + 1}`, q.prompt, q.answer);
+          ok(itemOk(kit, q.item, list(q.answer)[0]), `${id} q${k + 1}: review item matches the position`, q.item);
+        } else ok(q.options.includes(q.answer) && !!q.item, `${id} q${k + 1}: choice has its answer and a review item`);
+      });
+      ok(itemsOf(les).length >= 3, `${id}: registers review items`, itemsOf(les).length);
+    });
+    const ch = L.challenge;
+    ok(ch.flow?.length > 0 && ['check', 'timed'].includes(ch.flow[ch.flow.length - 1].type), `${where0}: challenge ends with something to pass`);
+    ch.flow.filter(f => f.type === 'check').flatMap(f => f.questions.map(q => [q, f])).forEach(([q, f], k) => {
+      if (q.type === 'tap') { list(q.answer).forEach(a => checkFretted(kit, names, `${where0} challenge q${k + 1}`, a, q.view || f.view)); checkFrettedPrompt(kit, names, `${where0} challenge q${k + 1}`, q.prompt, q.answer); }
+      else ok(q.options.includes(q.answer), `${where0} challenge q${k + 1}: has its answer`);
+    });
+    ch.flow.filter(f => f.type === 'kickroots').forEach(f => f.roots.forEach(r => {
+      const m = /^([A-G][#b]?) on the (\w) string$/.exec(r.label);
+      ok(m && T.pcOf(kit.midiOf(r.pos.string, r.pos.fret)) === T.parseNote(m[1]) && names[m[2]] === r.pos.string, `${where0} challenge: "${r.label}" is right`);
+    }));
+    (L.placement || []).forEach((q, k) => { if (q.type === 'tap') { list(q.answer).forEach(a => checkFretted(kit, names, `${where0} placement ${k + 1}`, a)); checkFrettedPrompt(kit, names, `${where0} placement ${k + 1}`, q.prompt, q.answer); } });
+  });
+  // Lesson ids are unique.
+  const ids = levels.flatMap(l => nodesOf(l.level).map(x => x.id));
+  ok(new Set(ids).size === ids.length, `${name}: lesson ids are unique`);
+}
+if (bassPaths.length) validatePath('bass', bassPaths, bass4, BASS_NAMES);
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exitCode = fail ? 1 : 0;
