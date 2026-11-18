@@ -13,9 +13,10 @@ import { volumeHTML, esc } from '../ui.js';
 import { inversions, voiceLead, moves, LH_PATTERNS, lhBar } from './voicing.js';
 import { scaleFingering } from './fingering.js';
 import { chordOf } from '../progressions.js';
+import { micOn, polyOn, listenNotes } from '../mic.js';
 
 const DEFAULT = { key: 0, kind: 'scale', id: 'major', labels: 'intervals', range: 'auto', steps: false, hands: 'none', heat: false, lh: 'broken', overlayChord: '' };
-let el, kb, st, voiceTimer = [], lhOff = null, startedDrone = false;
+let el, kb, st, voiceTimer = [], lhOff = null, startedDrone = false, stopPoly = null;
 const $ = s => el.querySelector(s);
 const opt = (v, n, cur) => `<option value="${v}"${String(v) === String(cur) ? ' selected' : ''}>${esc(n)}</option>`;
 const current = () => lookup(st.kind, st.id) || lookup('scale', 'major');
@@ -138,6 +139,7 @@ export default {
       </div>
       <div id="kt-board" class="kt-board"></div>
       <div class="info" id="kt-info"></div>
+      <p class="small muted" id="kt-heard" aria-live="polite" hidden></p>
       ${legendHTML()}
       <div class="more" id="kt-more-panel" hidden>
         <section><h3>Keys</h3><div class="row"><label>Range<select id="kt-range">${opt('auto', 'Fit this screen', '')}${opt('61', '61 keys (C2–C7)', '')}${opt('88', '88 keys', '')}</select></label></div>
@@ -181,8 +183,14 @@ export default {
     else if (params.has('scale') && lookup('scale', params.get('scale'))) Object.assign(patch, { kind: 'scale', id: lookup('scale', params.get('scale')).id });
     if (['notes', 'intervals', 'none'].includes(params.get('labels'))) patch.labels = params.get('labels');
     change(patch);
+    // Experimental (Settings → Microphone): show the notes of a chord you play. Never graded.
+    if (micOn() && polyOn() && !stopPoly) {
+      const out = $('#kt-heard'); out.hidden = false; out.textContent = '🎤 Experimental: play a chord and its notes show here.';
+      stopPoly = listenNotes(() => {}, { onChord: pcs => { if (pcs.length) out.textContent = `🎤 Heard (experimental, may be wrong): ${pcs.slice(0, 4).map(pc => preferredName(pc)).join(' ')}`; } });
+    }
   },
   hide() {
+    stopPoly?.(); stopPoly = null;
     kb?.stopSequence(); voiceTimer.forEach(clearTimeout);
     if (lhOff) toggleLH();
     if (startedDrone && droneOn()) droneStop();
