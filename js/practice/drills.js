@@ -5,9 +5,10 @@
 import { NOTES, KEY_NAMES, pcOf, midiAt, lookup, parseFormula, spell, preferredName, noteAbove } from '../theory.js';
 import { Fretboard } from '../fretboard.js';
 import { pluckAt, context, now, droneStart, droneStop, droneOn } from '../audio.js';
-import { recordAnswer, recordConfusion, addLog, getPracticePrefs, updatePracticePrefs, getInstrument, activeTuning } from '../storage.js';
+import { recordMic, recordAnswer, recordConfusion, addLog, getPracticePrefs, updatePracticePrefs, getInstrument, activeTuning } from '../storage.js';
 import { volumeHTML, esc, pick, shuffle } from '../ui.js';
 import { tuningOf, itemNum, indexOfNum } from '../instruments.js';
+import { micOn, listenNotes } from '../mic.js';
 
 const tuning = activeTuning(), ALL = tuning.strings.map((_, i) => i), MAX_FRET = getInstrument() === 'bass' ? 20 : 15;
 const N = tuning.strings.length, LOW2 = [N - 2, N - 1]; // the two lowest strings (guitar: A and low E)
@@ -146,6 +147,7 @@ function run(el, d, o, { onAgain, onOptions }) {
     if (round >= o.rounds) return finish();
     round++;
     $('#dr-next').hidden = true;
+    current?.end?.();
     fb.clearMarks();
     fb.setDots([]);
     ui.msg(''); ui.tools(''); ui.choices('');
@@ -201,9 +203,23 @@ DRILLS[0].round = (ui, want) => {
   lastTarget = target;
   let shownAt = performance.now(), firstTry = true, solved = false;
   ui.prompt(`Find: <span class="target">${preferredName(target)}</span>${want ? ` on string ${tuning.strings[want.s].num}` : ''}`);
-  if (!want?.once) ui.tools('<button id="dr-skip">Skip</button>');
+  if (!want?.once) ui.tools('<button id="dr-skip">Skip</button>' + (micOn() ? '<span class="mic-heard muted" id="dr-mic">🎤 Or play it on any string…</span>' : ''));
   if (!want?.once) document.getElementById('dr-skip').onclick = () => { if (!solved) { solved = true; ui.result(false); } ui.autoNext(0); };
+  // Optional microphone: playing the note (any string, any octave) answers the round too.
+  const stopMic = micOn() && !want?.once ? listenNotes(n => {
+    if (solved) return;
+    const ok = n.pc === target, out = document.getElementById('dr-mic');
+    recordMic(ok);
+    if (out) out.textContent = `🎤 Heard ${preferredName(n.pc)}${ok ? ' ✓' : ''}`;
+    if (!ok) return;
+    solved = true;
+    ui.result(firstTry);
+    positions(ui.o).filter(p => p.pc === target && ui.o.strings.includes(p.s)).forEach(p => ui.fb.mark(p.s, p.f, true, preferredName(target), true));
+    ui.msg(`Yes, you played ${preferredName(target)}. Here it is in this range.`, 'good');
+    ui.autoNext(1200);
+  }, { onError: m => { const out = document.getElementById('dr-mic'); if (out) out.textContent = m; } }) : () => {};
   return {
+    end: stopMic,
     tap({ s, f, pc, string, focused }) {
       if (solved) return;
       if (!focused) { ui.msg('Stick to the selected strings.', 'muted'); return; }

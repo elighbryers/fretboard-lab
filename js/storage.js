@@ -15,6 +15,7 @@
 //     tuning:   null | tuning id (bass: 'standard' | 'five' | 'dropD' | 'six'); null = the instrument's default
 //     timing:   [ { day, at, drill, bpm, n, bias, spread, hitRate } ]   // timing sessions (lock to the kick, drum
 //               scoring), for the timing chart; the newest 400 are kept
+//     mic:      { heard, matched }   // notes the optional microphone heard, and how many matched the target
 //   } },
 //   // ---- shared, app-wide ----
 //   items:    { [itemId]: { attempts, correct, avgMs, lastSeen, ...schedule } }  // theory items (facts, degrees,
@@ -57,7 +58,7 @@ export const INSTRUMENTS = [
 const POSITION_ITEM = /^(note|chordshape|key|staff|fingering|sticking):/;
 export const isPositionItem = id => POSITION_ITEM.test(id);
 
-const blankInstrument = () => ({ lessons: {}, items: {}, placement: 0, tempos: {}, goals: {}, review: null, tuning: null, timing: [] });
+const blankInstrument = () => ({ lessons: {}, items: {}, placement: 0, tempos: {}, goals: {}, review: null, tuning: null, timing: [], mic: { heard: 0, matched: 0 } });
 const MAX_TIMING = 400;
 
 const blank = () => ({
@@ -119,6 +120,7 @@ const MIGRATIONS = {
     for (const part of Object.values(d.instruments || {})) {
       if (!('tuning' in part)) part.tuning = null;
       if (!Array.isArray(part.timing)) part.timing = [];
+      if (!part.mic) part.mic = { heard: 0, matched: 0 };
     }
     d.version = 5;
     return d;
@@ -217,6 +219,10 @@ export function addTimingSession(s) {
   touchStreak();
   save();
 }
+
+/* ---------- microphone results (stats only, never grading) ---------- */
+export function recordMic(matched) { const m = inst().mic || (inst().mic = { heard: 0, matched: 0 }); m.heard++; if (matched) m.matched++; save(); }
+export const getMicStats = () => ({ heard: 0, matched: 0, ...(inst().mic || {}) });
 
 /* ---------- settings ---------- */
 export const getSettings = () => ({ ...data.settings });
@@ -450,6 +456,7 @@ function mergeInstrument(out, b) {
   const seen = new Set((out.timing || []).map(t => t.at + ':' + t.drill));
   out.timing = [...(out.timing || []), ...(b.timing || []).filter(t => !seen.has(t.at + ':' + t.drill))].sort((x, y) => x.at - y.at).slice(-MAX_TIMING);
   if (!out.tuning && b.tuning) out.tuning = b.tuning;
+  out.mic = { heard: Math.max(out.mic?.heard || 0, b.mic?.heard || 0), matched: Math.max(out.mic?.matched || 0, b.mic?.matched || 0) };
   // Today's review session stays as it is on this device.
 }
 

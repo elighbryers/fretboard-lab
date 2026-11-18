@@ -6,7 +6,7 @@ import { Fretboard } from './fretboard.js';
 import { context, metronome, droneStart, droneStop, backing } from './audio.js';
 import { groove, STYLES, MUTES } from './groove.js';
 import { volumeHTML, esc, clock } from './ui.js';
-import { recordAnswer, completeLesson, unlockLesson, addLog, getLesson, setLessonBpm, getTempo, recordClean, startBelow } from './storage.js';
+import { recordMic, recordAnswer, completeLesson, unlockLesson, addLog, getLesson, setLessonBpm, getTempo, recordClean, startBelow } from './storage.js';
 import { SpeedTrainer, trainerSetupHTML, trainerStatusHTML } from './speed.js';
 import { findSkill, renderSkill } from './skills.js';
 import { fretboardLink } from './router.js';
@@ -15,6 +15,7 @@ import { chordOf } from './progressions.js';
 import { tuningOf, itemNum, indexOfNum } from './instruments.js';
 import { getInstrument, activeTuning } from './storage.js';
 import { registered } from './registry.js';
+import { micOn, listenNotes } from './mic.js';
 
 const STEPS = [
   ['hear', 'Hear it'], ['learn', 'Learn it'], ['see', 'See it'],
@@ -290,6 +291,7 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
         ${(d.skills || []).length ? `<div class="step-skills"><span class="muted small">Hands &amp; rhythm for this step:</span>
           ${d.skills.map(id => findSkill(id)).filter(Boolean).map(sk => `<button class="skill-chip" data-skill="${sk.id}" aria-expanded="false">${esc(sk.kind === 'chord' ? sk.name + ' chord' : sk.title)}</button>`).join('')}
           <div class="skill-panel" id="st-skill" hidden></div></div>` : ''}
+        ${micOn() && d.follow?.length ? '<p class="mic-line muted" id="st-mic" aria-live="polite">🎤 Listening: play along and the lit notes you hit are counted.</p>' : ''}
         <div class="st-board"></div>
         <p class="muted">Tap Done when you've played along.</p>`;
       const $b = s => body.querySelector(s);
@@ -302,10 +304,18 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
       const chords = () => d.backing ? backingChords(d.backing, key) : null;
       // One pass = once through the exercise (or its backing progression, or 4 bars).
       const passBeats = () => follow.length ? follow.length * per : d.backing ? chords().length * (d.beatsPerBar || 4) : 4 * (d.beatsPerBar || 4);
-      let trainer = null, missed = false;
+      let trainer = null, missed = false, litPcs = [], micHits = 0, micHeard = 0;
+      // Optional microphone: count notes that match the lit note (stats only, never grading).
+      const stopMic = micOn() && d.follow?.length ? listenNotes(n => {
+        const ok = litPcs.includes(n.pc);
+        micHeard++; if (ok) micHits++;
+        recordMic(ok);
+        const m = $b('#st-mic');
+        if (m) m.textContent = `🎤 Heard ${preferredName(n.pc)}${ok ? ' ✓' : ''} · ${micHits} of ${micHeard} notes matched the lit note`;
+      }, { onError: msg => { const m = $b('#st-mic'); if (m) m.textContent = msg; } }) : () => {};
       const off = metronome.listen((beat, t, bar) => {
         if (trainer && count > 0 && count % passBeats() === 0) onPass();
-        if (follow.length && count % per === 0) fb.highlight(follow[(count / per) % follow.length]);
+        if (follow.length && count % per === 0) { fb.highlight(follow[(count / per) % follow.length]); litPcs = follow[(count / per) % follow.length].map(p => pcOf(midiAt(p.s, p.f, tuningNow()))); }
         if (d.backing && beat === 0) {
           const list2 = chords(), c = list2[bar % list2.length];
           $b('#st-chord').innerHTML = `Now: <b>${esc(c.name || '')}</b>${d.backing.progression ? ` <span class="muted">(${esc(c.roman.replace(/b(?=[IV])/g, '♭'))})</span>` : ''}`;
@@ -410,6 +420,7 @@ export function runLesson(el, lesson, { next, onExit, onContinue }) {
       });
       setReady(false);
       return () => {
+        stopMic();
         skillCleanup?.();
         off();
         stopAll();

@@ -10,6 +10,8 @@ import { bars, line, calendarGrid, spark } from '../charts.js';
 import { hashFor } from '../router.js';
 import { esc } from '../ui.js';
 import { tuningOf, itemNum } from '../instruments.js';
+import { micSettingsHTML, wireMicSettings } from '../mic.js';
+import { midiSettingsHTML, wireMidiSettings } from '../midi.js';
 
 let el, fb, pending = null, resizeTimer = null;
 const $ = sel => el.querySelector(sel);
@@ -59,6 +61,8 @@ export default {
         </fieldset>
         <p class="muted small">Lessons, the fretboard heat map, placement and clean tempos are kept separately for each
           instrument. The theory you've learned, your streak and the practice log are shared.</p>
+        ${micSettingsHTML()}
+        ${midiSettingsHTML()}
       </section>
       <section class="p-card"><h3>Your data</h3>
         <p class="muted sub">Progress is saved in this browser only. Export it to keep a copy or move it to another device.</p>
@@ -88,6 +92,8 @@ export default {
 
     // Switching instruments swaps which lessons, heat map and tempos every tab shows, so reload them all.
     el.querySelector('.instrument-pick').onchange = e => { setInstrument(e.target.value); location.reload(); };
+    wireMicSettings(el);
+    wireMidiSettings(el);
     $('#p-export').onclick = () => this.exportNow();
     this.exportNow = () => {
       setSetting('lastExport', Date.now());  // first, so the file carries its own export date
