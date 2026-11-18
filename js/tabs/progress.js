@@ -251,12 +251,14 @@ export default {
     catch (e) { box.hidden = true; msg.textContent = e instanceof SyntaxError ? "That file couldn't be read. Choose a file made with Export progress." : e.message; return; }
     pending = parsed;
     const when = parsed.exportedAt ? ` from ${fmtDay(parsed.exportedAt.slice(0, 10), { month: 'short', day: 'numeric', year: 'numeric' })}` : '';
-    const lessons = Object.values(d.lessons).filter(l => l.completed).length;
+    const parts = Object.values(d.instruments);
+    const lessons = parts.reduce((n, x) => n + Object.values(x.lessons).filter(l => l.completed).length, 0);
+    const items = Object.keys(d.items).length + parts.reduce((n, x) => n + Object.keys(x.items).length, 0);
     msg.textContent = '';
     box.hidden = false;
     box.innerHTML = `
       <p><b>Import ${esc(file.name)}${when}?</b><br>
-        <span class="muted">${plural(d.log.length, 'practice entry', 'practice entries')}, ${plural(lessons, 'lesson')} done, ${plural(Object.keys(d.items).length, 'quiz item')}.</span></p>
+        <span class="muted">${plural(d.log.length, 'practice entry', 'practice entries')}, ${plural(lessons, 'lesson')} done, ${plural(items, 'quiz item')}.</span></p>
       <p class="muted small"><b>Merge</b> keeps the higher or newer value of everything on this device and the file.
         <b>Replace</b> makes this device match the file exactly; what's here now is lost.</p>
       <div class="row"><button class="primary" id="p-merge">Merge</button><button id="p-replace">Replace</button><button class="quiet-inline" id="p-cancel">Cancel</button></div>`;
