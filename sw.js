@@ -9,7 +9,7 @@
 // - It only saves a file when the whole body arrived (length matches the header),
 //   and always asks the server whether its copy is current (cache: 'no-cache').
 // Bump CACHE when the caching rules change; old copies are deleted on activate.
-const CACHE = 'fretboard-lab-v2';
+const CACHE = 'fretboard-lab-v3';
 const CORE = ['./', 'index.html', 'css/styles.css', 'js/app.js', 'manifest.json', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 const LOCAL = /^(localhost|127\.|\[::1\]|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(location.hostname) || location.hostname.endsWith('.local');
 

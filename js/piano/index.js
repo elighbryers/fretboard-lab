@@ -19,3 +19,5 @@ register('lessonAdapter', {
 });
 const foot = document.querySelector('footer');
 if (foot) foot.textContent = 'Piano';
+import { usePianoSound } from './sound.js';
+usePianoSound();

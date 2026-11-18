@@ -66,6 +66,10 @@ export default {
         ${micSettingsHTML()}
         ${midiSettingsHTML()}
       </section>
+      <section class="p-card" id="p-about"><h3>About</h3>
+        <p class="small">Fretboard Lab is built with: <b>ts-fsrs</b> (MIT), <b>abcjs</b> (MIT) for notation and <b>smplr</b> (MIT) for the piano sampler.
+        Piano sound: <b>Salamander Grand Piano by Alexander Holm, CC BY 3.0</b>. Drums and bass are synthesized in the browser.
+        Every melody is original or a public-domain tune arranged for this app.</p></section>
       <section class="p-card"><h3>Your data</h3>
         <p class="muted sub">Progress is saved in this browser only. Export it to keep a copy or move it to another device.</p>
         <p class="export-status" id="p-export-status"></p>
