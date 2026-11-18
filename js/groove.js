@@ -28,6 +28,8 @@ export const STYLES = {
     hat: 'x.x.x.x.x.x.x.x.', rim: 'x..x..x...x..x..', kick: 'x..xx..xx..xx..x' } },
   onedrop: { name: 'Reggae one-drop', grid: 4, beats: 4, bpm: 76, parts: {
     hat: 'x.x.x.x.x.x.x.x.', rim: '........X.......', kick: '........x.......' } },
+  waltz: { name: 'Waltz (3/4)', grid: 4, beats: 3, bpm: 90, parts: {
+    hat: 'x.x.x.x.x.x.', rim: '....x...x...', kick: 'x...........' } },
   twelve8: { name: '12/8', grid: 3, beats: 4, bpm: 64, parts: {
     hat: 'Xxxxxxxxxxxx', snare: '...X.....X..', kick: 'x.....xx....' } }
 };

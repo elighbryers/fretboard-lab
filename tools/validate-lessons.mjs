@@ -117,5 +117,30 @@ ok(bass4.midiOf(4, 0) === 28 && bass4.STRING[4] === 'E' && bass4.ALL.join() === 
 ok(bass5.midiOf(5, 0) === 23 && bass5.ALL.join() === '5,4,3,2,1', '5-string bass: string 5 is the low B (MIDI 23)');
 ok(tuningOf('guitar') === T.TUNINGS.standard, 'guitar uses the existing standard tuning object (nothing changes on screen)');
 ok(['standard', 'five', 'dropD', 'six'].every(t => INSTRUMENT_DEFS.bass.tunings[t].strings.every((s, i, a) => i === 0 || s.midi < a[i - 1].midi)), 'bass tunings run high to low like guitar tab');
+/* ---------- bass play-alongs: positions, bar lengths, chord symbols, downbeats ---------- */
+const { BASS_TABS } = await import(R + 'bass/tabs/index.js');
+const { parseChordName } = await import(R + 'progressions.js');
+for (const tab of BASS_TABS) {
+  const where = `bass tab ${tab.id}`, bar = tab.time[0] * 4 / tab.time[1];
+  ok(tab.chords.every(c => parseChordName(c)), `${where}: chord symbols parse`, tab.chords.join(' '));
+  let pos = 0, barIdx = 0, crossed = false;
+  const total = tab.notes.reduce((a, n) => a + n[2], 0);
+  ok(Math.abs(total - bar * tab.chords.length) < 1e-6, `${where}: ${tab.chords.length} bars of ${tab.time.join('/')}`, `${total} beats`);
+  for (const [string, fret, beats] of tab.notes) {
+    ok(string >= 0 && string <= 4 && Number.isInteger(fret) && fret >= 0 && fret <= 20 && beats > 0, `${where}: a real position`, `${string}/${fret}/${beats}`);
+    if (Math.abs(pos) < 1e-6) {
+      const c = parseChordName(tab.chords[barIdx]);
+      const tones = c ? T.parseFormula(T.lookup('chord', c.chord).formula).map(d => T.pcOf(c.root + d.semi)) : [];
+      const pc = string ? T.pcOf(bass4.midiOf(string, fret)) : null;
+      ok(pc == null || tones.includes(pc), `${where} bar ${barIdx + 1}: starts on a tone of ${tab.chords[barIdx]} (or a rest)`, pc == null ? '' : T.NOTES[pc]);
+    }
+    pos += beats;
+    if (pos > bar + 1e-6) crossed = true;
+    if (pos >= bar - 1e-6) { pos -= bar; barIdx++; }
+  }
+  ok(!crossed, `${where}: no note crosses a bar line`);
+  ok(tab.source && !/happy birthday/i.test(tab.title), `${where}: has a source and isn't Happy Birthday`);
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exitCode = fail ? 1 : 0;

@@ -11,3 +11,6 @@ useBassSound();
 import { register as reg2 } from '../registry.js';
 reg2('playGroove', 'rock8'); // every bass Play step runs over a drum loop (research-bass.md D2)
 import './drills.js';
+import bassPlayalong from './playalong.js';
+import { register as reg3 } from '../registry.js';
+reg3('tools', [bassPlayalong]);

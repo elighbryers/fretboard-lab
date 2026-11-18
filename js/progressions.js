@@ -39,3 +39,11 @@ export const chordSpecs = (key, romans) => progression(key, romans).map(c => `${
 export const chordName = (rootName, chordId) => rootName + (SUFFIX[chordId] ?? (lookup('chord', chordId) ? chordId : ''));
 
 export const TWELVE_BAR = ['I7', 'I7', 'I7', 'I7', 'IV7', 'IV7', 'I7', 'I7', 'V7', 'IV7', 'I7', 'V7'];
+
+// A chord symbol -> { root: pc, rootName, chord: catalog id, name }: 'Bb7', 'F#m', 'Cmaj7', 'Am7', 'Bdim', 'G'.
+const SYMBOL = { '': 'major', m: 'minor', '7': '7', m7: 'm7', maj7: 'maj7', dim: 'dim', '°': 'dim', m7b5: 'm7b5', aug: 'aug', '+': 'aug', sus4: 'sus4', sus2: 'sus2', '5': '5', '6': '6', m6: 'm6', '9': '9', dim7: 'dim7' };
+export function parseChordName(name) {
+  const m = /^([A-G][#b]?)(.*)$/.exec(String(name || '').trim());
+  if (!m || !(m[2] in SYMBOL)) return null;
+  return { root: parseNote(m[1]), rootName: m[1], chord: SYMBOL[m[2]], name };
+}

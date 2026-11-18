@@ -9,9 +9,12 @@ import logTool from '../practice/log.js';
 import { minutesOn, getStreak } from '../storage.js';
 import { planLine, wirePlanLine } from '../plan.js';
 import { go } from '../router.js';
+import { registeredList } from '../registry.js';
 
 // Tool: { id, title, blurb, icon, mount(el, params) -> cleanup }
-const TOOLS = [metronomeTool, timerTool, drillsTool, rhythmTool, playalongTool, logTool];
+const BASE = [metronomeTool, timerTool, drillsTool, rhythmTool, playalongTool, logTool];
+// An instrument can replace a tool (bass play-along) or add one; looked up on each visit.
+const tools = () => { const extra = registeredList('tools'); return [...BASE.map(t => extra.find(x => x.id === t.id) || t), ...extra.filter(x => !BASE.some(t => t.id === x.id))]; };
 let el, cleanup = null;
 
 function home() {
@@ -19,7 +22,7 @@ function home() {
   el.innerHTML = `
     <p class="today">This week: <b>${streak.weekDays} of 7 days</b> · Today: <b>${minutesOn()} min</b></p>
     ${planLine()}
-    <div class="cards">${TOOLS.map(t => `
+    <div class="cards">${tools().map(t => `
       <a class="card-link" href="#practice?tool=${t.id}">
         <span class="card-ico" aria-hidden="true">${t.icon}</span>
         <span><b>${t.title}</b><small>${t.blurb}</small></span>
@@ -37,7 +40,7 @@ export default {
   show(params) {
     cleanup?.();
     cleanup = null;
-    const tool = TOOLS.find(t => t.id === params.get('tool'));
+    const tool = tools().find(t => t.id === params.get('tool'));
     if (!tool) { home(); return; }
     el.innerHTML = `<div class="tool-head"><a class="back" href="#practice">← Practice</a><h2>${tool.title}</h2></div><div class="tool-body"></div>`;
     cleanup = tool.mount(el.querySelector('.tool-body'), params) || null;

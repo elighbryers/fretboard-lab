@@ -9,7 +9,7 @@ test('every groove pattern fills exactly one bar', () => {
       assert.equal(pat.length, st.beats * st.grid, `${id} ${piece}`);
       assert.match(pat, /^[xXg.]+$/, `${id} ${piece}`);
     }
-  assert.deepEqual(G.STYLE_IDS.sort(), ['bossa', 'four', 'funk16', 'half', 'onedrop', 'rock8', 'shuffle', 'twelve8', 'twofeel', 'walking'].sort());
+  assert.deepEqual(G.STYLE_IDS.sort(), ['bossa', 'four', 'funk16', 'half', 'onedrop', 'rock8', 'shuffle', 'twelve8', 'twofeel', 'walking', 'waltz'].sort());
 });
 test('mutes keep the right pieces', () => {
   assert.deepEqual(Object.keys(G.partsFor('rock8', 'kick')), ['kick']);
