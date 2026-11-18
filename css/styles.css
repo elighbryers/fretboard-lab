@@ -772,3 +772,6 @@ button.small { padding: 6px 10px; font-size: 13px; min-height: 36px }
 .pb-pad { max-width: none; min-height: 56px; border-radius: 14px }
 .pb-pad.has { border-color: var(--blue) } .pb-pad.lit { background: var(--blue); color: var(--on-soft) }
 .pb-pad.good { background: var(--good); color: var(--on-soft) } .pb-pad.bad { background: var(--bad); color: var(--on-bad) }
+.st-row { display: grid; grid-template-columns: repeat(16, minmax(18px, 1fr)); gap: 3px; overflow-x: auto }
+.st-cell { display: grid; place-items: center; padding: 4px 0; border-radius: 6px; font-size: 11px; border: 1px solid var(--line) }
+.st-cell small { font-size: 10px } .st-cell.ok { background: var(--blue-tint); border-color: var(--blue) } .st-cell.rush { border-color: var(--bad); color: var(--bad-text) } .st-cell.drag { border-color: var(--deg-fifth) } .st-cell.none { color: var(--muted) }

@@ -38,3 +38,6 @@ register('steps', {
 import { registerPath } from '../lessons/index.js';
 import { DRUM_LEVELS } from './lessons/index.js';
 registerPath('drums', DRUM_LEVELS);
+import './review.js';
+import drumEar from './ear.js';
+register('earTab', drumEar);
