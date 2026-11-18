@@ -1,6 +1,7 @@
 // Practice timer: routines made of timed blocks. The runner keeps going while
 // you open the drill or play-along a block points to; a small bar at the top
 // of the page shows the current block (see mountTimerBar).
+import { registered } from '../registry.js';
 import { metronome, chime } from '../audio.js';
 import { addLog, minutesOn, getStreak, getPracticePrefs, updatePracticePrefs } from '../storage.js';
 import { volumeHTML, esc, clock } from '../ui.js';
@@ -32,7 +33,9 @@ const DEFAULT_CUSTOM = [
   { name: 'Play-along', minutes: 5, open: 'playalong' }
 ];
 const customBlocks = () => getPracticePrefs().custom || DEFAULT_CUSTOM.map(b => ({ ...b }));
-const routineFor = id => (id === 'custom' ? { name: 'Custom', blocks: customBlocks() } : ROUTINES[id]);
+// Bass, piano and drums register their own routines; guitar keeps Quick 10 and Daily 15.
+const routines = () => registered('routines') || ROUTINES;
+const routineFor = id => (id === 'custom' ? { name: 'Custom', blocks: customBlocks() } : routines()[id]);
 
 /* ---------- the runner (one per page) ---------- */
 export const runner = {
@@ -140,7 +143,7 @@ export default {
         </div>`;
       el.innerHTML = `
         <p class="muted">Short daily sessions work best. Pick a routine; a soft chime marks each new block.</p>
-        ${card('quick10', ROUTINES.quick10)}${card('daily15', ROUTINES.daily15)}
+        ${Object.entries(routines()).map(([id, r]) => card(id, r)).join('')}
         <div class="routine">
           <div><b>Custom</b><small>${custom.map(b => `${b.minutes} min ${esc(b.name)}${b.bpm ? ` @ ${b.bpm}` : ''}`).join(' · ') || 'No blocks yet'}</small></div>
           <div class="row"><button id="tm-edit">Edit</button><button class="primary" data-start="custom"${custom.length ? '' : ' disabled'}>▶ Start</button></div>

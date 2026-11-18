@@ -35,3 +35,14 @@ test('scale fingerings: only verified keys, crossings marked', async () => {
   const fl = F.scaleFingering(5, 'major', 'LH');
   assert.deepEqual(fl.map, { 53: { n: 5, hand: 'L' }, 62: { n: 3, hand: 'L' } });  // LH F: 5 on F, 3 crosses over to D
 });
+test('tempo trainer: 60% start, +5% after 3 clean runs, -10% after a miss', async () => {
+  const { TempoTrainer } = await import('../js/piano/tempo.js');
+  const t = new TempoTrainer();
+  assert.equal(t.bpm(100), 60);
+  assert.equal(t.run(true, 100).change, 'same'); t.run(true, 100);
+  const r = t.run(true, 100);
+  assert.deepEqual([r.change, r.pct, r.goal], ['up', 65, '3 clean runs at 60 bpm']);
+  assert.equal(t.run(false, 100).pct, 55);
+  t.pct = 100; t.run(true, 80); t.run(true, 80);
+  assert.equal(t.run(true, 80).change, 'goal');
+});
