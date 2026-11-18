@@ -9,3 +9,4 @@ const foot = document.querySelector('footer');
 if (foot) foot.textContent = 'Drums';
 const sub = document.querySelector('header .title p');
 if (sub) sub.textContent = 'See grooves on the grid and the staff. Tap any drum to hear it.';
+import './drills.js';

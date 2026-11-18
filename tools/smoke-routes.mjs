@@ -5,5 +5,6 @@ export default {
     '#practice?tool=playalong&tab=walking-blues-f', '#practice?tool=playalong&tab=shuffle-blues-a'],
   piano: ['#practice?tool=drills&drill=piano-keys', '#practice?tool=drills&drill=piano-staff', '#practice?tool=drills&drill=piano-hear',
     '#practice?tool=drills&drill=piano-intervals', '#practice?tool=drills&drill=piano-chords', '#practice?tool=drills&drill=piano-keysig',
-    '#practice?tool=playalong&tab=minuet-g', '#practice?tool=playalong&tab=gymnopedie-1']
+    '#practice?tool=playalong&tab=minuet-g', '#practice?tool=playalong&tab=gymnopedie-1'],
+  drums: ['#practice?tool=drills&drill=drum-read', '#practice?tool=drills&drill=drum-ear', '#practice?tool=drills&drill=drum-sticking', '#practice?tool=drills&drill=drum-time']
 };

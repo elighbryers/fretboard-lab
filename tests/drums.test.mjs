@@ -37,3 +37,15 @@ test('drum scores: windows, caps, bias vs spread, right drum', async () => {
   const jitter = S.scoreHits(exp, [0.02, 0.48, 1.02, 1.48].map(t => ({ t, piece: 'snare' })));
   assert.equal(jitter.bias, 0); assert.ok(jitter.spread > 15, 'spread shows inconsistency even with no bias');
 });
+test('drills: rhythms, stickings, internal time', async () => {
+  globalThis.window = globalThis.window || {};
+  const mem = new Map(); globalThis.localStorage = { getItem: k => mem.get(k) ?? null, setItem: (k, v) => mem.set(k, v) };
+  globalThis.document = globalThis.document || { querySelector: () => null, addEventListener() {}, hidden: false };
+  const D = await import('../js/drums/drills.js');
+  assert.ok(D.RHYTHMS.every(r => r.steps.every(s => s < 4 * (r.sub || 4))));
+  assert.deepEqual(D.stickingGroove(D.findRudiment('paradiddle').sticking).hits.R, [0, 2, 3, 5, 8, 10, 11, 13]);  // RLRR LRLL RLRR LRLL
+  assert.ok(D.RUDIMENTS.every(r => r.sticking.length === 16 && /^[RLrl.]+$/.test(r.sticking)));
+  assert.deepEqual([0, 1, 2, 3, 4, 5].map(b => D.silentBar(b)), [false, false, true, true, false, false]);
+  assert.equal(D.fadeVolume(0), 1); assert.equal(D.fadeVolume(6), 0);
+  assert.equal(D.ladderNext(80, true), 84); assert.equal(D.ladderNext(80, false), 76);
+});

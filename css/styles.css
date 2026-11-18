@@ -758,3 +758,6 @@ button.small { padding: 6px 10px; font-size: 13px; min-height: 36px }
 .drum-run { display: grid; gap: 8px }
 .lk-hits .hit.tight { background: var(--blue); color: var(--on-soft); border-color: var(--blue) }
 .ds-pads .kit { margin: 4px 0 }
+.sticking { display: flex; gap: 4px; flex-wrap: wrap; font: 700 18px ui-monospace, monospace }
+.sticking span { min-width: 22px; text-align: center } .sticking .grace { font-size: 12px; color: var(--muted) } .sticking .rest { color: var(--grey-text) }
+.stick-pads { display: flex; gap: 12px } .stick-pads .pad { min-height: 110px; max-width: none }
