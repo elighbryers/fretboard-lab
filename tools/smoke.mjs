@@ -1,4 +1,5 @@
-// Headless browser check: node tools/smoke.mjs [instrument ...]
+// Headless browser check: node tools/smoke.mjs [instrument ...] [--landscape]
+// (--landscape: a phone on its side, 844 x 390, instead of upright, 390 x 844)
 // Serves the folder, opens every tab (and a few deep links) for each instrument with
 // Chromium (Playwright), and fails on any console error or uncaught exception.
 // Extra routes per instrument can be listed in ROUTES below.
@@ -22,11 +23,12 @@ let extra = {};
 try { extra = (await import('./smoke-routes.mjs')).default; } catch { }
 const want = process.argv.slice(2).filter(a => !a.startsWith('-'));
 const instruments = want.length ? want : ['guitar', 'bass', 'piano', 'drums'];
+const VIEW = process.argv.includes('--landscape') ? { width: 844, height: 390 } : { width: 390, height: 844 };
 
 const browser = await chromium.launch();
 let failures = 0, checked = 0;
 for (const inst of instruments) {
-  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  const page = await browser.newPage({ viewport: VIEW, hasTouch: true, isMobile: true });
   const errors = [];
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('pageerror', e => errors.push('pageerror: ' + e.message));
@@ -60,7 +62,7 @@ for (const inst of instruments) {
   const started = await page.evaluate(() => window.__appStarted === true);
   if (!started) errors.push('app not started');
   if (errors.length) { failures += errors.length; console.log(`FAIL ${inst}:\n  ` + errors.join('\n  ')); }
-  else console.log(`ok   ${inst}: ${routes.length} screens, no console errors`);
+  else console.log(`ok   ${inst}${VIEW.width > VIEW.height ? ' (landscape)' : ''}: ${routes.length} screens, no console errors`);
   await page.close();
 }
 await browser.close();

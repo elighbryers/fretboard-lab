@@ -26,7 +26,7 @@ function shell(el, d, { view = [48, 84], rounds = 10, staff = false }) {
     <div class="msg" id="pd-msg" aria-live="polite"></div><button class="primary big" id="pd-next" hidden>Next →</button></div>`;
   const $ = s => el.querySelector(s), startedAt = Date.now();
   let round = 0, score = 0, answered = 0, current = null, timer = null, finished = false;
-  const kb = new Keyboard($('#pd-kb'), { view, mode: 'tap', lock: true, noGlideAnswers: true, onTap: t => current?.tap?.(t) });
+  const kb = new Keyboard($('#pd-kb'), { view, mode: 'tap', lock: true, noGlideAnswers: true, full88: true, onTap: t => current?.tap?.(t) });
   const ui = {
     kb, el, $,
     prompt: h => { $('#pd-prompt').innerHTML = h; },

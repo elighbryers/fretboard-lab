@@ -4,7 +4,7 @@
 // left-hand patterns, scale over chord, drone and the heat map (docs/research-piano.md D1).
 // Links: #fretboard?key=G&scale=major (the same links as the guitar Fretboard tab).
 import { KEY_NAMES, SCALE_GROUPS, CHORD_GROUPS, lookup, parseFormula, spell, parseNote, pcOf, preferredName } from '../theory.js';
-import { Keyboard, miniMap, nameOct, keyItem } from './keyboard.js';
+import { Keyboard, miniMap, nameOct, keyItem, landscapePhone, onLandscapeChange } from './keyboard.js';
 import { legendHTML } from '../fretboard.js';
 import { droneStart, droneStop, droneOn, metronome, pluckAt, context, now } from '../audio.js';
 import { replaceParams } from '../router.js';
@@ -27,7 +27,8 @@ export function defaultRange(width = window.innerWidth) {
   if (width < 1000) return [48, 84];
   return [36, 96];
 }
-const range = () => (st.range === '88' ? [21, 108] : st.range === '61' ? [36, 96] : defaultRange());
+// A phone on its side shows all 88 keys (js/piano/keyboard.js), so the dots cover them all.
+const range = () => (st.range === '88' || landscapePhone() ? [21, 108] : st.range === '61' ? [36, 96] : defaultRange());
 
 function draw() {
   const item = current(), degs = parseFormula(item.formula), sp = spell(st.key, degs), [lo, hi] = range();
@@ -43,7 +44,7 @@ function draw() {
     else dots.push(st.labels === 'none' ? { s: 0, f: m, role: 'bare', ring: x.role === 'root' } : { s: 0, f: m, role: x.role, label: lbl });
   }
   const fing = st.kind === 'scale' && st.hands !== 'none' ? scaleFingering(st.key, st.id, st.hands) : null;
-  kb.set({ view: [lo, hi], dimOutside: st.kind === 'scale', steps: st.steps, fingers: fing?.map || null });
+  kb.set({ view: [lo, hi], dimOutside: st.kind === 'scale', steps: st.steps, fingers: fing?.map || null, corner: `${sp.root} ${item.name.toLowerCase()}` });
   kb.setHeatmap(st.heat ? heat() : null);
   kb.setDots(dots, st.key);
   $('#kt-key').value = st.key;
@@ -155,8 +156,9 @@ export default {
         <section><h3>Drone</h3><div class="row"><button id="kt-drone">▶ Drone on the key</button>${volumeHTML('droneVol', 'Drone volume')}</div></section>
         <section><h3>Weak spots</h3><label class="check"><input type="checkbox" id="kt-heat"> Show my key finder weak spots</label></section>
       </div>`;
-    kb = new Keyboard($('#kt-board'), { view: range(), labels: st.labels, ariaLabel: 'Piano keyboard showing the selected scale or chord' });
+    kb = new Keyboard($('#kt-board'), { view: range(), labels: st.labels, full88: true, ariaLabel: 'Piano keyboard showing the selected scale or chord' });
     miniMap($('#kt-board'), kb);
+    onLandscapeChange(() => draw());
     $('#kt-key').onchange = e => change({ key: +e.target.value });
     $('#kt-item').onchange = e => { const [kind, id] = e.target.value.split(':'); change({ kind, id }); };
     el.querySelectorAll('#kt-labels button').forEach(b => b.onclick = () => change({ labels: b.dataset.l }));

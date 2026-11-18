@@ -17,7 +17,7 @@ function timed(body, d, last, api, mode) {
     body.innerHTML = `<div class="drill-top"><span id="tk-round"></span><span id="tk-score"></span></div><p class="prompt" id="tk-prompt"></p>
       <div class="time-bar"><i id="tk-time"></i></div><div id="tk-kb"></div><div class="msg" id="tk-msg"></div>`;
     const $ = s => body.querySelector(s);
-    kb = new Keyboard($('#tk-kb'), { view: d.view || [55, 79], mode: 'tap', lock: true, noGlideAnswers: true, onTap: ({ midi }) => answer(midi) });
+    kb = new Keyboard($('#tk-kb'), { view: d.view || [55, 79], mode: 'tap', lock: true, noGlideAnswers: true, full88: true, onTap: ({ midi }) => answer(midi) });
     const finish = () => { const passed = score >= pass; if (passed && last) api.complete(score, rounds); body.innerHTML = api.resultHTML(passed, score, rounds, pass); api.wireResult(body, start); };
     const next = () => {
       if (round >= rounds) return finish();

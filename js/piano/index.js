@@ -10,7 +10,7 @@ register('instrumentTab', pianoTab);
 // Lesson positions on piano are { midi } (or a plain MIDI number); a key on the board is { s: 0, f: midi }.
 register('lessonAdapter', {
   toSF: p => ({ s: 0, f: typeof p === 'number' ? p : p.midi }),
-  board: (host, view, opts = {}) => new Keyboard(host, { view, labels: 'none', lock: opts.mode === 'tap', noGlideAnswers: true, ...opts }),
+  board: (host, view, opts = {}) => new Keyboard(host, { view, labels: 'none', lock: opts.mode === 'tap', noGlideAnswers: true, full88: true, colorPref: 'lesson', ...opts }),
   describe: (s, f) => nameOct(f),
   noteItem: ({ f }) => keyItem(f),
   nameAt: (s, f) => preferredName(f),

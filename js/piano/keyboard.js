@@ -11,10 +11,29 @@
 // carries a label, and black-key dots get an outline. Finger numbers sit above the keys for the
 // right hand and below for the left (never colour for hands). Multi-touch: Pointer Events per
 // pointerId, touch-action none, pointercancel = pointerup, sliding across keys plays them (glissando).
+//
+// Phones held sideways (full88: true): all 88 keys fit the width (about 16 px each). Pinch to zoom,
+// two fingers to drag. A tap task zooms smoothly to the range it needs (keys about 44 px) and
+// zoomOut() goes back. Dots and lit keys are colored by chord tone (pink root, blue 3rd, lavender
+// 5th, grey others) or by hand (colorMode 'hand': left hand blue, right hand green); the label
+// inside every dot stays, so color is never the only clue.
 import { NOTES, INTERVALS, pcOf, preferredName } from '../theory.js';
 import { pluck, pluckAt, context, now } from '../audio.js';
 import { roleOf } from '../fretboard.js';
 import { midiOn, listenMidi } from '../midi.js';
+import { getPracticePrefs, updatePracticePrefs } from '../storage.js';
+
+// A phone on its side: where the 88-key view applies.
+const LAND = '(orientation: landscape) and (max-height: 500px)';
+export const landscapePhone = () => typeof matchMedia === 'function' && matchMedia(LAND).matches;
+export const onLandscapeChange = fn => { if (typeof matchMedia !== 'function') return () => {}; const q = matchMedia(LAND); q.addEventListener('change', fn); return () => q.removeEventListener('change', fn); };
+const TAP_KW = 44, MAX_KW = 72;
+// Color by hand or by chord tone, remembered per place: 'playalong' starts by hand, 'lesson' by chord tone.
+export const COLOR_DEFAULTS = { playalong: 'hand', lesson: 'tone' };
+export const colorPref = where => (getPracticePrefs().pianoColor || {})[where] || COLOR_DEFAULTS[where] || 'tone';
+export const setColorPref = (where, v) => updatePracticePrefs({ pianoColor: { ...(getPracticePrefs().pianoColor || {}), [where]: v } });
+// A key's hand when none is given: below Middle C is the left hand.
+export const handOf = (midi, hand) => hand || (midi < 60 ? 'L' : 'R');
 
 // A MIDI keyboard plays into the keyboard on screen that's waiting for an answer (or the
 // newest visible one), exactly like a tap, with the note's event time on the audio clock.
@@ -51,11 +70,25 @@ export class Keyboard {
       steps: false,           // W/H labels between neighbouring dots
       lock: false,            // no scrolling while a task is active
       keyWidth: null,         // px; default 44 on touch, fitted on desktop
+      keyHeight: null,        // px for white keys (88-key view only; default: keyHeightFrac of the screen height)
+      keyHeightFrac: 0.27,
+      full88: false,          // phones in landscape: show all 88 keys across the width
+      colorMode: 'tone',      // 'tone' (chord tone) | 'hand' (LH blue, RH green)
+      colorPref: null,        // 'lesson' | 'playalong': read the color mode from Settings and show a toggle
+      corner: '',             // a small label in the corner of the 88-key view ("C major")
       ariaLabel: 'Piano keyboard',
       ...opts
     };
+    if (this.o.colorPref) this.o.colorMode = colorPref(this.o.colorPref);
+    this.kw = null;           // current key width in the 88-key view (null = fit the width)
+    this.touches = new Map(); // pointerId -> clientX, for pinch zoom
+    this.litCls = new Map();  // midi -> color class for keys lit while they sound
     this.root = null; this.dots = []; this.marks = []; this.lit = []; this.heat = null; this._seq = 0; this.playing = false;
     this.down = new Map(); // pointerId -> midi
+    this.bar = document.createElement('div');
+    this.bar.className = 'kb-bar';
+    this.bar.hidden = true;
+    el.appendChild(this.bar);
     this.wrap = document.createElement('div');
     this.wrap.className = 'kb-wrap';
     this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -67,15 +100,22 @@ export class Keyboard {
       const k = e.target.closest('[data-midi]'); if (!k) return;
       e.preventDefault();
       try { this.svg.setPointerCapture?.(e.pointerId); } catch { }
+      if (this._full() && e.pointerType === 'touch') {
+        this.touches.set(e.pointerId, e.clientX);
+        // A second finger: pinch (zoom) and drag instead of playing.
+        if (this.touches.size === 2) { this.down.clear(); this._pinchStart(); return; }
+        if (this.pinch) return;
+      }
       this.down.set(e.pointerId, +k.dataset.midi);
       this._press(+k.dataset.midi, e);
     });
     this.svg.addEventListener('pointermove', e => {
+      if (this.pinch && this.touches.has(e.pointerId)) { this.touches.set(e.pointerId, e.clientX); this._pinchMove(); return; }
       if (!this.down.has(e.pointerId)) return;
       const m = keyAt(e);
       if (m != null && m !== this.down.get(e.pointerId)) { this.down.set(e.pointerId, m); this._press(m, e, true); }
     });
-    const up = e => { this.down.delete(e.pointerId); };
+    const up = e => { this.down.delete(e.pointerId); this.touches.delete(e.pointerId); if (this.touches.size < 2) this.pinch = null; };
     this.svg.addEventListener('pointerup', up);
     this.svg.addEventListener('pointercancel', up);
     this.svg.addEventListener('lostpointercapture', up);
@@ -84,10 +124,84 @@ export class Keyboard {
       const k = e.target.closest?.('[data-midi]');
       if (k && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); this._press(+k.dataset.midi, e); }
     });
+    // Trackpad pinch / ctrl + wheel zooms the 88-key view on a computer.
+    this.wrap.addEventListener('wheel', e => {
+      if (!this._full() || !e.ctrlKey) return;
+      e.preventDefault();
+      this._zoomAround(this._kw() * Math.exp(-e.deltaY / 200), e.clientX);
+    }, { passive: false });
+    this._unland = onLandscapeChange(() => { this.kw = null; this._zv = null; this.render(); });
     live.add(this);
     ensureMidi();
     this.render();
   }
+
+  /* ---------- the 88-key view: fit, zoom, pinch ---------- */
+  _full() { return !!this.o.full88 && landscapePhone(); }
+  range() {
+    if (this._full()) return [21, 108];
+    let [lo, hi] = this.o.view;
+    if (isBlack(lo)) lo--; if (isBlack(hi)) hi++;
+    return [lo, hi];
+  }
+  _fitKW() { return (this.wrap.clientWidth || 800) / whitesIn(21, 108); }
+  _kw() { return this.kw || this._fitKW(); }
+  // Zoom so lo..hi fills the strip at about 44 px a key (a tap answer), centred.
+  zoomTo(lo, hi, animate = true) {
+    if (!this._full()) return;
+    const cw = this.wrap.clientWidth || 800, n = Math.max(1, whitesIn(lo, hi));
+    const kw = Math.max(this._fitKW(), Math.min(TAP_KW, cw / n));
+    const x0 = whitesIn(21, lo) - (isBlack(lo) ? 0 : 1);
+    this._animate(kw, (x0 + n / 2) * kw - cw / 2, animate);
+  }
+  zoomOut(animate = true) { if (this._full()) this._animate(this._fitKW(), 0, animate, true); }
+  zoomed() { return this._full() && this._kw() > this._fitKW() + 0.5; }
+  _animate(kw, left, animate, fit = false) {
+    cancelAnimationFrame(this._raf);
+    const k0 = this._kw(), l0 = this.wrap.scrollLeft, t0 = performance.now(), dur = animate && !matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 320 : 0;
+    const step = () => {
+      const p = dur ? Math.min(1, (performance.now() - t0) / dur) : 1, e = 1 - Math.pow(1 - p, 3);
+      this.kw = fit && p === 1 ? null : k0 + (kw - k0) * e;
+      this.render();
+      this.wrap.scrollLeft = l0 + (left - l0) * e;
+      this.onView?.();
+      if (p < 1) this._raf = requestAnimationFrame(step);
+    };
+    step();
+  }
+  _zoomAround(kw, clientX) {
+    const r = this.wrap.getBoundingClientRect(), at = clientX - r.left, k0 = this._kw();
+    const units = (this.wrap.scrollLeft + at) / k0;
+    kw = Math.max(this._fitKW(), Math.min(MAX_KW, kw));
+    this.kw = kw <= this._fitKW() + 0.01 ? null : kw;
+    this.render();
+    this.wrap.scrollLeft = units * this._kw() - at;
+    this.onView?.();
+  }
+  _pinchStart() {
+    const [a, b] = [...this.touches.values()];
+    this.pinch = { d: Math.abs(a - b) || 1, kw: this._kw(), mid: (a + b) / 2, units: null };
+    const r = this.wrap.getBoundingClientRect();
+    this.pinch.units = (this.wrap.scrollLeft + this.pinch.mid - r.left) / this.pinch.kw;
+  }
+  _pinchMove() {
+    const p = this.pinch, [a, b] = [...this.touches.values()];
+    if (!p || b == null) return;
+    const mid = (a + b) / 2, kw = Math.max(this._fitKW(), Math.min(MAX_KW, p.kw * (Math.abs(a - b) || 1) / p.d));
+    cancelAnimationFrame(this._raf);
+    this._raf = requestAnimationFrame(() => {
+      this.kw = kw <= this._fitKW() + 0.01 ? null : kw;
+      this.render();
+      this.wrap.scrollLeft = p.units * this._kw() - (mid - this.wrap.getBoundingClientRect().left);
+      this.onView?.();
+    });
+  }
+  // Drag the 88-key view sideways by dx pixels (the falling-notes area uses this).
+  panBy(dx) { this.wrap.scrollLeft += dx; this.onView?.(); }
+  // Light keys while they sound, each in its note's color: { midi: 'rh' | 'lh' | 'root' | 'third' | 'fifth' | 'other' }.
+  light(map) { this.litCls = new Map(Object.entries(map).map(([m, c]) => [+m, c])); this.render(); return this; }
+  setColorMode(mode) { this.o.colorMode = mode; this.render(); return this; }
+  destroy() { live.delete(this); this._unland?.(); cancelAnimationFrame(this._raf); }
 
   set(opts) { Object.assign(this.o, opts); this.render(); return this; }
   setDots(dots, rootPc = null) { this.dots = dots.slice(); this.root = rootPc; this.render(); return this; }
@@ -112,6 +226,7 @@ export class Keyboard {
   // Scroll the strip so a key is in view (never while locked by a task... unless asked).
   scrollTo(midi, force = false) {
     if (this.o.lock && !force) return;
+    if (this._full() && !this.zoomed()) return;
     const x = this._x?.(midi);
     if (x == null) return;
     const w = this.wrap.clientWidth;
@@ -136,12 +251,18 @@ export class Keyboard {
   }
 
   render() {
-    let [lo, hi] = this.o.view;
-    if (isBlack(lo)) lo--; if (isBlack(hi)) hi++;
+    const full = this._full(), [lo, hi] = this.range();
     const touch = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
     const nW = whitesIn(lo, hi), avail = this.wrap.clientWidth || 360;
-    const KW = this.o.keyWidth || (touch ? 44 : Math.max(26, Math.min(44, Math.floor(avail / nW)))), KH = Math.round(KW * 3.6), BW = Math.round(KW * 0.62), BH = Math.round(KH * 0.62);
-    const TOP = 22, BOT = 36, H = TOP + KH + BOT, W = nW * KW;
+    const KW = full ? this._kw() : this.o.keyWidth || (touch ? 44 : Math.max(26, Math.min(44, Math.floor(avail / nW))));
+    const KH = full ? this.o.keyHeight || Math.round(Math.max(64, Math.min(130, (window.innerHeight || 390) * this.o.keyHeightFrac))) : Math.round(KW * 3.6);
+    const BW = KW * 0.62, BH = Math.round(KH * 0.62);
+    const TOP = full ? 16 : 22, BOT = full ? 14 : 36, H = TOP + KH + BOT, W = nW * KW, small = KW < 30;
+    this.wrap.classList.toggle('full88', full);
+    this.paintBar(full);
+    // A tap task: zoom from the whole keyboard to the keys it needs, whenever that range changes.
+    const zv = this.o.view.join('-');
+    if (full && this.o.mode === 'tap' && !this.o.noAutoZoom && zv !== this._zv) { this._zv = zv; requestAnimationFrame(() => this.zoomTo(...this.o.view)); }
     const xs = {}; let wx = 0;
     for (let m = lo; m <= hi; m++) { if (isBlack(m)) xs[m] = wx - BW / 2; else { xs[m] = wx; wx += KW; } }
     this._x = m => xs[m];
@@ -150,7 +271,8 @@ export class Keyboard {
     const keyCls = m => {
       let c = isBlack(m) ? 'kb-black' : 'kb-white';
       if (!this._focused(m) || (this.o.dimOutside && this.dots.length && !dotAt.has(m))) c += ' dim';
-      if (litSet.has(m)) c += ' lit';
+      if (this.litCls.has(m)) c += ' lit c-' + this.litCls.get(m);
+      else if (litSet.has(m)) c += ' lit';
       return c;
     };
     const aria = m => `${nameOct(m)}${m === 60 ? ' (Middle C)' : ''}`;
@@ -161,19 +283,21 @@ export class Keyboard {
       const rect = `<rect class="${keyCls(m)}${heatFill}" data-midi="${m}" x="${x + (b ? 0 : 0.5)}" y="${TOP}" width="${w - (b ? 0 : 1)}" height="${h}" rx="${b ? 3 : 5}" tabindex="${this.o.mode === 'tap' ? 0 : -1}" role="button" aria-label="${aria(m)}"${heat != null && heat >= 0 ? ` style="fill:hsl(${Math.round(heat * 125)} 60% ${b ? 30 : 75}%)"` : ''}/>`;
       if (b) blacks += rect; else whites += rect;
       // Middle C: a small marker under the key
-      if (m === 60) over += `<text class="kb-mid" x="${x + KW / 2}" y="${TOP + KH + 31}" text-anchor="middle">C4</text><circle class="kb-mid-dot" cx="${x + KW / 2}" cy="${TOP + KH - 8}" r="3"/>`;
+      if (m === 60) over += `<text class="kb-mid" x="${x + KW / 2}" y="${TOP + KH + (full ? 12 : 31)}" text-anchor="middle"${full ? ' font-size="10"' : ''}>C4</text><circle class="kb-mid-dot" cx="${x + KW / 2}" cy="${TOP + KH - (small ? 4 : 8)}" r="${small ? 2 : 3}"/>`;
       // the dot: near the front of the key
       const d = dotAt.get(m), mk = markAt.get(m), lit = litSet.has(m);
-      const cx = x + w / 2, cy = TOP + h - (b ? 16 : 22), r = Math.min(15, w / 2 - 3);
+      const r = small ? Math.max(3, w / 2 - 1) : Math.min(15, w / 2 - 3), cx = x + w / 2, cy = TOP + h - (small ? r + (b ? 3 : 10) : b ? 16 : 22);
+      const fs = n => (small ? Math.max(6, Math.min(10, w * (n > 1 ? 0.5 : 0.7))) : n > 2 ? 10 : 12);
       if (mk) {
         over += `<g class="fb-mark ${mk.ok ? 'good' : 'bad'}"><circle cx="${cx}" cy="${cy}" r="${r + 1}"/>` + (mk.ok
-          ? `<text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="12">${mk.label ?? preferredName(m)}</text>`
+          ? `<text x="${cx}" y="${cy + fs(2) / 3}" text-anchor="middle" font-size="${fs(String(mk.label ?? preferredName(m)).length)}">${mk.label ?? preferredName(m)}</text>`
           : `<path class="fb-x" d="M${cx - 5} ${cy - 5}L${cx + 5} ${cy + 5}M${cx + 5} ${cy - 5}L${cx - 5} ${cy + 5}"/>`) + '</g>';
       } else if (d || lit) {
-        const dd = d || { f: m }, rel = this.root == null ? null : pcOf(m - this.root), role = dd.role || roleOf(rel);
-        const lbl = dd.quiet && !lit ? '' : role === 'bare' ? '' : this._label(dd, pcOf(m)) || (rel == null ? preferredName(m) : INTERVALS[rel]);
-        over += `<g class="fb-dot role-${role}${b ? ' on-black' : ''}${lit ? ' lit' : ''}${dd.ring ? ' ring' : ''}${dd.quiet && !lit ? ' quiet' : ''}"><circle cx="${cx}" cy="${cy}" r="${dd.quiet && !lit ? 6 : r}"/>` +
-          (lbl ? `<text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="${String(lbl).length > 2 ? 10 : 12}">${lbl}</text>` : '') + '</g>';
+        const dd = d || { f: m }, rel = this.root == null ? null : pcOf(m - this.root), tone = dd.role || roleOf(rel);
+        const role = this.o.colorMode === 'hand' && tone !== 'bare' && !dd.quiet ? (handOf(m, dd.hand || this.o.fingers?.[m]?.hand) === 'L' ? 'lh' : 'rh') : tone;
+        const lbl = dd.quiet && !lit ? '' : tone === 'bare' ? '' : this._label(dd, pcOf(m)) || (rel == null ? preferredName(m) : INTERVALS[rel]);
+        over += `<g class="fb-dot role-${role}${b ? ' on-black' : ''}${lit ? ' lit' : ''}${dd.ring ? ' ring' : ''}${dd.quiet && !lit ? ' quiet' : ''}"><circle cx="${cx}" cy="${cy}" r="${dd.quiet && !lit ? Math.min(6, r) : r}"/>` +
+          (lbl ? `<text x="${cx}" y="${cy + fs(String(lbl).length) / 3}" text-anchor="middle" font-size="${fs(String(lbl).length)}">${lbl}</text>` : '') + '</g>';
       }
       // finger numbers: right hand above the keys, left hand below
       const fg = this.o.fingers?.[m];
@@ -198,7 +322,29 @@ export class Keyboard {
     this.wrap.classList.toggle('locked', !!this.o.lock);
     this.svg.innerHTML = whites + blacks + over;
   }
+
+  // The 88-key view's small bar: a corner label ("C major") and the color toggle.
+  paintBar(full) {
+    const show = full && (this.o.corner || this.o.colorPref);
+    this.bar.hidden = !show;
+    if (!show) return;
+    const key = `${this.o.corner}|${this.o.colorMode}`;
+    if (this.bar.dataset.k === key) return;
+    this.bar.dataset.k = key;
+    this.bar.innerHTML = (this.o.corner ? `<span class="kb-corner">${this.o.corner}</span>` : '') +
+      (this.o.colorPref ? colorToggleHTML(this.o.colorMode) : '');
+    this.bar.querySelector('.color-seg')?.addEventListener('click', e => {
+      const b = e.target.closest('[data-color]'); if (!b) return;
+      setColorPref(this.o.colorPref, b.dataset.color);
+      this.setColorMode(b.dataset.color);
+    });
+  }
 }
+
+// "Color by hand" / "Color by chord tone" as a small segmented control.
+export const colorToggleHTML = mode => `<div class="seg color-seg" role="group" aria-label="Note colors">
+  <button data-color="hand" aria-pressed="${mode === 'hand'}"><i class="sw role-lh"></i><i class="sw role-rh"></i> By hand</button>
+  <button data-color="tone" aria-pressed="${mode === 'tone'}"><i class="sw role-root"></i><i class="sw role-third"></i><i class="sw role-fifth"></i> By chord tone</button></div>`;
 
 // A thin 88-key overview that shows (and drags) the window of a Keyboard's strip.
 export function miniMap(el, kb, { lo = 21, hi = 108 } = {}) {
@@ -215,16 +361,17 @@ export function miniMap(el, kb, { lo = 21, hi = 108 } = {}) {
   box.innerHTML = html + '<b class="win"></b>';
   const win = box.querySelector('.win');
   const paint = () => {
-    const [vlo, vhi] = kb.o.view, sw = kb.wrap.scrollWidth || 1, cw = kb.wrap.clientWidth || 1;
+    const [vlo, vhi] = kb.range(), sw = kb.wrap.scrollWidth || 1, cw = kb.wrap.clientWidth || 1;
     const start = whitesIn(lo, vlo) - (isBlack(vlo) ? 0 : 1), span = whitesIn(vlo, vhi);
     const a = (start + span * kb.wrap.scrollLeft / sw) / n, b = a + span * Math.min(1, cw / sw) / n;
     win.style.left = a * 100 + '%'; win.style.width = Math.max(2, (b - a) * 100) + '%';
   };
   kb.wrap.addEventListener('scroll', paint);
+  const before = kb.onView; kb.onView = () => { before?.(); paint(); };
   // drag on the map: scroll the strip (or move the view window when the strip is all shown)
   const drag = e => {
     const r = box.getBoundingClientRect(), f = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
-    const [vlo, vhi] = kb.o.view, sw = kb.wrap.scrollWidth, cw = kb.wrap.clientWidth;
+    const [vlo, vhi] = kb.range(), sw = kb.wrap.scrollWidth, cw = kb.wrap.clientWidth;
     const start = whitesIn(lo, vlo) - (isBlack(vlo) ? 0 : 1), span = whitesIn(vlo, vhi), at = f * n - start;
     if (sw > cw) kb.wrap.scrollLeft = at / span * sw - cw / 2;
     else box.dispatchEvent(new CustomEvent('kbmove', { detail: { whiteIndex: Math.round(f * n) } }));

@@ -21,6 +21,8 @@
      red-green color blindness; every colored dot also carries a label, so color is never the only clue. */
   --deg-root: var(--pink); --deg-third: var(--blue); --deg-fifth: #9B7FD1;
   --deg-other: #6E6E7C; --deg-text: var(--on-soft); --deg-other-text: #FFFFFF;
+  /* piano "color by hand": left hand blue, right hand green (each note still carries its name) */
+  --hand-l: var(--blue); --hand-r: #8FD9A8;
   --tabbar-h: 64px;
 }
 * { box-sizing: border-box }
@@ -172,6 +174,8 @@ body.no-scroll { overflow: hidden }
 .fb-dot.quiet { opacity: .55 }
 .role-fifth circle, .sw.role-fifth { fill: var(--deg-fifth); background: var(--deg-fifth) }
 .role-other circle, .sw.role-other { fill: var(--deg-other); background: var(--deg-other) }
+.role-lh circle, .sw.role-lh { fill: var(--hand-l); background: var(--hand-l) }
+.role-rh circle, .sw.role-rh { fill: var(--hand-r); background: var(--hand-r) }
 /* "Dots" label mode: one neutral color and no label (color means nothing there); the root gets a ring */
 .role-bare circle { fill: var(--muted) }
 .fb-dot.ring circle { stroke: var(--text); stroke-width: 3 }
@@ -468,7 +472,7 @@ button.round { width: 64px; height: 64px; border-radius: 50%; font-size: 30px; p
   header .head-actions button { min-height: 38px; padding-top: 4px; padding-bottom: 4px }
   .tabs { margin-top: 6px }
   header .head-actions { margin-left: auto }
-  body:has(#views > section:not([hidden]) .pa) header { display: none }
+  body:has(#views > section:not([hidden]) .pa:not(.menu-open)) header { display: none }
   .pa #pa-board { display: none }
   .tabview { height: 178px }
 }
@@ -717,6 +721,20 @@ button.small { padding: 6px 10px; font-size: 13px; min-height: 36px }
 .kb-white.lit, .kb-white.down { fill: var(--blue) }
 .kb-black.lit, .kb-black.down { fill: #3D6F86 }
 .kb-heat-none { opacity: .7 }
+/* keys lit while they sound, in the same color as their note */
+.kb-white.lit.c-rh { fill: var(--hand-r) } .kb-black.lit.c-rh { fill: #4C9C6A }
+.kb-white.lit.c-lh { fill: var(--hand-l) } .kb-black.lit.c-lh { fill: #3D6F86 }
+.kb-white.lit.c-root { fill: var(--deg-root) } .kb-black.lit.c-root { fill: #B9787F }
+.kb-white.lit.c-third { fill: var(--deg-third) } .kb-black.lit.c-third { fill: #3D6F86 }
+.kb-white.lit.c-fifth { fill: var(--deg-fifth) } .kb-black.lit.c-fifth { fill: #6A52A0 }
+.kb-white.lit.c-other { fill: #B4B4C0 } .kb-black.lit.c-other { fill: #55555F }
+/* the 88-key view (phones on their side) */
+.kb-wrap.full88 { overflow-x: hidden; border-radius: 0; border-left: 0; border-right: 0; padding: 0 }
+.kb-bar { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; font-size: 13px }
+.kb-corner { font-weight: 700; color: var(--pink); background: var(--panel2); border: 1px solid var(--line); border-radius: 99px; padding: 2px 10px }
+.color-seg { margin-left: auto }
+.color-seg button { min-height: 32px; font-size: 13px; padding: 2px 10px; display: inline-flex; align-items: center; gap: 3px }
+.color-seg .sw { display: inline-block; width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 0 1px #0007 }
 .kb-mid { fill: var(--pink); font-size: 11px; font-weight: 700 }
 .kb-mid-dot { fill: var(--pink) }
 .kb-finger { fill: var(--text); font-size: 12px; font-weight: 700 }
@@ -759,6 +777,57 @@ button.small { padding: 6px 10px; font-size: 13px; min-height: 36px }
 #pp-staff .now, #pp-staff .now path { fill: #1565C0 }
 .tempo-trainer { font-size: 18px; margin: 8px 0 }
 .piano-pa .toggles { flex-direction: column; align-items: flex-start }
+/* color by hand in the portrait roll and falling notes */
+.pr-note.byhand.rh rect { fill: var(--hand-r); stroke: var(--hand-r) } .pr-note.byhand.lh rect { fill: var(--hand-l); stroke: var(--hand-l) }
+.pr-note.byhand.lh text { fill: var(--on-soft) }
+.pf-note.byhand.rh { fill: var(--hand-r) } .pf-note.byhand.lh { fill: var(--hand-l); stroke: none }
+.rotate-hint { display: flex; align-items: center; gap: 8px; margin: 8px 0; padding: 8px 12px; border-radius: 10px; background: var(--lavender-tint); color: var(--text); font-size: 14px }
+.rotate-hint span { font-size: 20px; color: var(--lavender) }
+.rotate-hint button { margin-left: auto; min-height: 32px; padding: 2px 10px; background: none; border: 0; color: var(--muted) }
+.pp-top, .pp-lstaff, .pp-lfall { display: none }
+/* the falling-notes layout: phones on their side. Sheet music, falling notes, then all 88 keys,
+   filling the screen; the header and tab bar come back with Menu. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .piano-pa.land { display: flex; flex-direction: column }
+  .piano-pa.land > * { order: 5 }
+  .piano-pa.land .pp-top { order: 0; display: flex; align-items: center; gap: 8px; padding: 4px 0 }
+  .piano-pa.land .pp-lstaff { order: 1; display: block }
+  .piano-pa.land .pp-lfall { order: 2; display: block }
+  .piano-pa.land #pp-kb { order: 3 }
+  .piano-pa.land .pa-head, .piano-pa.land #pp-view, .piano-pa.land #pp-stage, .piano-pa.land #pp-now, .piano-pa.land .pp-play-row { display: none }
+  .piano-pa.land:not(.menu-open) > :not(.pp-top):not(.pp-lstaff):not(.pp-lfall):not(#pp-kb):not(#pp-msg) { display: none }
+  .piano-pa.land:not(.menu-open) { position: fixed; inset: 0; z-index: 25; background: var(--bg);
+    padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left) }
+  .piano-pa.land:not(.menu-open) .pp-lfall { flex: 1 1 auto; min-height: 60px }
+  .piano-pa.land:not(.menu-open) #pp-msg { position: absolute; left: 50%; transform: translateX(-50%); top: 44px; margin: 0; z-index: 2; pointer-events: none;
+    background: var(--panel); border-radius: 8px; padding: 2px 10px; font-size: 13px }
+  .piano-pa.land:not(.menu-open) #pp-msg:empty { display: none }
+  .piano-pa.land.menu-open .pp-lfall { height: 150px }
+  body:has(.piano-pa.land:not(.menu-open)) { overflow: hidden }
+  body:has(.piano-pa.land:not(.menu-open)) .tabs { display: none }
+  .pp-top { padding-left: 8px !important; padding-right: 8px !important }
+  .pp-top button { min-height: 34px; padding: 2px 12px; font-size: 14px }
+  .pp-top .pp-title { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0 }
+  .pp-top .color-seg { margin-left: auto }
+  .pp-top .color-seg button { min-height: 34px }
+  .pp-top .pp-go { min-width: 92px }
+  .pp-lstaff { position: relative; max-height: 112px; overflow-x: auto; overflow-y: hidden; background: #fff; color: #111; scrollbar-width: none }
+  .pp-lstaff::-webkit-scrollbar { display: none }
+  .pp-lstaff-in { position: relative; z-index: 1 }
+  .pp-lstaff-in svg { display: block }
+  .pp-band { position: absolute; top: 0; bottom: 0; left: 0; width: 0; background: #89CFF066; border-radius: 6px; z-index: 0; transition: left .25s ease, width .25s ease }
+  #pp-lstaff .now, #pp-lstaff .now path { fill: #1565C0 }
+  .pp-lfall { position: relative; overflow: hidden; background: var(--board); touch-action: none; cursor: grab }
+  .pp-lfall svg { position: absolute; inset: 0; display: block }
+}
+.lf-c { stroke: #ffffff14; stroke-width: 1 }
+.lf-bar { stroke: #ffffff22; stroke-width: 1; stroke-dasharray: 4 4 }
+.lf-note rect { stroke: #0006; stroke-width: 1 }
+.lf-note text { fill: var(--on-soft); font-weight: 700; pointer-events: none }
+.lf-note.on rect { stroke: var(--text); stroke-width: 2 }
+.lf-note.c-rh rect { fill: var(--hand-r) } .lf-note.c-lh rect { fill: var(--hand-l) }
+.lf-note.c-root rect { fill: var(--deg-root) } .lf-note.c-third rect { fill: var(--deg-third) } .lf-note.c-fifth rect { fill: var(--deg-fifth) }
+.lf-note.c-other rect { fill: var(--deg-other) } .lf-note.c-other text { fill: var(--deg-other-text) }
 .hand-ill { width: 140px; height: 100px; color: var(--blue); display: block; margin: 4px 0 } .hand-ill text { fill: var(--text); stroke: none; font-size: 14px; text-anchor: middle }
 .sh-row { display: flex; flex-wrap: wrap; gap: 4px }
 .sh-cell { min-width: 40px; padding: 6px 4px; text-align: center; border-radius: 6px; font-size: 12px; color: #fff; border: 1px solid var(--line) }

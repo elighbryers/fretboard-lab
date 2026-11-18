@@ -6,3 +6,4 @@ node tools/validate-lessons.mjs | tail -1
 node --test tests/*.test.mjs 2>&1 | grep -E '^(# |ℹ )(pass|fail)'
 node --test tests/*.test.mjs > /dev/null 2>&1
 node tools/smoke.mjs "$@"
+node tools/smoke.mjs --landscape "$@"

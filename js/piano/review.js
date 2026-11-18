@@ -26,7 +26,7 @@ function keysRound(ui, id, { prompt, view = [55, 79], staff, want, right, explai
   if (sound) { ui.tools('<button id="rvp-again">▶ Play again</button>'); document.getElementById('rvp-again').onclick = sound; sound(); }
   ui.prompt(prompt);
   let done = false;
-  const kb = new Keyboard(host.querySelector('.rv-kb'), { view, mode: 'tap', lock: true, noGlideAnswers: true, onTap: ({ midi }) => {
+  const kb = new Keyboard(host.querySelector('.rv-kb'), { view, mode: 'tap', lock: true, noGlideAnswers: true, full88: true, onTap: ({ midi }) => {
     if (done) return; done = true;
     const ok = want(midi);
     recordAnswer(id, ok, performance.now() - shownAt);
