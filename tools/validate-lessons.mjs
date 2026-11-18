@@ -252,7 +252,7 @@ function validatePath(name, levels, kit, names, spec = null) {
       ok(itemsOf(les).length >= 3, `${id}: registers review items`, itemsOf(les).length);
     });
     const ch = L.challenge;
-    ok(ch.flow?.length > 0 && ['check', 'timed'].includes(ch.flow[ch.flow.length - 1].type), `${where0}: challenge ends with something to pass`);
+    ok(ch.flow?.length > 0 && ['check', 'timed', 'timedkeys', 'timedtriads'].includes(ch.flow[ch.flow.length - 1].type), `${where0}: challenge ends with something to pass`);
     ch.flow.filter(f => f.type === 'check').flatMap(f => f.questions.map(q => [q, f])).forEach(([q, f], k) => {
       if (q.type === 'tap') { list(q.answer).forEach(a => POS(`${where0} challenge q${k + 1}`, a, q.view || f.view)); PROMPT(`${where0} challenge q${k + 1}`, q.prompt, q.answer); }
       else ok(q.options.includes(q.answer), `${where0} challenge q${k + 1}: has its answer`);
