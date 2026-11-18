@@ -2,6 +2,7 @@
 // Nothing here saves except checkMilestones(), which records newly earned badges.
 import { allItems, getLog, getStreak, getLesson, getConfusions, getMilestones, earnMilestones, getDays, today, shiftDay } from './storage.js';
 import { registeredList } from './registry.js';
+import { countOf } from './rhythm-grid.js';
 import { currentLevels, nodesOf } from './lessons/index.js';
 import { PLAYALONG } from './playalong/index.js';
 import { nextUp } from './path.js';
@@ -109,6 +110,18 @@ export function itemName(id) {
   if (kind === 'bass') return `bass motion from I to ${rest.replace(/b(?=[IV])/g, '♭')}`;
   if (kind === 'dictation') return `melody by ear: ${{ row: 'Row, Row, Row Your Boat', mary: 'Mary Had a Little Lamb', frere: 'Frère Jacques', joy: 'Joy to the World', twinkle: 'Twinkle, Twinkle', saints: 'When the Saints', ode: 'Ode to Joy', susanna: 'Oh! Susanna', grace: 'Amazing Grace' }[rest] || rest}`;
   if (kind === 'chordshape') return `${rest.toUpperCase().replace('M', 'm')} chord shape`;
+  if (kind === 'rhythm' && rest.startsWith('bass-')) return `bass rhythm on ${rest.slice(5).split('-').map(n => (+n % 4 ? `${countOf(+n)} of ${Math.floor(+n / 4) + 1}` : countOf(+n))).join(', ')}`;
+  if (kind === 'toneear') return `${rest === 'R' ? 'root' : ORD[rest]} of a chord, by ear`;
+  // piano and drums items
+  if (kind === 'key') { const [n, o] = rest.split('@'); return `${n}${o ?? ''} on the keyboard`; }
+  if (kind === 'staff') { const [clef, n] = rest.split('@'); return `${n} on the ${clef} staff`; }
+  if (kind === 'keysig') return `the key signature of ${rest}`;
+  if (kind === 'inversion') return `${rest.replace(':', ' ')} inversion`;
+  if (kind === 'fingering') return `fingering: ${rest.replace(/-/g, ' ')}`;
+  if (kind === 'sticking') return `${rest.replace(/-/g, ' ')} sticking`;
+  if (kind === 'count') return `counting ${rest.replace(/-/g, ' ')}`;
+  if (kind === 'groove-ear') return `${rest.replace(/-/g, ' ')} groove by ear`;
+  if (kind === 'feel-ear') return `${rest} feel by ear`;
   if (kind === 'rhythm') return `${{ quarters: 'quarter notes', eighths: 'eighth notes', 'first-strum': 'first strumming pattern', rests: 'rests on 2 and 4', waltz: '3/4 time', syncopation: 'syncopation', 'six-eight': '6/8 time', shuffle: 'shuffle', sixteenths: 'sixteenth notes' }[rest] || rest} (rhythm)`;
   if (kind === 'chord-ear') return `${{ major: 'major', minor: 'minor', dim: 'diminished', maj7: 'major 7', '7': 'dominant 7', m7: 'minor 7' }[rest] || rest} chord by ear`;
   return id;

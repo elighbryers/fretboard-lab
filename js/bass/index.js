@@ -18,3 +18,4 @@ import { registerPath } from '../lessons/index.js';
 import { BASS_LEVELS } from './lessons/index.js';
 registerPath('bass', BASS_LEVELS);
 import './progress.js';
+import './review.js';

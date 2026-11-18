@@ -15,6 +15,7 @@ import { itemName } from './stats.js';
 import { esc, shuffle } from './ui.js';
 import { SKILLS, findSkill } from './skills.js';
 import { asEarRound } from './ear.js';
+import { registeredList } from './registry.js';
 import { PATTERNS, findPattern, rhythmSVG } from './rhythm.js';
 import { pluckAt, click as clickAt, now as audioNow, context } from './audio.js';
 
@@ -48,7 +49,9 @@ const earSet = id => EAR_SETS.find(s => s.includes(id));
 // Items the review screen knows how to ask.
 const chordShapeOf = id => { const s = id.startsWith('chordshape:') && findSkill(id.slice(11)); return s && s.kind === 'chord' ? s : null; };
 const patternOf = id => (id.startsWith('rhythm:') ? findPattern(id.slice(7)) : null);
-export const askable = id => !!asRound(id) || (id.startsWith('fact:') && !!factQuestion(id)) || !!parseDegreeItem(id) || !!chordShapeOf(id) || !!patternOf(id) || !!asEarRound(id)
+// Instruments add review rounds for their own items (registered: { askable(id), round(ui, id) }).
+const extraRound = id => registeredList('review').find(x => x.askable(id));
+export const askable = id => !!extraRound(id) || !!asRound(id) || (id.startsWith('fact:') && !!factQuestion(id)) || !!parseDegreeItem(id) || !!chordShapeOf(id) || !!patternOf(id) || !!asEarRound(id)
   || (id.startsWith('chord-ear:') && !!earSet(id.slice(10)));
 
 // Today's saved session, or null if there isn't one for today.
@@ -288,6 +291,8 @@ export function runReview(el, { onExit }) {
     ui.msg(''); ui.tools(''); ui.choices('');
     $('#rv-kind').textContent = KIND[id.split(':')[0]] || '';
     paintTop();
+    const extra = extraRound(id);
+    if (extra) { if (droneOn()) droneStop(); current = extra.round(ui, id); return; }
     if (id.startsWith('fact:')) { if (droneOn()) droneStop(); current = factRound(ui, id); return; }
     if (parseDegreeItem(id)) { if (droneOn()) droneStop(); current = degreeRound(ui, id); return; }
     if (chordShapeOf(id)) { if (droneOn()) droneStop(); current = chordShapeRound(ui, id); return; }
