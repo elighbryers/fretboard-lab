@@ -31,3 +31,5 @@ import './steps.js';
 import { registerPath } from '../lessons/index.js';
 import { PIANO_LEVELS } from './lessons/index.js';
 registerPath('piano', PIANO_LEVELS);
+import './review.js';
+import './progress.js';

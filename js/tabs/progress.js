@@ -11,7 +11,7 @@ import { hashFor } from '../router.js';
 import { esc } from '../ui.js';
 import { tuningOf, itemNum } from '../instruments.js';
 import { micSettingsHTML, wireMicSettings } from '../mic.js';
-import { registeredList } from '../registry.js';
+import { registeredList, registered } from '../registry.js';
 import { midiSettingsHTML, wireMidiSettings } from '../midi.js';
 
 let el, fb, pending = null, resizeTimer = null;
@@ -84,6 +84,9 @@ export default {
 
     fb = new Fretboard($('#p-board'), { mode: 'tap', view: [0, 12], labels: 'none', playOnTap: false,
       ariaLabel: 'Heat map of note finder accuracy', onTap: ({ s, f }) => this.boardNote(s, f) });
+
+    // Piano and drums have no neck: their own heat maps are in their Progress sections.
+    if (registered('noNeck')) el.querySelectorAll('#p-board, #p-board-note, #p-weak .heat-key, #p-weak > .sub').forEach(x => { x.hidden = true; });
 
     // Tap or hover any chart mark to read its value under the chart.
     const tip = e => {
