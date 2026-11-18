@@ -17,6 +17,11 @@ export const LEVELS = [
   { title: 'Improvising', blurb: 'Pentatonic positions, landing on chord tones, phrasing and the blues.', level: level6 }
 ];
 
+// Each instrument's Learn path. LEVELS above is guitar's; bass, piano and drums get theirs
+// later, built from the same theory cards (js/lessons/cards.js) with their own See/Try/Play steps.
+const PATHS = { guitar: LEVELS };
+export const levelsFor = instrument => PATHS[instrument] || [];
+
 // Lessons in unlock order for a level, with the challenge last.
 export const nodesOf = level => [...level.lessons, level.challenge];
 

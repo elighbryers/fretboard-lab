@@ -1,10 +1,10 @@
 // Learn tab (home): today's review, the path map, the lesson player at
 // #learn?lesson=<id>, the daily review at #learn?review=1 and the placement
 // quiz at #learn?placement=1.
-import { LEVELS, nodesOf, findLesson } from '../lessons/index.js';
+import { LEVELS, nodesOf, findLesson, levelsFor } from '../lessons/index.js';
 import { runLesson } from '../lesson-player.js';
 import { runPlacement } from '../placement.js';
-import { getLesson } from '../storage.js';
+import { getLesson, getInstrument, INSTRUMENTS } from '../storage.js';
 import { levelOpen, levelDone, nodeOpen, nextUp } from '../path.js';
 import { go } from '../router.js';
 import { runReview, reviewCardHTML, startReview, planToday } from '../review-screen.js';
@@ -14,7 +14,20 @@ import { findSkill, renderSkill, skillRowHTML } from '../skills.js';
 
 let el, cleanup = null;
 
+// An instrument whose lessons aren't written yet.
+function renderComingSoon() {
+  const name = INSTRUMENTS.find(i => i.id === getInstrument())?.name || 'This instrument';
+  el.innerHTML = `
+    <h2>Learn</h2>
+    <div class="card coming-soon">
+      <h3>${esc(name)} lessons are coming soon</h3>
+      <p class="muted">Your streak, practice log and the theory you've learned carry over.
+        Switch back to Guitar under <a href="#progress">Progress → Settings</a> to keep going.</p>
+    </div>`;
+}
+
 function renderMap() {
+  if (!levelsFor(getInstrument()).length) return renderComingSoon();
   const up = nextUp();
   const anyDone = LEVELS.some(L => L.level && nodesOf(L.level).some(n => getLesson(n.id).completed));
   const label = (L, n) => (n.challenge ? n.title : `Lesson ${nodesOf(L.level).indexOf(n) + 1}`);

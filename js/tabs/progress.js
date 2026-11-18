@@ -2,7 +2,7 @@
 // All numbers come from js/stats.js; charts are plain SVG from js/charts.js.
 import { NOTES, midiAt, pcOf, TUNINGS } from '../theory.js';
 import { Fretboard } from '../fretboard.js';
-import { exportData, readExport, importData, resetAll, seeMilestones, today, getSettings, setSetting, getDays, allTempos } from '../storage.js';
+import { exportData, readExport, importData, resetAll, seeMilestones, today, getSettings, setSetting, getDays, allTempos, INSTRUMENTS, getInstrument, setInstrument } from '../storage.js';
 import { storagePersisted, isStandalone } from '../pwa.js';
 import { glance, dailyMinutes, weeklyAccuracy, calendar, weakest, noteStats, confusedPairs, drillStats, tabStats,
   checkMilestones, fmtMin, fmtDay } from '../stats.js';
@@ -50,6 +50,15 @@ export default {
       <section class="p-card"><h3>Play-along tabs</h3><div id="p-tabs"></div></section>
       <section class="p-card"><h3>Clean tempo and chord changes</h3><p class="muted sub">The fastest you've played each exercise cleanly (next time it starts a little below this), and your best one-minute chord changes.</p><div id="p-tempos"></div></section>
       <section class="p-card"><h3>Milestones</h3><div class="badges" id="p-badges"></div></section>
+      <section class="p-card" id="p-settings"><h3>Settings</h3>
+        <fieldset class="instrument-pick"><legend>Instrument</legend>
+          ${INSTRUMENTS.map(i => `<label class="${i.ready ? '' : 'soon'}"><input type="radio" name="p-instrument" value="${i.id}"
+            ${i.id === getInstrument() ? 'checked' : ''} ${i.ready || i.id === getInstrument() ? '' : 'disabled'}>
+            ${esc(i.name)}${i.ready ? '' : ' <span class="muted">· coming soon</span>'}</label>`).join('')}
+        </fieldset>
+        <p class="muted small">Lessons, the fretboard heat map, placement and clean tempos are kept separately for each
+          instrument. The theory you've learned, your streak and the practice log are shared.</p>
+      </section>
       <section class="p-card"><h3>Your data</h3>
         <p class="muted sub">Progress is saved in this browser only. Export it to keep a copy or move it to another device.</p>
         <p class="export-status" id="p-export-status"></p>
@@ -76,6 +85,8 @@ export default {
     el.addEventListener('click', tip);
     el.addEventListener('mouseover', tip);
 
+    // Switching instruments swaps which lessons, heat map and tempos every tab shows, so reload them all.
+    el.querySelector('.instrument-pick').onchange = e => { setInstrument(e.target.value); location.reload(); };
     $('#p-export').onclick = () => this.exportNow();
     this.exportNow = () => {
       setSetting('lastExport', Date.now());  // first, so the file carries its own export date
