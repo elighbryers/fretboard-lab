@@ -2,14 +2,8 @@
 
 Branch: `instruments` (from `main` at f6d7ccd). This file is updated with every commit.
 
-## ⚠️ Read first: the branch could not be pushed
-
-GitHub refused every push from this session: *"Claude doesn't have GitHub access to
-elighbryers/fretboard-lab for your organization"* (HTTP 403). Reading and cloning worked; writing did
-not. Every section was still committed locally on `instruments`, and each push was retried after each
-commit. If the pushes kept failing, the pull request could not be opened either. To fix it for next
-time, reconnect GitHub at https://claude.ai/connect-github and make sure the Claude GitHub App is
-installed on the repository.
+Note: the very first test push (before any work) was refused with HTTP 403 ("Claude doesn't have
+GitHub access"), but pushes worked from the first real commit on, so every section was pushed.
 
 ## 1. Summary
 

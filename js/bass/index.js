@@ -6,3 +6,5 @@ import fretboardPanel from './fretboard-panel.js';
 register('fretboardPanel', fretboardPanel);
 const foot = document.querySelector('footer');
 if (foot) foot.textContent = 'Bass · 20 frets';
+import { useBassSound } from './sound.js';
+useBassSound();

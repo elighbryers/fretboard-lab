@@ -60,6 +60,11 @@ function pluckBuffer(midi) {
   return cache[midi] = buf;
 }
 
+// Another instrument's sound (bass, piano) replaces the guitar pluck for every note the
+// app plays: setVoice((midi, t, volume, out) => t). Guitar never sets one.
+let voice = null;
+export const setVoice = fn => { voice = fn; };
+
 // Play a note `when` seconds from now. Returns the audio-clock time it sounds at.
 export function pluck(midi, when = 0) {
   const c = context();
@@ -71,6 +76,7 @@ export function pluck(midi, when = 0) {
 export function pluckAt(midi, t, volume = 1) {
   const c = context();
   if (!c) return 0;
+  if (voice) return voice(midi, t, volume, master) ?? t;
   const src = c.createBufferSource(), g = c.createGain();
   src.buffer = pluckBuffer(midi);
   g.gain.value = 0.45 * volume;
