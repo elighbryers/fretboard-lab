@@ -50,7 +50,7 @@ export const INSTRUMENTS = [
   { id: 'guitar', name: 'Guitar', ready: true },
   { id: 'bass', name: 'Bass', ready: true },
   { id: 'piano', name: 'Piano', ready: true },
-  { id: 'drums', name: 'Drums', ready: false }
+  { id: 'drums', name: 'Drums', ready: true }
 ];
 // Items tied to one instrument's neck, keys or sticks; every other item is shared theory.
 // note: a spot on a neck, chordshape: a guitar chord shape, key: a piano key, staff: a staff note

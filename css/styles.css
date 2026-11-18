@@ -740,3 +740,18 @@ button.small { padding: 6px 10px; font-size: 13px; min-height: 36px }
 .sh-cell { min-width: 40px; padding: 6px 4px; text-align: center; border-radius: 6px; font-size: 12px; color: #fff; border: 1px solid var(--line) }
 .sh-cell.none { background: var(--panel2); color: var(--muted) }
 .p-table { width: 100%; border-collapse: collapse; font-size: 14px } .p-table td, .p-table th { padding: 6px; border-bottom: 1px solid var(--line); text-align: left }
+
+/* ---------- drums ---------- */
+.kit { display: grid; gap: 8px; margin: 10px 0 }
+.kit-row { display: flex; gap: 8px; justify-content: center }
+.kit.lefty .kit-row { flex-direction: row-reverse }
+.pad { flex: 1 1 0; min-height: 64px; max-width: 160px; border-radius: 50% / 40%; display: grid; place-items: center; gap: 2px; padding: 6px; position: relative; touch-action: none }
+.pad b { font-size: 13px }
+.pad kbd { font-size: 10px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px }
+@media (pointer: coarse) { .pad kbd { display: none } }
+.pad.flash { animation: padflash .15s ease-out }
+.pad-kick { min-height: 84px }
+.limb { font-size: 11px; font-weight: 700; border-radius: 99px; padding: 0 6px; border: 1px solid currentColor }
+.limb-R { color: var(--blue) } .limb-L { color: var(--pink) } .limb-RF { color: var(--deg-fifth) } .limb-LF { color: var(--grey-text) }
+#dk-staff .now, #dk-staff .now path { fill: #1565C0 }
+.legend-box { margin: 8px 0 } .legend-box ul { margin: 6px 0; padding-left: 18px; font-size: 14px }

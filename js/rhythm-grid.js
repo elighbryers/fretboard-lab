@@ -61,6 +61,8 @@ export function rhythmGrid(host, { beats = 4, sub = 4, rows, onChange, labels = 
       timers.push(setTimeout(() => host.querySelectorAll('.now').forEach(x => x.classList.remove('now')), (end - c.currentTime) * 1000));
       return end;
     },
+    // Light one column (an outside clock drives the playhead); -1 clears.
+    light(i) { host.querySelectorAll('.rg-cell.now, .rg-counts .now').forEach(x => x.classList.remove('now')); if (i < 0) return; host.querySelectorAll(`[data-step="${i}"]`).forEach(x => x.classList.add('now')); host.querySelectorAll('.rg-counts span')[i]?.classList.add('now'); },
     stop() { timers.forEach(clearTimeout); timers = []; host.querySelectorAll('.now').forEach(x => x.classList.remove('now')); }
   };
   return api;
